@@ -241,7 +241,7 @@ pre-commit install
 format-docstring my_module.py
 
 # Format all Python files in a directory with custom line length
-format-docstring --line-length 88 src/
+format-docstring --line-length 72 src/
 
 # Format Jupyter notebooks excluding certain directories
 format-docstring-jupyter --exclude "\.git|\.venv|__pycache__" notebooks/

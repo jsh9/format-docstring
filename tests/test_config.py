@@ -72,7 +72,7 @@ def test_load_config_from_file_with_config(tmp_path: Path) -> None:
     config_file = tmp_path / 'pyproject.toml'
     config_content = """
 [tool.format_docstring]
-line_length = 88
+line_length = 72
 docstring_style = "numpy"
 exclude = "\\\\.git|\\\\.venv"
 """
@@ -80,7 +80,7 @@ exclude = "\\\\.git|\\\\.venv"
 
     result = load_config_from_file(config_file)
     assert result == {
-        'line_length': 88,
+        'line_length': 72,
         'docstring_style': 'numpy',
         'exclude': '\\.git|\\.venv',
     }
