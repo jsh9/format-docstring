@@ -56,10 +56,10 @@ def test_load_config_from_file_no_tool_section(tmp_path: Path) -> None:
     assert result == {}
 
 
-def test_load_config_from_file_no_docstring_formatter_section(
+def test_load_config_from_file_no_format_docstring_section(
         tmp_path: Path,
 ) -> None:
-    """Test loading config from a file without docstring_formatter section."""
+    """Test loading config from a file without format_docstring section."""
     config_file = tmp_path / 'pyproject.toml'
     config_file.write_text('[tool.other]\nvalue = "test"\n')
 
