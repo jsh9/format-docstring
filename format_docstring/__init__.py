@@ -2,4 +2,4 @@
 
 import importlib.metadata
 
-__version__ = importlib.metadata.version('docstring-formatter')
+__version__ = importlib.metadata.version('format-docstring')

@@ -142,8 +142,7 @@ def load_config_from_file(config_file: Path) -> dict[str, Any]:
 
         # Normalize keys: replace hyphens with underscores
         return {
-            k.replace('-', '_'): v
-            for k, v in format_docstring_section.items()
+            k.replace('-', '_'): v for k, v in format_docstring_section.items()
         }
     except Exception:
         # If there's any error reading/parsing the file, return empty config

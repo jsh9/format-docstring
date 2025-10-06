@@ -42,10 +42,9 @@ code in this repository.
 
 1. **Entry Points**: Two main CLI tools defined in `pyproject.toml`:
 
-   - `format-docstring` → `format_docstring.main_py:main` - For Python
-     files
-   - `format-docstring-jupyter` → `format_docstring.main_jupyter:main` -
-     For Jupyter notebooks
+   - `format-docstring` → `format_docstring.main_py:main` - For Python files
+   - `format-docstring-jupyter` → `format_docstring.main_jupyter:main` - For
+     Jupyter notebooks
 
 2. **Base Architecture**:
 
