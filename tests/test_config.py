@@ -4,12 +4,12 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from docstring_formatter.config import (
+from format_docstring.config import (
     _find_common_parent,
     find_config_file,
     load_config_from_file,
 )
-from docstring_formatter.main_py import main as cli_main_py
+from format_docstring.main_py import main as cli_main_py
 
 
 def test_find_common_parent_single_file() -> None:
@@ -71,7 +71,7 @@ def test_load_config_from_file_with_config(tmp_path: Path) -> None:
     """Test loading config from a valid config file."""
     config_file = tmp_path / 'pyproject.toml'
     config_content = """
-[tool.docstring_formatter]
+[tool.format_docstring]
 line_length = 88
 docstring_style = "numpy"
 exclude = "\\\\.git|\\\\.venv"
@@ -90,7 +90,7 @@ def test_load_config_with_hyphens(tmp_path: Path) -> None:
     """Test that hyphens in config keys are converted to underscores."""
     config_file = tmp_path / 'pyproject.toml'
     config_content = """
-[tool.docstring_formatter]
+[tool.format_docstring]
 line-length = 100
 """
     config_file.write_text(config_content)
@@ -141,7 +141,7 @@ def test_cli_with_config_file(tmp_path: Path) -> None:
     # Create a config file
     config_file = tmp_path / 'pyproject.toml'
     config_content = """
-[tool.docstring_formatter]
+[tool.format_docstring]
 line_length = 50
 """
     config_file.write_text(config_content)
@@ -173,7 +173,7 @@ def test_cli_config_file_auto_discovery(tmp_path: Path) -> None:
     # Create a config file in the parent directory
     config_file = tmp_path / 'pyproject.toml'
     config_content = """
-[tool.docstring_formatter]
+[tool.format_docstring]
 line_length = 50
 """
     config_file.write_text(config_content)
@@ -203,7 +203,7 @@ def test_cli_option_overrides_config_file(tmp_path: Path) -> None:
     # Create a config file with line_length = 50
     config_file = tmp_path / 'pyproject.toml'
     config_content = """
-[tool.docstring_formatter]
+[tool.format_docstring]
 line_length = 50
 """
     config_file.write_text(config_content)
@@ -233,7 +233,7 @@ def test_config_with_exclude_pattern(tmp_path: Path) -> None:
     """Test config file with exclude pattern."""
     config_file = tmp_path / 'pyproject.toml'
     config_content = """
-[tool.docstring_formatter]
+[tool.format_docstring]
 exclude = "\\\\.git|\\\\.venv|test_.*"
 """
     config_file.write_text(config_content)

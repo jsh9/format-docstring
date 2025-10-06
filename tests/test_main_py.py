@@ -3,7 +3,7 @@ from shutil import copy2
 
 from click.testing import CliRunner
 
-from docstring_formatter.main_py import main as cli_main_py
+from format_docstring.main_py import main as cli_main_py
 
 
 def test_integration_cli_py(tmp_path: Path) -> None:

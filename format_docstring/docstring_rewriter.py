@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import ast
 
-from docstring_formatter.line_wrap_google import wrap_docstring_google
-from docstring_formatter.line_wrap_numpy import (
+from format_docstring.line_wrap_google import wrap_docstring_google
+from format_docstring.line_wrap_numpy import (
     handle_single_line_docstring_that_is_a_bit_too_long,
     wrap_docstring_numpy,
 )

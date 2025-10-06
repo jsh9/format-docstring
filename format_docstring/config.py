@@ -1,4 +1,4 @@
-"""Configuration file parsing for docstring-formatter."""
+"""Configuration file parsing for format-docstring."""
 
 from __future__ import annotations
 
@@ -135,15 +135,15 @@ def load_config_from_file(config_file: Path) -> dict[str, Any]:
         with open(config_file, 'rb') as fp:
             raw_config = tomllib.load(fp)
 
-        # Extract [tool.docstring_formatter] section
-        docstring_formatter_section = raw_config.get('tool', {}).get(
-            'docstring_formatter', {}
+        # Extract [tool.format_docstring] section
+        format_docstring_section = raw_config.get('tool', {}).get(
+            'format_docstring', {}
         )
 
         # Normalize keys: replace hyphens with underscores
         return {
             k.replace('-', '_'): v
-            for k, v in docstring_formatter_section.items()
+            for k, v in format_docstring_section.items()
         }
     except Exception:
         # If there's any error reading/parsing the file, return empty config

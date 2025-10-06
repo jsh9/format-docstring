@@ -4,7 +4,7 @@ from shutil import copy2
 
 from click.testing import CliRunner
 
-from docstring_formatter.main_jupyter import main as cli_main_ipynb
+from format_docstring.main_jupyter import main as cli_main_ipynb
 
 
 def test_integration_cli_ipynb(tmp_path: Path) -> None:

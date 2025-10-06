@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from docstring_formatter.line_wrap_utils import (
+from format_docstring.line_wrap_utils import (
     add_leading_indent,
     collect_to_temp_output,
     finalize_lines,

@@ -14,10 +14,10 @@ code in this repository.
 
 ### Linting and Formatting
 
-- `mypy docstring_formatter/` - Type checking
-- `muff check --fix --config=muff.toml docstring_formatter tests` - Lint and
+- `mypy format_docstring/` - Type checking
+- `muff check --fix --config=muff.toml format_docstring tests` - Lint and
   auto-fix with muff
-- `muff format --diff --config=muff.toml docstring_formatter tests` - Show
+- `muff format --diff --config=muff.toml format_docstring tests` - Show
   formatting differences (use `--diff` to preview)
 - `flake8 --select CLB,PAR,N400 .` - Additional linting checks
 - `pre-commit run -a` - Run all pre-commit hooks
@@ -33,8 +33,8 @@ code in this repository.
 ### Building and Installation
 
 - `pip install -e .` - Install in development mode
-- `docstring-formatter --help` - Run the CLI tool
-- `docstring-formatter-jupyter --help` - Run the Jupyter notebook version
+- `format-docstring --help` - Run the CLI tool
+- `format-docstring-jupyter --help` - Run the Jupyter notebook version
 
 ## Code Architecture
 
@@ -42,9 +42,9 @@ code in this repository.
 
 1. **Entry Points**: Two main CLI tools defined in `pyproject.toml`:
 
-   - `docstring-formatter` → `docstring_formatter.main_py:main` - For Python
+   - `format-docstring` → `format_docstring.main_py:main` - For Python
      files
-   - `docstring-formatter-jupyter` → `docstring_formatter.main_jupyter:main` -
+   - `format-docstring-jupyter` → `format_docstring.main_jupyter:main` -
      For Jupyter notebooks
 
 2. **Base Architecture**:
@@ -64,7 +64,7 @@ code in this repository.
 4. **Configuration System**:
 
    - `config.py` - Configuration file parsing and management
-   - Loads settings from `pyproject.toml` ([tool.docstring_formatter] section)
+   - Loads settings from `pyproject.toml` ([tool.format_docstring] section)
    - Auto-discovers config file by walking up directory tree from target paths
    - CLI options override config file settings
    - Uses `tomllib` (Python 3.11+) or `tomli` (Python 3.10) for TOML parsing
@@ -84,7 +84,7 @@ code in this repository.
 
 ### Configuration
 
-- **Config File**: `pyproject.toml` with `[tool.docstring_formatter]` section
+- **Config File**: `pyproject.toml` with `[tool.format_docstring]` section
   - `line_length` (int): Maximum line length for wrapping (default: 79)
   - `docstring_style` (str): `"numpy"` or `"google"` (default: `"numpy"`)
   - `exclude` (str): Regex pattern to exclude files/directories
@@ -148,5 +148,5 @@ code in this repository.
 
 Available as pre-commit hooks (see `.pre-commit-hooks.yaml`):
 
-- `docstring-formatter` - For `.py` files
-- `docstring-formatter-jupyter` - For `.ipynb` files
+- `format-docstring` - For `.py` files
+- `format-docstring-jupyter` - For `.ipynb` files

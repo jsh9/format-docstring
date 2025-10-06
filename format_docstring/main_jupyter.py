@@ -13,10 +13,10 @@ from jupyter_notebook_parser import (
     reconstruct_source,
 )
 
-import docstring_formatter.docstring_rewriter as doc_rewriter
-from docstring_formatter import __version__
-from docstring_formatter.base_fixer import BaseFixer
-from docstring_formatter.config import inject_config_from_file
+import format_docstring.docstring_rewriter as doc_rewriter
+from format_docstring import __version__
+from format_docstring.base_fixer import BaseFixer
+from format_docstring.config import inject_config_from_file
 
 
 @click.command()

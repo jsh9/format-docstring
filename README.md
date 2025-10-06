@@ -1,4 +1,4 @@
-# docstring-formatter
+# format-docstring
 
 A Python formatter to automatically format numpy-style docstrings.
 
@@ -25,7 +25,7 @@ A Python formatter to automatically format numpy-style docstrings.
 
 ## 1. Overview
 
-`docstring-formatter` is a tool that automatically formats and wraps docstring
+`format-docstring` is a tool that automatically formats and wraps docstring
 content in Python files and Jupyter notebooks.
 
 It focuses exclusively on docstring formatting while leaving your code
@@ -38,10 +38,10 @@ your specified line length.
 
 ```diff
 def example_function(param1, param2, option='default'):
--    """This summary line is intentionally very long and exceeds the line length limit to demonstrate that docstring-formatter will automatically wrap it across multiple lines while preserving code structure.
+-    """This summary line is intentionally very long and exceeds the line length limit to demonstrate that format-docstring will automatically wrap it across multiple lines while preserving code structure.
 +    """
 +    This summary line is intentionally very long and exceeds the line length
-+    limit to demonstrate that docstring-formatter will automatically wrap it
++    limit to demonstrate that format-docstring will automatically wrap it
 +    across multiple lines while preserving code structure.
 
     Parameters
@@ -166,7 +166,7 @@ def example_function(arg1, arg2, arg3, arg4):
 ## 3. Installation
 
 ```bash
-pip install docstring-formatter
+pip install format-docstring
 ```
 
 ## 4. Usage
@@ -176,31 +176,31 @@ pip install docstring-formatter
 **For Python files:**
 
 ```bash
-docstring-formatter path/to/file.py
-docstring-formatter path/to/directory/
+format-docstring path/to/file.py
+format-docstring path/to/directory/
 ```
 
 **For Jupyter notebooks:**
 
 ```bash
-docstring-formatter-jupyter path/to/notebook.ipynb
-docstring-formatter-jupyter path/to/directory/
+format-docstring-jupyter path/to/notebook.ipynb
+format-docstring-jupyter path/to/directory/
 ```
 
 ### 4.2. Pre-commit Hook
 
-To use `docstring-formatter` as a pre-commit hook, add this to your
+To use `format-docstring` as a pre-commit hook, add this to your
 `.pre-commit-config.yaml`:
 
 ```yaml
 repos:
-  - repo: https://github.com/jsh9/docstring-formatter
+  - repo: https://github.com/jsh9/format-docstring
     rev: <LATEST_VERSION>
     hooks:
-      - id: docstring-formatter
+      - id: format-docstring
         name: Format docstrings in .py files
         args: [--line-length=79]
-      - id: docstring-formatter-jupyter
+      - id: format-docstring-jupyter
         name: Format docstrings in .ipynb files
         args: [--line-length=79]
 ```
@@ -231,19 +231,19 @@ pre-commit install
 
 ```bash
 # Format a single file with default settings
-docstring-formatter my_module.py
+format-docstring my_module.py
 
 # Format all Python files in a directory with custom line length
-docstring-formatter --line-length 88 src/
+format-docstring --line-length 88 src/
 
 # Format Jupyter notebooks excluding certain directories
-docstring-formatter-jupyter --exclude "\.git|\.venv|__pycache__" notebooks/
+format-docstring-jupyter --exclude "\.git|\.venv|__pycache__" notebooks/
 
 # Use a specific config file
-docstring-formatter --config path/to/pyproject.toml src/
+format-docstring --config path/to/pyproject.toml src/
 
 # CLI options override config file settings
-docstring-formatter --config pyproject.toml --line-length 100 src/
+format-docstring --config pyproject.toml --line-length 100 src/
 ```
 
 ### 5.3. `pyproject.toml` Configuration
@@ -252,8 +252,8 @@ You can configure default values in your `pyproject.toml`. CLI arguments will
 override these settings:
 
 ```toml
-[tool.docstring_formatter]
-line_length = 88
+[tool.format_docstring]
+line_length = 79
 docstring_style = "numpy"
 exclude = "\\.git|\\.venv|__pycache__"
 ```

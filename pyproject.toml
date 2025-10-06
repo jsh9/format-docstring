@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "setuptools-scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "docstring-formatter"
+name = "format-docstring"
 version = "0.1.0"
 description = "A Python formatter to wrap/adjust docstring lines"
 readme = "README.md"
@@ -44,8 +44,8 @@ Repository = "https://github.com/your/repo.git"
 Issues = "https://github.com/your/repo/issues"
 
 [project.scripts]
-docstring-formatter = "docstring_formatter.main_py:main"
-docstring-formatter-jupyter = "docstring_formatter.main_jupyter:main"
+format-docstring = "format_docstring.main_py:main"
+format-docstring-jupyter = "format_docstring.main_jupyter:main"
 
 [tool.setuptools.packages.find]
 exclude = ["tests*", "testing*"]
@@ -61,7 +61,7 @@ module = "jupyter_notebook_parser"
 ignore_missing_imports = true
 
 # Example configuration
-# [tool.docstring_formatter]
+# [tool.format_docstring]
 # line_length = 88
 # docstring_style = "numpy"
 # exclude = "\\.git|\\.venv|__pycache__"

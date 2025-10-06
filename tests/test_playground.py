@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from docstring_formatter import docstring_rewriter
+from format_docstring import docstring_rewriter
 
 
 def test_playground_empty_file_formats_to_empty() -> None:

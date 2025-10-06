@@ -5,10 +5,10 @@ from pathlib import Path
 
 import click
 
-import docstring_formatter.docstring_rewriter as rewriter
-from docstring_formatter import __version__
-from docstring_formatter.base_fixer import BaseFixer
-from docstring_formatter.config import inject_config_from_file
+import format_docstring.docstring_rewriter as rewriter
+from format_docstring import __version__
+from format_docstring.base_fixer import BaseFixer
+from format_docstring.config import inject_config_from_file
 
 
 @click.command()

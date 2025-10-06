@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from docstring_formatter.line_wrap_utils import (
+from format_docstring.line_wrap_utils import (
     add_leading_indent,
     finalize_lines,
     fix_typos_in_section_headings,

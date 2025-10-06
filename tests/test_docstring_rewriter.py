@@ -4,8 +4,8 @@ from textwrap import dedent
 
 import pytest
 
-import docstring_formatter.docstring_rewriter
-from docstring_formatter import docstring_rewriter
+import format_docstring.docstring_rewriter
+from format_docstring import docstring_rewriter
 
 
 @pytest.mark.parametrize(
@@ -217,7 +217,7 @@ def test_wrap_docstring_numpy_parameters_and_examples() -> None:
         """  # noqa: E501
     ).strip('\n')
 
-    wrapped = docstring_formatter.docstring_rewriter.wrap_docstring(
+    wrapped = format_docstring.docstring_rewriter.wrap_docstring(
         doc, line_length=79
     )
 

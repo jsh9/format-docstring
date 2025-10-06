@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from docstring_formatter.docstring_rewriter import wrap_docstring
-from docstring_formatter.line_wrap_numpy import (
+from format_docstring.docstring_rewriter import wrap_docstring
+from format_docstring.line_wrap_numpy import (
     _fix_colon_spacing,
     _get_section_heading_title,
     _is_hyphen_underline,
