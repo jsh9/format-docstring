@@ -1,0 +1,42 @@
+LINE_LENGTH: 79
+
+**********
+Parameters
+----------
+arg1 : int default 10
+    First argument with space-separated default.
+arg2 : str, default "hello"
+    Second argument with comma-separated default.
+arg3 : bool, default is True
+    Third argument with "default is" format.
+arg4 : float default: 3.14
+    Fourth argument with colon-based default.
+arg5 : list[int], default:[]
+    Fifth argument with colon and no space.
+arg6 : dict[str, int] default  :   {}
+    Sixth argument with irregular spacing around colon.
+arg7 : str default is "world"
+    Seventh argument with "default is" and no comma.
+arg8 : int, default=42
+    Eighth argument already in correct format.
+
+**********
+
+Parameters
+----------
+arg1 : int, default=10
+    First argument with space-separated default.
+arg2 : str, default="hello"
+    Second argument with comma-separated default.
+arg3 : bool, default=True
+    Third argument with "default is" format.
+arg4 : float, default=3.14
+    Fourth argument with colon-based default.
+arg5 : list[int], default=[]
+    Fifth argument with colon and no space.
+arg6 : dict[str, int], default={}
+    Sixth argument with irregular spacing around colon.
+arg7 : str, default="world"
+    Seventh argument with "default is" and no comma.
+arg8 : int, default=42
+    Eighth argument already in correct format.

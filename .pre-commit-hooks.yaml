@@ -1,0 +1,13 @@
+---
+- id: docstring-formatter
+  name: Wrap long docstring lines (in .py files)
+  description: Python formatter CLI for docstring line wrapping in Python files.
+  entry: docstring-formatter
+  language: python
+  types: [python]
+- id: docstring-formatter-jupyter
+  name: Wrap long docstring lines (in .ipynb files)
+  description: Python formatter for docstring line wrapping in Jupyter notebooks.
+  entry: docstring-formatter-jupyter
+  language: python
+  files: ^.*\.ipynb$

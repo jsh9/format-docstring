@@ -1,0 +1,69 @@
+LINE_LENGTH: 79
+
+**********
+
+def container():
+    def over_indented_case():
+        """
+            This is an over-indented docstring line that is intentionally made extremely long to exceed the configured line length and trigger wrapping behavior within the formatter.
+            """
+        pass
+
+    def under_indented_case():
+        """
+      This is an under-indented docstring line that is intentionally made extremely long to exceed the configured line length and trigger wrapping behavior within the formatter.
+      """
+        pass
+
+    def mixed_case():
+        """
+          This is an under-indented first line that is intentionally very long to force the formatter to wrap it across multiple lines while preserving the existing indentation on continuation lines.
+            This line starts with more indentation than the parent and is also intentionally verbose to ensure that it exceeds the configured line length and therefore must be wrapped by the formatter accordingly.
+          """
+        def inner():
+            """
+                This inner docstring begins over-indented and contains a very long sentence that should wrap using the same over-indentation on continuation lines for consistency.
+              This line is under-indented relative to the parent and is also made sufficiently long so that wrapping is required according to the current line length configuration.
+              """
+            pass
+        pass
+
+**********
+
+def container():
+    def over_indented_case():
+        """
+            This is an over-indented docstring line that is intentionally made
+            extremely long to exceed the configured line length and trigger
+            wrapping behavior within the formatter.
+        """
+        pass
+
+    def under_indented_case():
+        """
+      This is an under-indented docstring line that is intentionally made
+      extremely long to exceed the configured line length and trigger wrapping
+      behavior within the formatter.
+        """
+        pass
+
+    def mixed_case():
+        """
+          This is an under-indented first line that is intentionally very long
+          to force the formatter to wrap it across multiple lines while
+          preserving the existing indentation on continuation lines. This line
+          starts with more indentation than the parent and is also
+          intentionally verbose to ensure that it exceeds the configured line
+          length and therefore must be wrapped by the formatter accordingly.
+        """
+        def inner():
+            """
+                This inner docstring begins over-indented and contains a very
+                long sentence that should wrap using the same over-indentation
+                on continuation lines for consistency. This line is
+                under-indented relative to the parent and is also made
+                sufficiently long so that wrapping is required according to the
+                current line length configuration.
+            """
+            pass
+        pass

@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools-scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docstring-formatter"
+version = "0.1.0"
+description = "A Python formatter to wrap/adjust docstring lines"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "jsh9", email = "25124332+jsh9@users.noreply.github.com"}
+]
+maintainers = [
+    {name = "jsh9", email = "25124332+jsh9@users.noreply.github.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Quality Assurance",
+]
+keywords = ["formatter", "code-style", "docstring", "python"]
+requires-python = ">=3.10"
+dependencies = [
+    "jupyter-notebook-parser>=0.1.4",
+    "click>=8.0",
+    "docstring_parser_fork>=0.0.14",
+    "tomli>=1.1.0; python_version<'3.11'",
+]
+
+[project.urls]
+Homepage = "https://github.com/your/repo"
+Repository = "https://github.com/your/repo.git"
+Issues = "https://github.com/your/repo/issues"
+
+[project.scripts]
+docstring-formatter = "docstring_formatter.main_py:main"
+docstring-formatter-jupyter = "docstring_formatter.main_jupyter:main"
+
+[tool.setuptools.packages.find]
+exclude = ["tests*", "testing*"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = "jupyter_notebook_parser"
+ignore_missing_imports = true
+
+# Example configuration
+# [tool.docstring_formatter]
+# line_length = 88
+# docstring_style = "numpy"
+# exclude = "\\.git|\\.venv|__pycache__"

@@ -1,0 +1,103 @@
+LINE_LENGTH: 79
+
+**********
+def example_function(arg1, arg2, arg3, arg4, arg5):
+    """
+    Example function demonstrating default value standardization.
+
+    Parameters
+    ----------
+    arg1 : int default 10
+        First argument with space-separated default.
+    arg2 : str, default "hello"
+        Second argument with comma-separated default.
+    arg3 : bool, default is True
+        Third argument with "default is" format.
+    arg4 : float default: 3.14
+        Fourth argument with colon-based default.
+    arg5 : list[int], default:[]
+        Fifth argument with colon and no space.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the processed values.
+    """
+    return {}
+
+
+class ExampleClass:
+    """
+    Example class demonstrating default value standardization in class methods.
+    """
+
+    def method_with_defaults(self, opt1, opt2, opt3):
+        """
+        Method with various default value formats.
+
+        Parameters
+        ----------
+        opt1 : dict[str, int] default  :   {}
+            Option with irregular spacing around colon.
+        opt2 : str default is "world"
+            Option with "default is" and no comma.
+        opt3 : int, default=42
+            Option already in correct format.
+
+        Returns
+        -------
+        bool
+            True if successful.
+        """
+        return True
+
+**********
+def example_function(arg1, arg2, arg3, arg4, arg5):
+    """
+    Example function demonstrating default value standardization.
+
+    Parameters
+    ----------
+    arg1 : int, default=10
+        First argument with space-separated default.
+    arg2 : str, default="hello"
+        Second argument with comma-separated default.
+    arg3 : bool, default=True
+        Third argument with "default is" format.
+    arg4 : float, default=3.14
+        Fourth argument with colon-based default.
+    arg5 : list[int], default=[]
+        Fifth argument with colon and no space.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the processed values.
+    """
+    return {}
+
+
+class ExampleClass:
+    """
+    Example class demonstrating default value standardization in class methods.
+    """
+
+    def method_with_defaults(self, opt1, opt2, opt3):
+        """
+        Method with various default value formats.
+
+        Parameters
+        ----------
+        opt1 : dict[str, int], default={}
+            Option with irregular spacing around colon.
+        opt2 : str, default="world"
+            Option with "default is" and no comma.
+        opt3 : int, default=42
+            Option already in correct format.
+
+        Returns
+        -------
+        bool
+            True if successful.
+        """
+        return True

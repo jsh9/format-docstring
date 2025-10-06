@@ -1,0 +1,30 @@
+LINE_LENGTH: 79
+
+**********
+Parameters
+----------
+arg1: dict[str, list[str]]
+    First argument with missing space before colon.
+arg2 :  dict[str, list[str]]
+    Second argument with extra space after colon.
+arg3:Optional[int]
+    Third argument with no spaces around colon.
+*args: Any
+    Variable positional arguments.
+**kwargs: dict[str, Any]
+    Variable keyword arguments.
+
+**********
+
+Parameters
+----------
+arg1 : dict[str, list[str]]
+    First argument with missing space before colon.
+arg2 : dict[str, list[str]]
+    Second argument with extra space after colon.
+arg3 : Optional[int]
+    Third argument with no spaces around colon.
+*args : Any
+    Variable positional arguments.
+**kwargs : dict[str, Any]
+    Variable keyword arguments.
