@@ -59,9 +59,3 @@ strict = true
 [[tool.mypy.overrides]]
 module = "jupyter_notebook_parser"
 ignore_missing_imports = true
-
-# Example configuration
-# [tool.format_docstring]
-# line_length = 88
-# docstring_style = "numpy"
-# exclude = "\\.git|\\.venv|__pycache__"
