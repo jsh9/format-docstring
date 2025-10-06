@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import textwrap
 
 from format_docstring.line_wrap_utils import (
     add_leading_indent,
@@ -358,7 +359,7 @@ def _standardize_default_value(line: str) -> str:
     return line
 
 
-def handle_single_line_docstring_that_is_a_bit_too_long(
+def handle_single_line_docstring(
         whole_docstring_literal: str | None,
         docstring_content: str,
         docstring_starting_col: int,
@@ -382,6 +383,18 @@ def handle_single_line_docstring_that_is_a_bit_too_long(
         prefix: str = parts[0]
         postfix: str = parts[-1]
         indent: str = ' ' * num_leading_indent
-        return f'{prefix}\n{indent}{docstring_content}\n{indent}{postfix}'
+
+        # We need to wrap `docstring_content` here because single-line
+        # docstrings don't get wrapped anywhere else.
+        tw: textwrap.TextWrapper = textwrap.TextWrapper(
+            width=line_length - num_leading_indent,
+            break_long_words=False,
+            break_on_hyphens=False,
+            replace_whitespace=False,
+            drop_whitespace=True,
+        )
+        wrapped_list: list[str] = tw.wrap(docstring_content)
+        wrapped: str = textwrap.indent('\n'.join(wrapped_list), indent)
+        return f'{prefix}\n{wrapped}\n{indent}{postfix}'
 
     return whole_docstring_literal

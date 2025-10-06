@@ -61,6 +61,12 @@ def func8():
     nf of pf qf rf sf tf uf vf wf xf yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af bf cf df ef ff gf hf if jf kf lf mf"""
     pass
 
+
+def func9():
+    def get_scores(self) -> np.ndarray:
+        """Return entire score array, with 'None' for scores that haven't been calculated."""
+        return self.scores
+
 **********
 
 def func1():
@@ -133,3 +139,12 @@ def func8():
     df ef ff gf hf if jf kf lf mf
     """
     pass
+
+
+def func9():
+    def get_scores(self) -> np.ndarray:
+        """
+        Return entire score array, with 'None' for scores that haven't been
+        calculated.
+        """
+        return self.scores

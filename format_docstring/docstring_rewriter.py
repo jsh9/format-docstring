@@ -4,7 +4,7 @@ import ast
 
 from format_docstring.line_wrap_google import wrap_docstring_google
 from format_docstring.line_wrap_numpy import (
-    handle_single_line_docstring_that_is_a_bit_too_long,
+    handle_single_line_docstring,
     wrap_docstring_numpy,
 )
 
@@ -168,7 +168,7 @@ def build_replacement_docstring(
 
     new_literal: str | None = rebuild_literal(original_literal, wrapped)
 
-    new_literal = handle_single_line_docstring_that_is_a_bit_too_long(
+    new_literal = handle_single_line_docstring(
         whole_docstring_literal=new_literal,
         docstring_content=wrapped,
         docstring_starting_col=val.col_offset,
