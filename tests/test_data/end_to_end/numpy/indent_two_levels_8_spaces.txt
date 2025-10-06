@@ -1,0 +1,22 @@
+LINE_LENGTH: 40
+
+**********
+class ExampleClass:
+    def nested_method(self):
+        """
+        This is an indented paragraph that should be wrapped while preserving exactly eight spaces of indentation on continuation lines as well.
+        """
+        pass
+
+**********
+
+class ExampleClass:
+    def nested_method(self):
+        """
+        This is an indented paragraph
+        that should be wrapped while
+        preserving exactly eight spaces
+        of indentation on continuation
+        lines as well.
+        """
+        pass

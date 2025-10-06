@@ -1,0 +1,28 @@
+LINE_LENGTH: 50
+
+**********
+Parameters
+---
+arg1 : str
+    This is a very long description that should be wrapped even though the underline width is not equal to the title length.
+
+Returns
+-----------
+int
+    Another description that is also long enough to require wrapping across multiple lines within the given width.
+
+**********
+
+Parameters
+----------
+arg1 : str
+    This is a very long description that should be
+    wrapped even though the underline width is not
+    equal to the title length.
+
+Returns
+-------
+int
+    Another description that is also long enough
+    to require wrapping across multiple lines
+    within the given width.

@@ -1,0 +1,23 @@
+LINE_LENGTH: 79
+
+**********
+Parameters
+----------
+arg1 : str
+    First part is
+    pre-wrapped but
+    should not be
+    respected.
+
+    Second part is very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long.
+
+**********
+
+Parameters
+----------
+arg1 : str
+    First part is pre-wrapped but should not be respected.
+
+    Second part is very very very very very very very very very very very very
+    very very very very very very very very very very very very very very very
+    very very very very very very very long.

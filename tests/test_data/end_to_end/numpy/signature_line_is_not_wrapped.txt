@@ -1,0 +1,25 @@
+LINE_LENGTH: 50
+
+**********
+def example_function():
+    """
+    Parameters
+    ----------
+    arg1 : list[str] | None | dict[str, tuple[int, str]], default=3, optional
+        The first argument description is intentionally very long and should be wrapped across multiple lines while keeping indentation.
+    """
+    pass
+
+**********
+
+def example_function():
+    """
+    Parameters
+    ----------
+    arg1 : list[str] | None | dict[str, tuple[int, str]], default=3, optional
+        The first argument description is
+        intentionally very long and should be
+        wrapped across multiple lines while
+        keeping indentation.
+    """
+    pass

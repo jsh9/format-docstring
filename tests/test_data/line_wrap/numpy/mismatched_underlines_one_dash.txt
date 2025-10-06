@@ -1,0 +1,22 @@
+LINE_LENGTH: 79
+
+**********
+Parameters
+-
+arg1 : str
+    This test demonstrates the effect when people do not formatter the docstring correctly, such as using only one dash. Then the whole docstring will be formatted like a mess.
+
+Returns
+-
+int
+    This test demonstrates the effect when people do not formatter the docstring correctly, such as using only one dash. Then the whole docstring will be formatted like a mess.
+
+**********
+
+Parameters - arg1 : str This test demonstrates the effect when people do not
+formatter the docstring correctly, such as using only one dash. Then the whole
+docstring will be formatted like a mess.
+
+Returns - int This test demonstrates the effect when people do not formatter
+the docstring correctly, such as using only one dash. Then the whole docstring
+will be formatted like a mess.

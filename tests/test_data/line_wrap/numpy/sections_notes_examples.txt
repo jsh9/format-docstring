@@ -1,0 +1,66 @@
+LINE_LENGTH: 79
+
+**********
+This summary is a very long sentence intended to exceed the line limit so that we can see how summary wrapping behaves outside of sections.
+
+Parameters
+----------
+arg1 : list[str] | None | int, default=3
+    Description for arg1 that is intentionally verbose to exercise wrapping logic.
+
+Returns
+-------
+int
+    The return value description should also be wrapped accordingly and avoid changing the signature line above.
+
+Notes
+-----
+Notes content that is wordy and far too long for the given line length. It should be wrapped like normal prose.
+
+Examples
+--------
+Here is an example that is very very very very very very very very very very very long
+
+>>> very_long_call_name(with_many, arguments, making, the_line, waaaaaaaaaaaaaaaaaaaay, too, long)
+Here is an example that is very very very very very very very very very very very long
+
+Here is another example:
+```
+very very very very very very very very very very very very very very long code that should stay as is
+```
+
+**********
+
+This summary is a very long sentence intended to exceed the line limit so that
+we can see how summary wrapping behaves outside of sections.
+
+Parameters
+----------
+arg1 : list[str] | None | int, default=3
+    Description for arg1 that is intentionally verbose to exercise wrapping
+    logic.
+
+Returns
+-------
+int
+    The return value description should also be wrapped accordingly and avoid
+    changing the signature line above.
+
+Notes
+-----
+Notes content that is wordy and far too long for the given line length. It
+should be wrapped like normal prose.
+
+Examples
+--------
+Here is an example that is very very very very very very very very very very
+very long
+
+>>> very_long_call_name(with_many, arguments, making, the_line, waaaaaaaaaaaaaaaaaaaay, too, long)
+Here is an example that is very very very very very very very very very very
+very long
+
+Here is another example:
+```
+very very very very very very very very very very very very very very long code that should stay as is
+```
