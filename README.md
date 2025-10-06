@@ -28,9 +28,16 @@ A Python formatter to automatically format numpy-style docstrings.
 `format-docstring` is a tool that automatically formats and wraps docstring
 content in Python files and Jupyter notebooks.
 
-It focuses exclusively on docstring formatting while leaving your code
-unchanged, ensuring that long docstring lines are properly wrapped according to
-your specified line length.
+Compared with [`docformatter`](https://github.com/PyCQA/docformatter) and
+[`pydocstringformatter`](https://github.com/DanielNoord/pydocstringformatter),
+this tool (`format-docstring`) goes further by intelligently wrapping docstring
+contents, fixing common typos, etc.
+
+The formatting that would be done by
+[docformatter](https://github.com/PyCQA/docformatter) and
+[pydocstringformatter](https://github.com/DanielNoord/pydocstringformatter) can
+be readily handled by [Ruff](https://github.com/astral-sh/ruff) or
+[Black](https://github.com/psf/black).
 
 ## 2. Before vs After Examples
 
