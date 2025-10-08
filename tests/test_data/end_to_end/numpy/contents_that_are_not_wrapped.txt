@@ -7,6 +7,7 @@ def func1():
         def func3():
             """
             Below is a formula that should not be wrapped. Here are some more contents that are arbitrary just to make the line length quite long so that we can test how it can be wrapped. This paragraph would end with two colons to signal that the contents below should not be wrapped::
+
                                     x^alpha * beta
                     y(x) = --------------------------------
                                 1       gamma^a * tau
@@ -59,6 +60,7 @@ def func1():
             so that we can test how it can be wrapped. This paragraph would end
             with two colons to signal that the contents below should not be
             wrapped::
+
                                     x^alpha * beta
                     y(x) = --------------------------------
                                 1       gamma^a * tau

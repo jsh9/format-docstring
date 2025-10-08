@@ -93,9 +93,9 @@ def example_function(param1, param2, option='default'):
 
     Content following double colons (::) is preserved::
 
-        - This indented block after :: is not wrapped
-        - Even if lines are very long they stay intact
-        - Useful for code blocks or literal content
+                  P(B|A) P(A)
+        P(A|B) = ---------------
+                      P(B)
 
     Regular bullet lists are also preserved:
 
