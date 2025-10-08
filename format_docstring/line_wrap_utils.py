@@ -67,13 +67,69 @@ def process_temp_output(
         width: int,
 ) -> list[str]:
     """Wrap the `list[str]` elements in `temp_out`."""
+
+    def _to_list(element: str | list[str]) -> list[str]:
+        return [element] if isinstance(element, str) else list(element)
+
+    def _ends_with_literal_block_marker(element: str | list[str]) -> bool:
+        if isinstance(element, str):
+            return element.endswith('::')
+
+        if not element:
+            return False
+
+        return element[-1].endswith('::')
+
+    def _is_empty_string(element: str | list[str]) -> bool:
+        return isinstance(element, str) and element == ''
+
+    def _has_content(element: str | list[str]) -> bool:
+        if isinstance(element, str):
+            return element != ''
+
+        return any(line != '' for line in element)
+
+    merged_temp_out: list[str | list[str]] = []
+    idx = 0
+    while idx < len(temp_out):
+        current = temp_out[idx]
+        next_idx = idx + 1
+        next_next_idx = idx + 2
+
+        if (
+            _ends_with_literal_block_marker(current)
+            and next_next_idx < len(temp_out)
+            and _is_empty_string(temp_out[next_idx])
+            and _has_content(temp_out[next_next_idx])
+        ):
+            merged_element: list[str] = []
+            merged_element.extend(_to_list(current))
+            merged_element.extend(_to_list(temp_out[next_idx]))
+            merged_element.extend(_to_list(temp_out[next_next_idx]))
+            merged_temp_out.append(merged_element)
+            idx += 3
+            continue
+
+        merged_temp_out.append(current)
+        idx += 1
+
     out: list[str] = []
 
-    for element in temp_out:
+    for element in merged_temp_out:
         if isinstance(element, str):
             out.append(element)
         elif isinstance(element, list):
             wrapped: list[str] = wrap_preserving_indent(element, width)
+            if (
+                '' in element
+                and '' not in wrapped
+                and element.index('') < len(element) - 1
+            ):
+                insertion_idx = min(element.index(''), len(wrapped))
+                wrapped = (
+                    wrapped[:insertion_idx] + [''] + wrapped[insertion_idx:]
+                )
+
             out.extend(wrapped)
         else:
             raise RuntimeError("Something's wrong. Please contact the author.")
@@ -185,7 +241,31 @@ def _wrap_text_segment(lines: list[str], width: int) -> list[str]:
     if result and result[-1] == '':
         result.pop()
 
-    return result if result else lines
+    result_: list[str] = result if result else lines
+
+    return _add_back_leading_or_trailing_newline(
+        original_lines=lines,
+        wrapped_lines=result_,
+    )
+
+
+def _add_back_leading_or_trailing_newline(
+        original_lines: list[str],
+        wrapped_lines: list[str],
+) -> list[str]:
+    if len(original_lines) == 0 or len(wrapped_lines) == 0:
+        return wrapped_lines
+
+    new_result: list[str] = []
+    if original_lines[0] == '':
+        new_result = [''] + wrapped_lines
+    else:
+        new_result = wrapped_lines
+
+    if original_lines[-1] == '':
+        return new_result + ['']
+
+    return new_result
 
 
 def merge_lines_and_strip(text: str) -> str:

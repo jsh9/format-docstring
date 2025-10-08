@@ -35,7 +35,7 @@ def test_wrap_docstring_single_case() -> None:
     the test case file that's producing errors.
     """
     filename, length, before, after = load_case_from_file(
-        DATA_DIR / 'mismatched_underlines_two_dashes.txt'
+        DATA_DIR / 'contents_that_are_not_wrapped.txt'
     )
     out = wrap_docstring(before, line_length=length, docstring_style='numpy')
     assert out.strip('\n') == after.strip('\n')

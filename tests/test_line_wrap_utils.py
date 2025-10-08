@@ -9,6 +9,7 @@ from format_docstring.line_wrap_utils import (
     is_bulleted_list,
     is_rST_table,
     merge_lines_and_strip,
+    process_temp_output,
     segment_lines_by_wrappability,
     wrap_preserving_indent,
 )
@@ -125,7 +126,7 @@ from format_docstring.line_wrap_utils import (
         # Test with rST table (should be preserved)
         (
             [
-                'Here is some text that should wrap.',
+                'Here is some text that should wrap. 1.',
                 '',
                 '+------+-----+',
                 '| Name | Age |',
@@ -138,12 +139,14 @@ from format_docstring.line_wrap_utils import (
             20,
             [
                 'Here is some text',
-                'that should wrap.',
+                'that should wrap. 1.',
+                '',
                 '+------+-----+',
                 '| Name | Age |',
                 '+------+-----+',
                 '| John | 25  |',
                 '+------+-----+',
+                '',
                 'More text that',
                 'should wrap.',
             ],
@@ -151,7 +154,7 @@ from format_docstring.line_wrap_utils import (
         # Test with bulleted list (should be preserved)
         (
             [
-                'This is a very long line of text that should be wrapped.',
+                'This is a very long line of text that should be wrapped. 2',
                 '',
                 '- First list item that is quite long',
                 '- Second list item that is also long',
@@ -162,9 +165,11 @@ from format_docstring.line_wrap_utils import (
             [
                 'This is a very long line',
                 'of text that should be',
-                'wrapped.',
+                'wrapped. 2',
+                '',
                 '- First list item that is quite long',
                 '- Second list item that is also long',
+                '',
                 'Another long line that',
                 'should be wrapped.',
             ],
@@ -216,6 +221,103 @@ def test_finalize_lines(
         lines: list[str], leading_indent: int | None, expected: str
 ) -> None:
     assert finalize_lines(lines, leading_indent) == expected
+
+
+@pytest.mark.parametrize(
+    'temp_out,width,expected',
+    [
+        (
+            [
+                'Examples::',
+                '',
+                ['    code line 1', '    code line 2'],
+            ],
+            20,
+            [
+                'Examples::',
+                '',
+                '    code line 1',
+                '    code line 2',
+            ],
+        ),
+        (
+            [
+                'Examples::',
+                '',
+                [
+                    '    literal block with long text that should remain'
+                    ' on one line even though width is short'
+                ],
+            ],
+            30,
+            [
+                'Examples::',
+                '',
+                (
+                    '    literal block with long text that should remain'
+                    ' on one line even though width is short'
+                ),
+            ],
+        ),
+        (
+            [
+                'Examples::',
+                '',
+                '',  # 2 empty lines: not protected by `::` above -> will wrap
+                [
+                    (
+                        '    literal block with long text that should remain'
+                        ' on one line even though width is short'
+                    )
+                ],
+            ],
+            30,
+            [
+                'Examples::',
+                '',
+                '',
+                '    literal block with long',
+                '    text that should remain on',
+                '    one line even though width',
+                '    is short',
+            ],
+        ),
+        (
+            [
+                'Examples::',
+                'no blank separator',
+                ['    code line 1', '    code line 2'],
+            ],
+            40,
+            [
+                'Examples::',
+                'no blank separator',
+                '    code line 1 code line 2',
+            ],
+        ),
+        (
+            [
+                'Examples::',
+                '',
+                '',
+                'Trailing text',
+            ],
+            25,
+            [
+                'Examples::',
+                '',
+                '',
+                'Trailing text',
+            ],
+        ),
+    ],
+)
+def test_process_temp_output_merges_literal_block(
+        temp_out: list[str | list[str]],
+        width: int,
+        expected: list[str],
+) -> None:
+    assert process_temp_output(temp_out, width) == expected
 
 
 @pytest.mark.parametrize(
