@@ -66,7 +66,16 @@ def process_temp_output(
         temp_out: list[str | list[str]],
         width: int,
 ) -> list[str]:
-    """Wrap the `list[str]` elements in `temp_out`."""
+    """
+    Wrap the `list[str]` elements in `temp_out`.
+
+    To preserve literal blocks indicated by ``::``, the function first scans
+    ``temp_out`` for the pattern ``<line ending with '::'>``, followed by
+    ``''`` (exactly 1 empty line), followed by non-empty content. When found,
+    those three entries are merged into
+    a single ``list[str]`` so the literal block (including the separating blank
+    line) is wrapped as one unit.
+    """
 
     def _to_list(element: str | list[str]) -> list[str]:
         return [element] if isinstance(element, str) else list(element)
