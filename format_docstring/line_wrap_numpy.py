@@ -377,7 +377,7 @@ def handle_single_line_docstring(
     if '\n' in whole_docstring_literal:  # multi-line: do not handle
         return whole_docstring_literal
 
-    if docstring_ending_col >= line_length:  # whole docstring exceeds limit
+    if docstring_ending_col > line_length:  # whole docstring exceeds limit
         num_leading_indent: int = docstring_starting_col
         parts: list[str] = whole_docstring_literal.split(docstring_content)
         prefix: str = parts[0]
