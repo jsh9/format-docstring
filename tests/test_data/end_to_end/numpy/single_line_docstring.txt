@@ -25,6 +25,16 @@ def func3():
                     """
                     pass
 
+
+def func4():
+    """This line has the right number of chars that it does not exceed limit"""
+    pass
+
+
+def func5():
+    r"""This line has the right number of chars that it exceeds limit by 1..."""
+    pass
+
 **********
 def func1():
     """
@@ -53,3 +63,15 @@ def func3():
                     This line is already formatted so we should not re-wrap it.
                     """
                     pass
+
+
+def func4():
+    """This line has the right number of chars that it does not exceed limit"""
+    pass
+
+
+def func5():
+    r"""
+    This line has the right number of chars that it exceeds limit by 1...
+    """
+    pass
