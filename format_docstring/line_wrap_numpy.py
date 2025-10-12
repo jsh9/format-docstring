@@ -57,7 +57,10 @@ def wrap_docstring_numpy(
         'raises',
         'raise',  # tolerate typo
     }
-    SECTION_EXAMPLES = {'examples'}
+    SECTION_EXAMPLES = {
+        'examples',
+        'example',  # tolerate typo
+    }
 
     temp_out: list[str | list[str]] = []
     in_code_fence: bool = False
