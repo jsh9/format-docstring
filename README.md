@@ -76,7 +76,8 @@ def example_function(param1, param2, option='default'):
 
     Examples
     --------
-    Code examples with >>> prompts are preserved without wrapping:
+    Within the "Examples" section, code with >>> prompts are preserved without
+    wrapping:
 
     >>> result = example_function('test', 42, option='custom_value_with_a_very_long_name_that_exceeds_line_length')
     >>> print(result)
@@ -91,11 +92,16 @@ def example_function(param1, param2, option='default'):
     Params       Yes                 Signature lines preserved
     ===========  ==================  ===============================
 
-    Content following double colons (::) is preserved::
+    Contents following double colons (`::`) are preserved::
 
                   P(B|A) P(A)
-        P(A|B) = ---------------
+        P(A|B) = -------------
                       P(B)
+
+    Even if there isn't an extra blank line after `::`, the contents are still
+    preserved::
+            _______
+       σ = √ Var(X)
 
     Regular bullet lists are also preserved:
 
