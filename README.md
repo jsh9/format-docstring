@@ -100,8 +100,8 @@ def example_function(param1, param2, option='default'):
 
     Even if there isn't an extra blank line after `::`, the contents are still
     preserved::
-            _______
-       σ = √ Var(X)
+                _______
+       sigma = √ Var(X)
 
     Regular bullet lists are also preserved:
 
