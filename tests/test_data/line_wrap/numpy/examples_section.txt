@@ -1,0 +1,33 @@
+LINE_LENGTH: 79
+
+**********
+Example
+-----
+>>> a = 2
+>>> b = 3
+
+Examples
+----
+>>> a = 2
+>>> b = 3
+
+Examplesss
+----
+>>> a = 2
+>>> b = 3
+
+**********
+
+Examples
+--------
+>>> a = 2
+>>> b = 3
+
+Examples
+--------
+>>> a = 2
+>>> b = 3
+
+Examplesss
+----
+>>> a = 2 >>> b = 3

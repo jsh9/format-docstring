@@ -1,0 +1,67 @@
+LINE_LENGTH: 79
+
+**********
+def func1():
+    """
+    Example
+    -----
+    >>> a = 2
+    >>> b = 3
+    """
+    pass
+
+def func2():
+    """
+    Examples
+    ----
+    >>> a = 2
+    >>> b = 3
+    """
+    pass
+
+
+
+
+
+
+def func3():
+    """
+    Examplesss
+    ----
+    >>> a = 2
+    >>> b = 3
+    """
+    pass
+
+**********
+
+def func1():
+    """
+    Examples
+    --------
+    >>> a = 2
+    >>> b = 3
+    """
+    pass
+
+def func2():
+    """
+    Examples
+    --------
+    >>> a = 2
+    >>> b = 3
+    """
+    pass
+
+
+
+
+
+
+def func3():
+    """
+    Examplesss
+    ----
+    >>> a = 2 >>> b = 3
+    """
+    pass
