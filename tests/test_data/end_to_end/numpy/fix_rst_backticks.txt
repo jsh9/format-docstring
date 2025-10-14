@@ -46,6 +46,10 @@ def process_data(data, config=None):
     `Link`__ should not be modified. External links such as `Python
     <https://www.python.org>`_ must stay as-is.
 
+    Here's another example where long URLs extend to the next line `Here is the
+    Link <https://www.this-is-a-url-that-is-long.com>`_ and `Another One
+    <https://www.this-is-another-url-that-is-long.com>`_.
+
     Examples
     --------
     >>> data = [{'id': 1, 'value': 10}]
@@ -103,14 +107,14 @@ def process_data(data, config=None):
     config : dict, optional
         Configuration dictionary. Valid keys are ``mode``, ``threshold``, and
         ``output_format``. Default is ``None``.
-    processor : `DataProcessor`
+    processor : ``DataProcessor``
         The ``processor`` instance to use for data transformation.
 
     Returns
     -------
     dict
         Processed data with keys ``results``, ``metadata``, and ``status``.
-    `ProcessedData`
+    ``ProcessedData``
         Alternative format with ``data`` and ``errors`` fields.
 
     Raises
@@ -132,6 +136,10 @@ def process_data(data, config=None):
     should remain. Cross-references like `Section`_ and anonymous refs like
     `Link`__ should not be modified. External links such as `Python
     <https://www.python.org>`_ must stay as-is.
+
+    Here's another example where long URLs extend to the next line `Here is the
+    Link <https://www.this-is-a-url-that-is-long.com>`_ and `Another One
+    <https://www.this-is-another-url-that-is-long.com>`_.
 
     Examples
     --------
@@ -159,7 +167,7 @@ class DataProcessor:
         ``'advanced'``.
     pipelines : list
         List of ``Pipeline`` objects to apply.
-    config : `ConfigDict`
+    config : ``ConfigDict``
         Configuration for the ``processor`` with ``settings`` dictionary.
     """
 

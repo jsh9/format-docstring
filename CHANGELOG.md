@@ -6,6 +6,27 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2025-10-14
+
+- Fixed
+  - Bug in `_fix_rst_backticks()` where backtick pairs spanning multiple lines
+    (e.g., multi-line external links) were incorrectly processed
+  - Added `(?!_)` lookahead to regex pattern to prevent matching trailing
+    backticks from cross-references (e.g., `` `text`_ ``)
+- Changed
+  - Moved backtick fixing from line-by-line processing to whole-docstring
+    processing to correctly handle multi-line constructs
+  - REPL lines (starting with `>>> ` or `... `) are now protected with
+    placeholders during backtick fixing to preserve backticks in Python
+    examples
+- Added
+  - Test cases for multi-line external links in
+    `test_fix_rst_backticks_cases()`
+  - Test cases for REPL lines with backticks in
+    `test_fix_rst_backticks_cases()`
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.1.7...0.1.8
+
 ## [0.1.7] - 2025-10-14
 
 - Fixed
@@ -13,6 +34,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     external links (e.g., `` `Python <https://example.org>`_ ``)
   - Refactored `_fix_rst_backticks()` to use pre-compiled regex pattern for
     better performance
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.1.6...0.1.7
 
 ## [0.1.6] - 2025-10-13
 

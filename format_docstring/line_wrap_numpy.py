@@ -37,6 +37,12 @@ def wrap_docstring_numpy(
     # This helps place the closing quotes on their own indented line later.
     docstring_: str = add_leading_indent(docstring, leading_indent)
 
+    # Apply backtick fixing to the entire docstring first, before line-by-line
+    # processing. This ensures that backtick pairs spanning multiple lines are
+    # handled correctly.
+    if fix_rst_backticks:
+        docstring_ = _fix_rst_backticks(docstring_)
+
     lines: list[str] = docstring_.splitlines()
     if not lines:
         return docstring_
@@ -132,10 +138,7 @@ def wrap_docstring_numpy(
                 continue
 
             # Description lines (typically indented): wrap if too long
-            line_to_process = (
-                _fix_rst_backticks(line) if fix_rst_backticks else line
-            )
-            collect_to_temp_output(temp_out, line_to_process)
+            collect_to_temp_output(temp_out, line)
             i += 1
             continue
 
@@ -152,18 +155,12 @@ def wrap_docstring_numpy(
                 i += 1
                 continue
 
-            line_to_process = (
-                _fix_rst_backticks(line) if fix_rst_backticks else line
-            )
-            collect_to_temp_output(temp_out, line_to_process)
+            collect_to_temp_output(temp_out, line)
             i += 1
             continue
 
         # Examples or any other section
-        line_to_process = (
-            _fix_rst_backticks(line) if fix_rst_backticks else line
-        )
-        collect_to_temp_output(temp_out, line_to_process)
+        collect_to_temp_output(temp_out, line)
         i += 1
 
     out: list[str] = process_temp_output(temp_out, width=line_length)
@@ -422,8 +419,10 @@ def handle_single_line_docstring(
 # or certain punctuation (like > and . for `>>> ` and `... ` literals)
 # Note: We match [^`]+ (anything except backticks) and then check in the
 # replacement function whether it's an external link (contains < followed by >)
+# The opening backtick must not be immediately followed by _ or __ (to avoid
+# matching the trailing backtick of cross-references like `text`_ or `text`__)
 _RST_BACKTICK_PATTERN = re.compile(
-    r'(?:^|(?<=\s)|(?<=\()|(?<=[>.]))(?::[\w-]+:)?`([^`]+)`(?!`)(?!__)(?!_)'
+    r'(?:^|(?<=\s)|(?<=\()|(?<=[>.]))(?::[\w-]+:)?`(?!_)([^`]+)`(?!`)(?!__)(?!_)'
 )
 
 
@@ -443,6 +442,7 @@ def _fix_rst_backticks(docstring: str) -> str:
     - Cross-references: `` `text`_ `` and anonymous refs `` `text`__ ``.
     - Inline external links: `` `text <https://example.com>`_ ``.
     - Explicit hyperlink targets: ``.. _`Label`: https://example.com``.
+    - REPL lines: Lines starting with ``>>> `` or ``... `` (Python examples).
 
     How it works (regex guards)
     ---------------------------
@@ -456,6 +456,7 @@ def _fix_rst_backticks(docstring: str) -> str:
     - Closing backtick is not part of ````...```` (``(?!`)``).
     - Closing backtick is not followed by ``__`` or ``_`` (to avoid
       anonymous/named references).
+    - The line does not start with ``>>> `` or ``... `` (Python REPL).
 
     Parameters
     ----------
@@ -489,6 +490,9 @@ def _fix_rst_backticks(docstring: str) -> str:
 
     >>> _fix_rst_backticks('Already has ``foo`` double backticks')
     'Already has ``foo`` double backticks'
+
+    >>> _fix_rst_backticks('>>> `foo` in REPL')
+    '>>> `foo` in REPL'
     """
 
     def replace_func(match: re.Match[str]) -> str:
@@ -516,4 +520,37 @@ def _fix_rst_backticks(docstring: str) -> str:
         prefix = match.group(0)[: match.group(0).index('`')]
         return f'{prefix}``{content}``'
 
-    return _RST_BACKTICK_PATTERN.sub(replace_func, docstring)
+    # Protect REPL lines (>>> and ...) from backtick fixing by temporarily
+    # replacing them with placeholders, then restoring after processing.
+    # This allows multi-line backtick pairs (such as external links spanning
+    # lines) to be handled correctly while still preserving backticks in REPL
+    # comments.
+    lines = docstring.splitlines(keepends=True)
+    repl_lines: dict[int, str] = {}
+    protected_lines: list[str] = []
+
+    for i, line in enumerate(lines):
+        stripped = line.lstrip()
+        # Protect REPL lines (>>> or ...) - don't fix backticks in these
+        if stripped.startswith('>>> ') or stripped.startswith('... '):
+            repl_lines[i] = line
+            # Use a placeholder that won't be matched by the regex
+            protected_lines.append(
+                '\x00REPL_LINE\x00\n'
+                if line.endswith('\n')
+                else '\x00REPL_LINE\x00'
+            )
+        else:
+            protected_lines.append(line)
+
+    # Process the entire docstring (with REPL lines protected)
+    protected_docstring = ''.join(protected_lines)
+    processed = _RST_BACKTICK_PATTERN.sub(replace_func, protected_docstring)
+
+    # Restore REPL lines
+    result_lines = processed.splitlines(keepends=True)
+    for i, original_line in repl_lines.items():
+        if i < len(result_lines):
+            result_lines[i] = original_line
+
+    return ''.join(result_lines)
