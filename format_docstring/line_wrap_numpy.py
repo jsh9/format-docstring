@@ -104,7 +104,9 @@ def wrap_docstring_numpy(
             continue
 
         # In Examples, skip wrapping for REPL lines
-        if in_examples and stripped.startswith('>>> '):
+        if in_examples and (
+            stripped.startswith('>>> ') or stripped.startswith('... ')
+        ):
             temp_out.append(line)
             i += 1
             continue
