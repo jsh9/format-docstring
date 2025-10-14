@@ -293,6 +293,26 @@ def test_standardize_default_value(line: str, expected: str) -> None:
             '.. _`Special Target`: https://example.com/special',
             '.. _`Special Target`: https://example.com/special',
         ),
+        # --- should not fix (multi-line external links) ---
+        (
+            "Here's another example where long URLs"
+            ' extend to the next line `Here is perhaps\n'
+            'the Link <https://www.this-is-a-url-that-is-long.com>`_'
+            ' and `Another One\n'
+            '<https://www.this-is-another-url-that-is-long.com>`_.',
+            "Here's another example where long URLs extend to"
+            ' the next line `Here is perhaps\n'
+            'the Link <https://www.this-is-a-url-that-is-long.com>`_'
+            ' and `Another One\n'
+            '<https://www.this-is-another-url-that-is-long.com>`_.',
+        ),
+        # --- should not fix (REPL lines with backticks) ---
+        (
+            '>>> # Use `config` parameter to customize `mode`\n'
+            '... # and set the `threshold` value',
+            '>>> # Use `config` parameter to customize `mode`\n'
+            '... # and set the `threshold` value',
+        ),
     ],
 )
 def test_fix_rst_backticks_cases(src: str, expected: str) -> None:
