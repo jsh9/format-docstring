@@ -41,6 +41,11 @@ def process_data(data, config=None):
     When `mode` is set to `'advanced'`, additional processing steps are
     applied. The `threshold` parameter controls filtering behavior.
 
+    For rST roles like :emphasis:`important` and :sup:`2`, the single backticks
+    should remain. Cross-references like `Section`_ and anonymous refs like
+    `Link`__ should not be modified. External links such as `Python
+    <https://www.python.org>`_ must stay as-is.
+
     Examples
     --------
     >>> data = [{'id': 1, 'value': 10}]
@@ -122,6 +127,11 @@ def process_data(data, config=None):
     -----
     When ``mode`` is set to ``'advanced'``, additional processing steps are
     applied. The ``threshold`` parameter controls filtering behavior.
+
+    For rST roles like :emphasis:`important` and :sup:`2`, the single backticks
+    should remain. Cross-references like `Section`_ and anonymous refs like
+    `Link`__ should not be modified. External links such as `Python
+    <https://www.python.org>`_ must stay as-is.
 
     Examples
     --------

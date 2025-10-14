@@ -415,15 +415,47 @@ def handle_single_line_docstring(
     return whole_docstring_literal
 
 
+# Precompiled regex for fixing RST backticks.
+# Pattern matches inline literals while avoiding roles, cross-references, and
+# links. See the documentation of _fix_rst_backticks() for more details.
+# The pattern allows backticks after: start of line, whitespace, parentheses,
+# or certain punctuation (like > and . for `>>> ` and `... ` literals)
+# Note: We match [^`]+ (anything except backticks) and then check in the
+# replacement function whether it's an external link (contains < followed by >)
+_RST_BACKTICK_PATTERN = re.compile(
+    r'(?:^|(?<=\s)|(?<=\()|(?<=[>.]))(?::[\w-]+:)?`([^`]+)`(?!`)(?!__)(?!_)'
+)
+
+
 def _fix_rst_backticks(docstring: str) -> str:
     """
-    Fix single backticks to double backticks per rST syntax.
+    Fix inline-literal single backticks to double backticks per rST syntax.
 
-    This function converts pairs of single backticks (`) to pairs of double
-    backticks (``). It handles various edge cases:
-    - Preserves existing double backticks
-    - Handles nested backticks
-    - Preserves code blocks and literal blocks
+    This function converts pairs of single backticks (`` `...` ``) that
+    represent inline *literals* into pairs of double backticks (`` ``...`` ``).
+    It deliberately **does not** modify other rST constructs that require
+    single backticks.
+
+    What stays untouched
+    --------------------
+    - Existing double-backtick literals: ````code````.
+    - Roles: ``:role:`text``` (e.g., ``:emphasis:`word```).
+    - Cross-references: `` `text`_ `` and anonymous refs `` `text`__ ``.
+    - Inline external links: `` `text <https://example.com>`_ ``.
+    - Explicit hyperlink targets: ``.. _`Label`: https://example.com``.
+
+    How it works (regex guards)
+    ---------------------------
+    The pattern only upgrades a match when **all** these are true:
+    - Opening backtick is not part of an existing ````...```` (``(?<!`)``).
+    - Opening backtick is not immediately preceded by ``:`` (to avoid roles).
+    - Opening backtick is not immediately preceded by ``_`` (to avoid
+      explicit targets like ``.. _`Label`: …``).
+    - The enclosed text contains **no** backticks and **no** ``<`` (to avoid
+      inline-link forms like `` `text <url>`_ ``).
+    - Closing backtick is not part of ````...```` (``(?!`)``).
+    - Closing backtick is not followed by ``__`` or ``_`` (to avoid
+      anonymous/named references).
 
     Parameters
     ----------
@@ -433,23 +465,55 @@ def _fix_rst_backticks(docstring: str) -> str:
     Returns
     -------
     str
-        The docstring with single backticks converted to double backticks.
+        The docstring with only inline-literal backticks fixed.
 
     Examples
     --------
     >>> _fix_rst_backticks('Use `foo` to do something')
     'Use ``foo`` to do something'
+
+    >>> _fix_rst_backticks('Edge punctuation: `x`.')
+    'Edge punctuation: ``x``.'
+
+    >>> _fix_rst_backticks(':emphasis:`word`')
+    ':emphasis:`word`'
+
+    >>> _fix_rst_backticks('See `Link`_ for details')
+    'See `Link`_ for details'
+
+    >>> _fix_rst_backticks('`Python <https://www.python.org>`_')
+    '`Python <https://www.python.org>`_'
+
+    >>> _fix_rst_backticks('.. _`Special Target`: https://example.com/special')
+    '.. _`Special Target`: https://example.com/special'
+
     >>> _fix_rst_backticks('Already has ``foo`` double backticks')
     'Already has ``foo`` double backticks'
     """
-    # Pattern to match single backticks that are not already part of double
-    # backticks. We look for:
-    # - A backtick not preceded by a backtick: (?<!`)
-    # - Followed by one or more non-backtick characters: ([^`]+)
-    # - Followed by a backtick not followed by another backtick: `(?!`)
-    #
-    # This pattern avoids matching backticks that are already part of ``...``
-    pattern = r'(?<!`)`([^`]+)`(?!`)'
 
-    # Replace single backtick pairs with double backtick pairs
-    return re.sub(pattern, r'``\1``', docstring)
+    def replace_func(match: re.Match[str]) -> str:
+        # match.group(0) is the full match
+        # match.group(1) is the content between backticks
+        full_match: str = match.group(0)
+        content: str = match.group(1)
+
+        # If the match includes a role prefix (like :emphasis:), don't replace
+        if ':' in full_match and full_match.index('`') > 0:
+            # Check if there's a role prefix before the backtick
+            before_backtick = full_match[: full_match.index('`')]
+            if ':' in before_backtick:
+                return full_match  # Keep original (it's a role)
+
+        # Check if this is an external link (contains <...> pattern)
+        # External links look like: `text <url>`_
+        if '<' in content and '>' in content:
+            # Check if < comes before > (basic validation)
+            if content.index('<') < content.rindex('>'):
+                return full_match  # Keep original (it's an external link)
+
+        # Otherwise, replace single backticks with double
+        # Keep any leading whitespace/parenthesis/punctuation
+        prefix = match.group(0)[: match.group(0).index('`')]
+        return f'{prefix}``{content}``'
+
+    return _RST_BACKTICK_PATTERN.sub(replace_func, docstring)

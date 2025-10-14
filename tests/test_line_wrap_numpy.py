@@ -5,6 +5,7 @@ import pytest
 from format_docstring.docstring_rewriter import wrap_docstring
 from format_docstring.line_wrap_numpy import (
     _fix_colon_spacing,
+    _fix_rst_backticks,
     _get_section_heading_title,
     _is_hyphen_underline,
     _is_param_signature,
@@ -244,6 +245,61 @@ def test_standardize_default_value(line: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
+    'src, expected',
+    [
+        # --- should fix (inline literals) ---
+        ('Use `foo` to do something', 'Use ``foo`` to do something'),
+        ('Edge punctuation: `x`.', 'Edge punctuation: ``x``.'),
+        (
+            'Multiple inline literals: `a` and `b`.',
+            'Multiple inline literals: ``a`` and ``b``.',
+        ),
+        (
+            'Underscores inside literal are fine: `foo_bar`.',
+            'Underscores inside literal are fine: ``foo_bar``.',
+        ),
+        (
+            'Adjacent to parentheses: (`call_me`) and `ok`',
+            'Adjacent to parentheses: (``call_me``) and ``ok``',
+        ),
+        # Edge cases: literals that contain special characters -> should fix
+        ('`>>> `', '``>>> ``'),
+        ('`... `', '``... ``'),
+        # --- should not fix (roles) ---
+        (':emphasis:`word`', ':emphasis:`word`'),
+        (':strong:`bold`', ':strong:`bold`'),
+        (':sup:`2`', ':sup:`2`'),
+        (
+            ':title-reference:`The Great Book`',
+            ':title-reference:`The Great Book`',
+        ),
+        # --- should not fix (cross-references & links) ---
+        ('See `Section`_ for details', 'See `Section`_ for details'),
+        (
+            'See `Docs`__ for the anonymous reference',
+            'See `Docs`__ for the anonymous reference',
+        ),
+        (
+            '`Python <https://www.python.org>`_',
+            '`Python <https://www.python.org>`_',
+        ),
+        # --- should not fix (already correct literals) ---
+        (
+            'Already has ``double`` backticks',
+            'Already has ``double`` backticks',
+        ),
+        # --- should not fix (explicit hyperlink target) ---
+        (
+            '.. _`Special Target`: https://example.com/special',
+            '.. _`Special Target`: https://example.com/special',
+        ),
+    ],
+)
+def test_fix_rst_backticks_cases(src: str, expected: str) -> None:
+    assert _fix_rst_backticks(src) == expected
+
+
+@pytest.mark.parametrize(
     'fix_rst_backticks, input_docstring, expected_docstring',
     [
         (
@@ -258,10 +314,10 @@ def test_standardize_default_value(line: str, expected: str) -> None:
         ),
     ],
 )
-def test_fix_rst_backticks(
+def test_fix_rst_backticks_option_on_and_off(
         fix_rst_backticks: bool, input_docstring: str, expected_docstring: str
 ) -> None:
-    """Test that backticks are fixed or preserved based on fix_rst_backticks"""
+    """Verify the `fix_rst_backticks` option can be correctly turned on/off"""
     result = wrap_docstring(
         input_docstring,
         line_length=79,
