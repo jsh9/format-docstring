@@ -12,6 +12,7 @@ A Python formatter to automatically format numpy-style docstrings.
   - [2.2. One-line summaries are formatted to fit line length limit](#22-one-line-summaries-are-formatted-to-fit-line-length-limit)
   - [2.3. Minor typos can be automatically fixed](#23-minor-typos-can-be-automatically-fixed)
   - [2.4. Default value declarations are standardized](#24-default-value-declarations-are-standardized)
+  - [2.5. Single backticks are converted to double backticks (rST syntax)](#25-single-backticks-are-converted-to-double-backticks-rst-syntax)
 - [3. Installation](#3-installation)
 - [4. Usage](#4-usage)
   - [4.1. Command Line Interface](#41-command-line-interface)
@@ -176,6 +177,29 @@ def example_function(arg1, arg2, arg3, arg4):
     pass
 ```
 
+### 2.5. Single backticks are converted to double backticks (rST syntax)
+
+```diff
+def process_data(data):
+    """
+-    Process data using the `transform` function.
++    Process data using the ``transform`` function.
+
+    Parameters
+    ----------
+    data : dict
+-        Input data with keys `id`, `value`, and `timestamp`.
++        Input data with keys ``id``, ``value``, and ``timestamp``.
+
+    Returns
+    -------
+    dict
+-        Processed data with key `result`.
++        Processed data with key ``result``.
+    """
+    pass
+```
+
 ## 3. Installation
 
 ```bash
@@ -232,6 +256,8 @@ pre-commit install
   (default: 79)
 - `--docstring-style CHOICE`: Docstring style to target (`numpy` or `google`,
   default: `numpy`). Note: Currently only `numpy` style is fully supported.
+- `--fix-rst-backticks BOOL`: Automatically fix single backticks to double
+  backticks per rST syntax (default: True)
 - `--exclude TEXT`: Regex pattern to exclude files/directories (default:
   `\.git|\.tox|\.pytest_cache`)
 - `--config PATH`: Path to a `pyproject.toml` config file. If not specified,
@@ -257,6 +283,9 @@ format-docstring --config path/to/pyproject.toml src/
 
 # CLI options override config file settings
 format-docstring --config pyproject.toml --line-length 100 src/
+
+# Disable backtick fixing
+format-docstring --fix-rst-backticks=False my_module.py
 ```
 
 ### 5.3. `pyproject.toml` Configuration
@@ -268,6 +297,7 @@ override these settings:
 [tool.format_docstring]
 line_length = 79
 docstring_style = "numpy"
+fix_rst_backticks = true
 exclude = "\\.git|\\.venv|__pycache__"
 ```
 
@@ -277,6 +307,8 @@ exclude = "\\.git|\\.venv|__pycache__"
   79\)
 - `docstring_style` (str): Docstring style, either `"numpy"` or `"google"`
   (default: `"numpy"`)
+- `fix_rst_backticks` (bool): Automatically fix single backticks to double
+  backticks per rST syntax (default: `true`)
 - `exclude` (str): Regex pattern to exclude files/directories (default:
   `"\\.git|\\.tox|\\.pytest_cache"`)
 

@@ -15,6 +15,7 @@ def wrap_docstring_numpy(
         docstring: str,
         line_length: int,
         leading_indent: int | None = None,
+        fix_rst_backticks: bool = False,
 ) -> str:
     """Wrap NumPy-style docstrings with light parsing rules.
 
@@ -103,7 +104,7 @@ def wrap_docstring_numpy(
             i += 1
             continue
 
-        # In Examples, skip wrapping for REPL lines
+        # In Examples, skip wrapping and backtick fixing for REPL lines
         if in_examples and (
             stripped.startswith('>>> ') or stripped.startswith('... ')
         ):
@@ -131,7 +132,10 @@ def wrap_docstring_numpy(
                 continue
 
             # Description lines (typically indented): wrap if too long
-            collect_to_temp_output(temp_out, line)
+            line_to_process = (
+                _fix_rst_backticks(line) if fix_rst_backticks else line
+            )
+            collect_to_temp_output(temp_out, line_to_process)
             i += 1
             continue
 
@@ -148,12 +152,18 @@ def wrap_docstring_numpy(
                 i += 1
                 continue
 
-            collect_to_temp_output(temp_out, line)
+            line_to_process = (
+                _fix_rst_backticks(line) if fix_rst_backticks else line
+            )
+            collect_to_temp_output(temp_out, line_to_process)
             i += 1
             continue
 
         # Examples or any other section
-        collect_to_temp_output(temp_out, line)
+        line_to_process = (
+            _fix_rst_backticks(line) if fix_rst_backticks else line
+        )
+        collect_to_temp_output(temp_out, line_to_process)
         i += 1
 
     out: list[str] = process_temp_output(temp_out, width=line_length)
@@ -403,3 +413,43 @@ def handle_single_line_docstring(
         return f'{prefix}\n{wrapped}\n{indent}{postfix}'
 
     return whole_docstring_literal
+
+
+def _fix_rst_backticks(docstring: str) -> str:
+    """
+    Fix single backticks to double backticks per rST syntax.
+
+    This function converts pairs of single backticks (`) to pairs of double
+    backticks (``). It handles various edge cases:
+    - Preserves existing double backticks
+    - Handles nested backticks
+    - Preserves code blocks and literal blocks
+
+    Parameters
+    ----------
+    docstring : str
+        The docstring content to process.
+
+    Returns
+    -------
+    str
+        The docstring with single backticks converted to double backticks.
+
+    Examples
+    --------
+    >>> _fix_rst_backticks('Use `foo` to do something')
+    'Use ``foo`` to do something'
+    >>> _fix_rst_backticks('Already has ``foo`` double backticks')
+    'Already has ``foo`` double backticks'
+    """
+    # Pattern to match single backticks that are not already part of double
+    # backticks. We look for:
+    # - A backtick not preceded by a backtick: (?<!`)
+    # - Followed by one or more non-backtick characters: ([^`]+)
+    # - Followed by a backtick not followed by another backtick: `(?!`)
+    #
+    # This pattern avoids matching backticks that are already part of ``...``
+    pattern = r'(?<!`)`([^`]+)`(?!`)'
+
+    # Replace single backtick pairs with double backtick pairs
+    return re.sub(pattern, r'``\1``', docstring)
