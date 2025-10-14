@@ -447,6 +447,4 @@ def _fix_rst_backticks(docstring: str) -> str:
     pattern = r'(?<!`)`([^`]+)`(?!`)'
 
     # Replace single backtick pairs with double backtick pairs
-    result = re.sub(pattern, r'``\1``', docstring)
-
-    return result
+    return re.sub(pattern, r'``\1``', docstring)

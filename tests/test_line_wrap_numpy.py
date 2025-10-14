@@ -1,5 +1,4 @@
 from pathlib import Path
-from textwrap import dedent
 
 import pytest
 
@@ -262,7 +261,7 @@ def test_standardize_default_value(line: str, expected: str) -> None:
 def test_fix_rst_backticks(
         fix_rst_backticks: bool, input_docstring: str, expected_docstring: str
 ) -> None:
-    """Test that backticks are fixed or preserved based on fix_rst_backticks."""
+    """Test that backticks are fixed or preserved based on fix_rst_backticks"""
     result = wrap_docstring(
         input_docstring,
         line_length=79,
