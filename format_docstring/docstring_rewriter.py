@@ -18,6 +18,7 @@ def fix_src(
         *,
         line_length: int = 79,
         docstring_style: str = 'numpy',
+        fix_rst_backticks: bool = True,
 ) -> str:
     """Return code with only docstrings updated to wrapped content.
 
@@ -27,9 +28,11 @@ def fix_src(
         The full Python source code to process.
     line_length : int, default=79
         Target maximum line length for wrapping logic.
-
     docstring_style : str, default='numpy'
         The docstring style to target ('numpy' or 'google').
+    fix_rst_backticks : bool, default=True
+        If True, automatically fix single backticks to double backticks per
+        rST syntax.
 
     Returns
     -------
@@ -51,7 +54,12 @@ def fix_src(
 
     # Module-level docstring
     rep = build_replacement_docstring(
-        tree, source_code, line_starts, line_length, docstring_style
+        tree,
+        source_code,
+        line_starts,
+        line_length,
+        docstring_style,
+        fix_rst_backticks,
     )
     if rep is not None:
         replacements.append(rep)
@@ -62,7 +70,12 @@ def fix_src(
             node, ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
         ):
             rep = build_replacement_docstring(
-                node, source_code, line_starts, line_length, docstring_style
+                node,
+                source_code,
+                line_starts,
+                line_length,
+                docstring_style,
+                fix_rst_backticks,
             )
             if rep is not None:
                 replacements.append(rep)
@@ -107,6 +120,7 @@ def build_replacement_docstring(
         line_starts: list[int],
         line_length: int,
         docstring_style: str = 'numpy',
+        fix_rst_backticks: bool = True,
 ) -> tuple[int, int, str] | None:
     """Compute a single docstring replacement for the given node.
 
@@ -120,9 +134,11 @@ def build_replacement_docstring(
         Line start offsets from :func:`_line_starts`.
     line_length : int
         Target maximum line length for wrapping logic.
-
     docstring_style : str, default='numpy'
         The docstring style to target ('numpy' or 'google').
+    fix_rst_backticks : bool, default=True
+        If True, automatically fix single backticks to double backticks per
+        rST syntax.
 
     Returns
     -------
@@ -164,6 +180,7 @@ def build_replacement_docstring(
         line_length=line_length,
         docstring_style=docstring_style,
         leading_indent=leading_indent_,  # type: ignore[arg-type]
+        fix_rst_backticks=fix_rst_backticks,
     )
 
     new_literal: str | None = rebuild_literal(original_literal, wrapped)
@@ -277,6 +294,7 @@ def wrap_docstring(
         line_length: int = 79,
         docstring_style: str = 'numpy',
         leading_indent: int = 0,
+        fix_rst_backticks: bool = True,
 ) -> str:
     """Wrap a docstring to the given line length (stub).
 
@@ -290,6 +308,9 @@ def wrap_docstring(
         The docstring style to target ('numpy' or 'google').
     leading_indent : int, default=0
         The number of indentation spaces of this docstring.
+    fix_rst_backticks : bool, default=True
+        If True, automatically fix single backticks to double backticks per
+        rST syntax.
 
     Returns
     -------
@@ -306,9 +327,15 @@ def wrap_docstring(
     style = (docstring_style or '').strip().lower()
     if style == 'google':
         return wrap_docstring_google(
-            docstring, line_length, leading_indent=leading_indent
+            docstring,
+            line_length,
+            leading_indent=leading_indent,
+            fix_rst_backticks=fix_rst_backticks,
         )
     # Default to NumPy-style for unknown/unspecified styles to be permissive.
     return wrap_docstring_numpy(
-        docstring, line_length, leading_indent=leading_indent
+        docstring,
+        line_length,
+        leading_indent=leading_indent,
+        fix_rst_backticks=fix_rst_backticks,
     )

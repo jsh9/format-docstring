@@ -1,0 +1,51 @@
+LINE_LENGTH: 79
+
+**********
+This function uses `foo` to process data. The `bar` parameter is optional.
+
+Parameters
+----------
+arg1 : str
+    Use `method_name` to access this value.
+arg2 : int
+    The value should be between `1` and `100`.
+
+Returns
+-------
+dict
+    A dictionary with keys `result` and `status`.
+
+See Also
+--------
+- `other_function` : Related function
+- `module.Class` : Related class
+
+Notes
+-----
+When using `special_value`, ensure that `config` is set properly. The
+`default_value` is `None` by default.
+
+**********
+This function uses ``foo`` to process data. The ``bar`` parameter is optional.
+
+Parameters
+----------
+arg1 : str
+    Use ``method_name`` to access this value.
+arg2 : int
+    The value should be between ``1`` and ``100``.
+
+Returns
+-------
+dict
+    A dictionary with keys ``result`` and ``status``.
+
+See Also
+--------
+- ``other_function`` : Related function
+- ``module.Class`` : Related class
+
+Notes
+-----
+When using ``special_value``, ensure that ``config`` is set properly. The
+``default_value`` is ``None`` by default.

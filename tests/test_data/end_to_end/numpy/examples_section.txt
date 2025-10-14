@@ -97,7 +97,7 @@ class MyClass:
 
     Examples
     --------
-    Should not be wrapped, because of `>>> ` and `... `
+    Should not be wrapped, because of ``>>> `` and ``... ``
     >>> result = my_function(
     ...     arg1=1,
     ...     arg2=2,

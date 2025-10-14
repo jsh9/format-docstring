@@ -46,12 +46,19 @@ from format_docstring.config import inject_config_from_file
     show_default=True,
     help='Docstring style to target',
 )
+@click.option(
+    '--fix-rst-backticks',
+    default=True,
+    show_default=True,
+    help='Fix single backticks to double backticks per rST syntax',
+)
 def main(
         paths: tuple[str, ...],
         config: str | None,  # noqa: ARG001 (used by Click callback)
         exclude: str,
         line_length: int,
         docstring_style: str,
+        fix_rst_backticks: bool,
 ) -> None:
     """Format .py files."""
     ret = 0
@@ -61,7 +68,10 @@ def main(
 
     for path in paths:
         fixer = PythonFileFixer(
-            path=path, exclude_pattern=exclude, line_length=line_length
+            path=path,
+            exclude_pattern=exclude,
+            line_length=line_length,
+            fix_rst_backticks=fix_rst_backticks,
         )
         fixer.docstring_style = docstring_style
         ret |= fixer.fix_one_directory_or_one_file()
@@ -78,9 +88,11 @@ class PythonFileFixer(BaseFixer):
             path: str,
             exclude_pattern: str = r'\.git|\.tox|\.pytest_cache',
             line_length: int = 79,
+            fix_rst_backticks: bool = True,
     ) -> None:
         super().__init__(path=path, exclude_pattern=exclude_pattern)
         self.line_length = line_length
+        self.fix_rst_backticks = fix_rst_backticks
         self.docstring_style: str = 'numpy'
 
     def fix_one_file(self, filename: str) -> int:
@@ -109,6 +121,7 @@ class PythonFileFixer(BaseFixer):
             source_text,
             line_length=self.line_length,
             docstring_style=self.docstring_style,
+            fix_rst_backticks=self.fix_rst_backticks,
         )
 
         if filename == '-':

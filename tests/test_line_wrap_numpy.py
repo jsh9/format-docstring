@@ -1,4 +1,5 @@
 from pathlib import Path
+from textwrap import dedent
 
 import pytest
 
@@ -37,7 +38,12 @@ def test_wrap_docstring_single_case() -> None:
     filename, length, before, after = load_case_from_file(
         DATA_DIR / 'contents_that_are_not_wrapped.txt'
     )
-    out = wrap_docstring(before, line_length=length, docstring_style='numpy')
+    out = wrap_docstring(
+        before,
+        line_length=length,
+        docstring_style='numpy',
+        fix_rst_backticks=False,
+    )
     assert out.strip('\n') == after.strip('\n')
 
 
@@ -236,3 +242,31 @@ def test_fix_colon_spacing(line: str, expected: str) -> None:
 )
 def test_standardize_default_value(line: str, expected: str) -> None:
     assert _standardize_default_value(line) == expected
+
+
+@pytest.mark.parametrize(
+    'fix_rst_backticks, input_docstring, expected_docstring',
+    [
+        (
+            True,
+            '\nThis is a `string`!\n',
+            '\nThis is a ``string``!\n',
+        ),
+        (
+            False,
+            '\nThis is a `string`!\n',
+            '\nThis is a `string`!\n',
+        ),
+    ],
+)
+def test_fix_rst_backticks(
+        fix_rst_backticks: bool, input_docstring: str, expected_docstring: str
+) -> None:
+    """Test that backticks are fixed or preserved based on fix_rst_backticks."""
+    result = wrap_docstring(
+        input_docstring,
+        line_length=79,
+        docstring_style='numpy',
+        fix_rst_backticks=fix_rst_backticks,
+    )
+    assert result == expected_docstring

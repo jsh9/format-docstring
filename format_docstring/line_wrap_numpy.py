@@ -15,6 +15,7 @@ def wrap_docstring_numpy(
         docstring: str,
         line_length: int,
         leading_indent: int | None = None,
+        fix_rst_backticks: bool = False,
 ) -> str:
     """Wrap NumPy-style docstrings with light parsing rules.
 
@@ -35,6 +36,10 @@ def wrap_docstring_numpy(
     # doesn't begin with a newline followed by that many spaces, prepend it.
     # This helps place the closing quotes on their own indented line later.
     docstring_: str = add_leading_indent(docstring, leading_indent)
+
+    # Fix single backticks to double backticks if requested
+    if fix_rst_backticks:
+        docstring_ = _fix_rst_backticks(docstring_)
 
     lines: list[str] = docstring_.splitlines()
     if not lines:
@@ -403,3 +408,45 @@ def handle_single_line_docstring(
         return f'{prefix}\n{wrapped}\n{indent}{postfix}'
 
     return whole_docstring_literal
+
+
+def _fix_rst_backticks(docstring: str) -> str:
+    """
+    Fix single backticks to double backticks per rST syntax.
+
+    This function converts pairs of single backticks (`) to pairs of double
+    backticks (``). It handles various edge cases:
+    - Preserves existing double backticks
+    - Handles nested backticks
+    - Preserves code blocks and literal blocks
+
+    Parameters
+    ----------
+    docstring : str
+        The docstring content to process.
+
+    Returns
+    -------
+    str
+        The docstring with single backticks converted to double backticks.
+
+    Examples
+    --------
+    >>> _fix_rst_backticks('Use `foo` to do something')
+    'Use ``foo`` to do something'
+    >>> _fix_rst_backticks('Already has ``foo`` double backticks')
+    'Already has ``foo`` double backticks'
+    """
+    # Pattern to match single backticks that are not already part of double
+    # backticks. We look for:
+    # - A backtick not preceded by a backtick: (?<!`)
+    # - Followed by one or more non-backtick characters: ([^`]+)
+    # - Followed by a backtick not followed by another backtick: `(?!`)
+    #
+    # This pattern avoids matching backticks that are already part of ``...``
+    pattern = r'(?<!`)`([^`]+)`(?!`)'
+
+    # Replace single backtick pairs with double backtick pairs
+    result = re.sub(pattern, r'``\1``', docstring)
+
+    return result

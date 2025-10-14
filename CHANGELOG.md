@@ -6,6 +6,14 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2025-10-13
+
+- Added
+  - New `--fix-rst-backticks` option to automatically convert single backticks
+    to double backticks per rST syntax
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.1.5...0.1.6
+
 ## [0.1.5] - 2025-10-13
 
 - Added

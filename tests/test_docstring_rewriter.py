@@ -343,3 +343,28 @@ def test_fix_src_single_case() -> None:
     )
     out: str = docstring_rewriter.fix_src(before_src, line_length=line_length)
     assert out == after_src
+
+
+@pytest.mark.parametrize(
+    'fix_rst_backticks, input_source, expected_source',
+    [
+        (
+            True,
+            'def func():\n    """This is a `string`"""\n    pass',
+            'def func():\n    """This is a ``string``"""\n    pass',
+        ),
+        (
+            False,
+            'def func():\n    """This is a `string`"""\n    pass',
+            'def func():\n    """This is a `string`"""\n    pass',
+        ),
+    ],
+)
+def test_fix_rst_backticks_end_to_end(
+        fix_rst_backticks: bool, input_source: str, expected_source: str
+) -> None:
+    """Test that backticks are fixed or preserved in end-to-end processing."""
+    result = docstring_rewriter.fix_src(
+        input_source, line_length=79, fix_rst_backticks=fix_rst_backticks
+    )
+    assert result == expected_source
