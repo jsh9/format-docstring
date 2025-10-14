@@ -47,6 +47,8 @@ def process_data(data, config=None):
     >>> result = process_data(data, config={'mode': 'simple'})
     >>> print(result['status'])
     'success'
+    >>> # Use `config` parameter to customize `mode`
+    ... # and set the `threshold` value
     """
     return {'results': [], 'metadata': {}, 'status': 'success'}
 
@@ -127,6 +129,8 @@ def process_data(data, config=None):
     >>> result = process_data(data, config={'mode': 'simple'})
     >>> print(result['status'])
     'success'
+    >>> # Use `config` parameter to customize `mode`
+    ... # and set the `threshold` value
     """
     return {'results': [], 'metadata': {}, 'status': 'success'}
 
