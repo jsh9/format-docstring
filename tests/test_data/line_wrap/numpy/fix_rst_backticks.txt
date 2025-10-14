@@ -9,11 +9,15 @@ arg1 : str
     Use `method_name` to access this value.
 arg2 : int
     The value should be between `1` and `100`.
+config : `ConfigType`
+    A `Config` object for settings.
 
 Returns
 -------
 dict
     A dictionary with keys `result` and `status`.
+`ResultDict`
+    An alternative return format with `data` field.
 
 See Also
 --------
@@ -34,11 +38,15 @@ arg1 : str
     Use ``method_name`` to access this value.
 arg2 : int
     The value should be between ``1`` and ``100``.
+config : `ConfigType`
+    A ``Config`` object for settings.
 
 Returns
 -------
 dict
     A dictionary with keys ``result`` and ``status``.
+`ResultDict`
+    An alternative return format with ``data`` field.
 
 See Also
 --------

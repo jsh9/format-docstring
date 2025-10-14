@@ -37,10 +37,6 @@ def wrap_docstring_numpy(
     # This helps place the closing quotes on their own indented line later.
     docstring_: str = add_leading_indent(docstring, leading_indent)
 
-    # Fix single backticks to double backticks if requested
-    if fix_rst_backticks:
-        docstring_ = _fix_rst_backticks(docstring_)
-
     lines: list[str] = docstring_.splitlines()
     if not lines:
         return docstring_
@@ -136,7 +132,10 @@ def wrap_docstring_numpy(
                 continue
 
             # Description lines (typically indented): wrap if too long
-            collect_to_temp_output(temp_out, line)
+            line_to_process = (
+                _fix_rst_backticks(line) if fix_rst_backticks else line
+            )
+            collect_to_temp_output(temp_out, line_to_process)
             i += 1
             continue
 
@@ -153,12 +152,18 @@ def wrap_docstring_numpy(
                 i += 1
                 continue
 
-            collect_to_temp_output(temp_out, line)
+            line_to_process = (
+                _fix_rst_backticks(line) if fix_rst_backticks else line
+            )
+            collect_to_temp_output(temp_out, line_to_process)
             i += 1
             continue
 
         # Examples or any other section
-        collect_to_temp_output(temp_out, line)
+        line_to_process = (
+            _fix_rst_backticks(line) if fix_rst_backticks else line
+        )
+        collect_to_temp_output(temp_out, line_to_process)
         i += 1
 
     out: list[str] = process_temp_output(temp_out, width=line_length)

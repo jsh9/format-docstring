@@ -16,11 +16,15 @@ def process_data(data, config=None):
     config : dict, optional
         Configuration dictionary. Valid keys are `mode`, `threshold`, and
         `output_format`. Default is `None`.
+    processor : `DataProcessor`
+        The `processor` instance to use for data transformation.
 
     Returns
     -------
     dict
         Processed data with keys `results`, `metadata`, and `status`.
+    `ProcessedData`
+        Alternative format with `data` and `errors` fields.
 
     Raises
     ------
@@ -60,6 +64,8 @@ class DataProcessor:
         Processing mode, one of `'simple'`, `'standard'`, or `'advanced'`.
     pipelines : list
         List of `Pipeline` objects to apply.
+    config : `ConfigDict`
+        Configuration for the `processor` with `settings` dictionary.
     """
 
     def __init__(self, mode='standard'):
@@ -90,11 +96,15 @@ def process_data(data, config=None):
     config : dict, optional
         Configuration dictionary. Valid keys are ``mode``, ``threshold``, and
         ``output_format``. Default is ``None``.
+    processor : `DataProcessor`
+        The ``processor`` instance to use for data transformation.
 
     Returns
     -------
     dict
         Processed data with keys ``results``, ``metadata``, and ``status``.
+    `ProcessedData`
+        Alternative format with ``data`` and ``errors`` fields.
 
     Raises
     ------
@@ -135,6 +145,8 @@ class DataProcessor:
         ``'advanced'``.
     pipelines : list
         List of ``Pipeline`` objects to apply.
+    config : `ConfigDict`
+        Configuration for the ``processor`` with ``settings`` dictionary.
     """
 
     def __init__(self, mode='standard'):
