@@ -12,6 +12,7 @@ A Python formatter to automatically format numpy-style docstrings.
   - [2.2. One-line summaries are formatted to fit line length limit](#22-one-line-summaries-are-formatted-to-fit-line-length-limit)
   - [2.3. Minor typos can be automatically fixed](#23-minor-typos-can-be-automatically-fixed)
   - [2.4. Default value declarations are standardized](#24-default-value-declarations-are-standardized)
+  - [2.5. Single backticks are converted to double backticks (rST syntax)](#25-single-backticks-are-converted-to-double-backticks-rst-syntax)
 - [3. Installation](#3-installation)
 - [4. Usage](#4-usage)
   - [4.1. Command Line Interface](#41-command-line-interface)
@@ -255,8 +256,8 @@ pre-commit install
   (default: 79)
 - `--docstring-style CHOICE`: Docstring style to target (`numpy` or `google`,
   default: `numpy`). Note: Currently only `numpy` style is fully supported.
-- `--fix-rst-backticks BOOL`: Automatically fix single
-  backticks to double backticks per rST syntax (default: True)
+- `--fix-rst-backticks BOOL`: Automatically fix single backticks to double
+  backticks per rST syntax (default: True)
 - `--exclude TEXT`: Regex pattern to exclude files/directories (default:
   `\.git|\.tox|\.pytest_cache`)
 - `--config PATH`: Path to a `pyproject.toml` config file. If not specified,
