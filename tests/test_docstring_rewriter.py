@@ -45,6 +45,11 @@ def test_calc_abs_pos(src: str, lineno: int, col: int, expected: int) -> None:
         ('"""abc"""', 'Z', '"""Z"""'),
         ('r"""abc"""', 'Q', 'r"""Q"""'),
         ("f'abc'", 'M', "f'M'"),
+        (
+            '"""\r\nfirst\r\nsecond\r\n    third\r\n"""',
+            '\nfirst\nsecond\n    third\n',
+            '"""\r\nfirst\r\nsecond\r\n    third\r\n"""',
+        ),
     ],
 )
 def test_rebuild_literal(literal: str, content: str, expected: str) -> None:

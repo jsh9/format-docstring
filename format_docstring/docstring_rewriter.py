@@ -15,6 +15,21 @@ ModuleClassOrFunc = (
 NO_FORMAT_DOCSTRING_MARKER = 'no-format-docstring'
 
 
+def _determine_newline(text: str) -> str:
+    r"""
+    Return the dominant newline style detected in ``text``.
+
+    Defaults to ``\n`` when no Windows/Mac classic newlines are present.
+    """
+    if '\r\n' in text:
+        return '\r\n'
+
+    if '\r' in text:
+        return '\r'
+
+    return '\n'
+
+
 def _has_inline_no_format_comment(source_code: str, end_pos: int) -> bool:
     """
     Return True if the closing quotes share a line with the sentinel comment.
@@ -307,6 +322,11 @@ def rebuild_literal(original_literal: str, content: str) -> str | None:
         i += 1
     else:
         return None
+
+    newline: str = _determine_newline(original_literal)
+    if newline != '\n':
+        normalized_content = content.replace('\r\n', '\n').replace('\r', '\n')
+        content = newline.join(normalized_content.split('\n'))
 
     return f'{prefix}{delim}{content}{delim}'
 
