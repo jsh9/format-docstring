@@ -52,7 +52,8 @@ oriented before making changes.
 
 - User-facing configuration lives under `[tool.format_docstring]` inside
   `pyproject.toml` and supports `line_length`, `docstring_style`, `exclude`,
-  and `fix_rst_backticks`.
+  `fix_rst_backticks`, and `verbose` (`default` or `diff` to print unified
+  diffs on rewrites).
 - `config.inject_config_from_file` auto-discovers the nearest `pyproject.toml`
   (walking up from targets) and merges values into Click’s `default_map`.
 - Default exclude pattern is `\.git|\.tox|\.pytest_cache`; tests tweak it as

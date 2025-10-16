@@ -60,6 +60,13 @@ from format_docstring.config import inject_config_from_file
     show_default=True,
     help='Fix single backticks to double backticks per rST syntax',
 )
+@click.option(
+    '--verbose',
+    type=click.Choice(['default', 'diff'], case_sensitive=False),
+    default='default',
+    show_default=True,
+    help='Increase logging detail; "diff" prints unified diffs for rewrites',
+)
 def main(
         paths: tuple[str, ...],
         config: str | None,  # noqa: ARG001 (used by Click callback)
@@ -67,6 +74,7 @@ def main(
         line_length: int,
         docstring_style: str,
         fix_rst_backticks: bool,
+        verbose: str,
 ) -> None:
     """Format .ipynb files."""
     ret = 0
@@ -76,6 +84,7 @@ def main(
             exclude_pattern=exclude,
             line_length=line_length,
             fix_rst_backticks=fix_rst_backticks,
+            verbose=verbose.lower(),
         )
         fixer.docstring_style = docstring_style
         ret |= fixer.fix_one_directory_or_one_file()
@@ -93,8 +102,13 @@ class JupyterNotebookFixer(BaseFixer):
             exclude_pattern: str = r'\.git|\.tox|\.pytest_cache',
             line_length: int = 79,
             fix_rst_backticks: bool = True,
+            verbose: str = 'default',
     ) -> None:
-        super().__init__(path=path, exclude_pattern=exclude_pattern)
+        super().__init__(
+            path=path,
+            exclude_pattern=exclude_pattern,
+            verbose=verbose.lower(),
+        )
         self.line_length = line_length
         self.fix_rst_backticks = fix_rst_backticks
         self.docstring_style: str = 'numpy'
@@ -124,6 +138,8 @@ class JupyterNotebookFixer(BaseFixer):
             msg = f'{filename} is not a file (skipping)'
             print(msg, file=sys.stderr)
             return 0
+
+        original_text = file_path.read_text(encoding='utf-8')
 
         try:
             parsed: JupyterNotebookParser = JupyterNotebookParser(filename)
@@ -164,12 +180,11 @@ class JupyterNotebookFixer(BaseFixer):
                     )
 
             if ret_val == 1:
+                new_text = json.dumps(parsed.notebook_content, indent=1) + '\n'
                 print(f'Rewriting {filename}', file=sys.stderr)
-                with open(filename, 'w') as fp:
-                    json.dump(parsed.notebook_content, fp, indent=1)
-                    # Jupyter notebooks (.ipynb) always ends with a new line
-                    # but json.dump does not.
-                    fp.write('\n')
+                self._print_diff(filename, original_text, new_text)
+                with open(filename, 'w', encoding='utf-8') as fp:
+                    fp.write(new_text)
 
             return ret_val
 

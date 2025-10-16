@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import difflib
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -12,10 +14,12 @@ class BaseFixer:
             self,
             path: str,
             exclude_pattern: str = r'\.git|\.tox|\.pytest_cache',
+            verbose: str = 'default',
     ) -> None:
         """Initialize the fixer with a path and optional exclude pattern."""
         self.path = path
         self.exclude_pattern = exclude_pattern
+        self.verbose = verbose
 
     def _get_files_to_process(
             self, directory: Path, pattern: str
@@ -27,6 +31,25 @@ class BaseFixer:
             for f in all_files
             if not should_exclude_file(f, self.exclude_pattern)
         ]
+
+    def _print_diff(self, filename: str, before: str, after: str) -> None:
+        """Print a unified diff when verbose mode is enabled."""
+        if self.verbose != 'diff':
+            return
+
+        diff = difflib.unified_diff(
+            before.splitlines(keepends=True),
+            after.splitlines(keepends=True),
+            fromfile=f'{filename} (before)',
+            tofile=f'{filename} (after)',
+            lineterm='',
+        )
+        diff_text = ''.join(diff)
+        if diff_text:
+            if not diff_text.endswith('\n'):
+                diff_text += '\n'
+
+            print(diff_text, file=sys.stderr, end='')
 
     def fix_one_directory_or_one_file(self) -> int:
         """

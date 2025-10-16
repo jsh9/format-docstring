@@ -10,6 +10,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Added
   - A "`# no-format-docstring`" directive to ignore certain docstring
+  - Verbose diff output via `--verbose diff` and
+    `[tool.format_docstring] verbose`
 - Changed
   - Added "self format" pre-commit hook to format docstrings within this repo
     with its own formatting logic
