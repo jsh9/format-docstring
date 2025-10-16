@@ -51,23 +51,41 @@ def wrap_docstring_numpy(
     # Track section state
     SECTION_PARAMS = {
         'parameters',
+        'parameters:',
         'parameter',  # tolerate typo
+        'parameter:',
+        'args',
+        'args:',
+        'arg',  # tolerate typo
+        'arg:',
         'other parameters',
+        'other parameters:',
         'other parameter',  # tolerate typo
+        'other parameter:',
         'attributes',
+        'attributes:',
         'attribute',  # tolerate typo
+        'attribute:',
     }
     SECTION_RETURNS = {
         'returns',
+        'returns:',
         'return',  # tolerate typo
+        'return:',
         'yields',
+        'yields:',
         'yield',  # tolerate typo
+        'yield:',
         'raises',
+        'raises:',
         'raise',  # tolerate typo
+        'raise:',
     }
     SECTION_EXAMPLES = {
         'examples',
+        'examples:',
         'example',  # tolerate typo
+        'example:',
     }
 
     temp_out: list[str | list[str]] = []
