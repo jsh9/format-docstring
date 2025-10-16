@@ -43,16 +43,16 @@ repos:
   - repo: local
     hooks:
       - id: format-docstring
-        name: format docstrings in python files
-        entry: format-docstring
+        name: format self (python docstrings)
+        entry: python
+        args: [-m, format_docstring.main_py]
         language: python
         types: [python]
         exclude: ^tests/test_data/
-        additional_dependencies: [.]
       - id: format-docstring-jupyter
-        name: format docstrings in notebooks
-        entry: format-docstring-jupyter
+        name: format self (docstrings in Jupyter notebooks)
+        entry: python
+        args: [-m, format_docstring.main_jupyter]
         language: python
         files: ^.*\.ipynb$
         exclude: ^tests/test_data/
-        additional_dependencies: [.]
