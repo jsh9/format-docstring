@@ -12,6 +12,40 @@ ModuleClassOrFunc = (
     ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
 )
 
+NO_FORMAT_DOCSTRING_MARKER = 'no-format-docstring'
+
+
+def _determine_newline(text: str) -> str:
+    r"""
+    Return the dominant newline style detected in ``text``.
+
+    Defaults to ``\n`` when no Windows/Mac classic newlines are present.
+    """
+    if '\r\n' in text:
+        return '\r\n'
+
+    if '\r' in text:
+        return '\r'
+
+    return '\n'
+
+
+def _has_inline_no_format_comment(source_code: str, end_pos: int) -> bool:
+    """
+    Return True if the closing quotes share a line with the sentinel comment.
+    """
+    source_len = len(source_code)
+    line_end = source_code.find('\n', end_pos)
+    if line_end == -1:
+        line_end = source_len
+
+    same_line_segment = source_code[end_pos:line_end].lower()
+    hash_index = same_line_segment.find('#')
+    if hash_index == -1:
+        return False
+
+    return NO_FORMAT_DOCSTRING_MARKER in same_line_segment[hash_index:]
+
 
 def fix_src(
         source_code: str,
@@ -20,7 +54,8 @@ def fix_src(
         docstring_style: str = 'numpy',
         fix_rst_backticks: bool = True,
 ) -> str:
-    """Return code with only docstrings updated to wrapped content.
+    """
+    Return code with only docstrings updated to wrapped content.
 
     Parameters
     ----------
@@ -31,21 +66,20 @@ def fix_src(
     docstring_style : str, default='numpy'
         The docstring style to target ('numpy' or 'google').
     fix_rst_backticks : bool, default=True
-        If True, automatically fix single backticks to double backticks per
-        rST syntax.
+        If True, automatically fix single backticks to double backticks per rST
+        syntax.
 
     Returns
     -------
     str
-        The updated source code. Only docstring literals are changed; all
-        other formatting is preserved.
+        The updated source code. Only docstring literals are changed; all other
+        formatting is preserved.
 
     Notes
     -----
-    This function avoids ``ast.unparse`` and instead replaces docstring
-    literal spans directly in the original text to preserve non-docstring
-    formatting and comments.
-
+    This function avoids ``ast.unparse`` and instead replaces docstring literal
+    spans directly in the original text to preserve non-docstring formatting
+    and comments.
     """
     tree: ast.Module = ast.parse(source_code)
     line_starts: list[int] = calc_line_starts(source_code)
@@ -93,7 +127,8 @@ def fix_src(
 
 
 def calc_line_starts(source_code: str) -> list[int]:
-    """Return starting offsets for each line in the source string.
+    """
+    Return starting offsets for each line in the source string.
 
     Parameters
     ----------
@@ -104,7 +139,6 @@ def calc_line_starts(source_code: str) -> list[int]:
     -------
     list[int]
         A list of absolute indices for the start of each line.
-
     """
     starts: list[int] = [0]
     for i, ch in enumerate(source_code):
@@ -122,7 +156,8 @@ def build_replacement_docstring(
         docstring_style: str = 'numpy',
         fix_rst_backticks: bool = True,
 ) -> tuple[int, int, str] | None:
-    """Compute a single docstring replacement for the given node.
+    """
+    Compute a single docstring replacement for the given node.
 
     Parameters
     ----------
@@ -137,15 +172,14 @@ def build_replacement_docstring(
     docstring_style : str, default='numpy'
         The docstring style to target ('numpy' or 'google').
     fix_rst_backticks : bool, default=True
-        If True, automatically fix single backticks to double backticks per
-        rST syntax.
+        If True, automatically fix single backticks to double backticks per rST
+        syntax.
 
     Returns
     -------
     tuple[int, int, str] or None
-        A tuple ``(start, end, new_literal)`` indicating the replacement
-        range and text, or ``None`` if no change is needed.
-
+        A tuple ``(start, end, new_literal)`` indicating the replacement range
+        and text, or ``None`` if no change is needed.
     """
     docstring_obj: ast.Expr | None = find_docstring(node)
     if docstring_obj is None:
@@ -158,6 +192,9 @@ def build_replacement_docstring(
     start: int = calc_abs_pos(line_starts, val.lineno, val.col_offset)
     end: int = calc_abs_pos(line_starts, val.end_lineno, val.end_col_offset)  # type: ignore[arg-type]  # noqa: LN002
     original_literal = source_code[start:end]
+
+    if _has_inline_no_format_comment(source_code, end):
+        return None
 
     doc: str | None = ast.get_docstring(node, clean=False)
     if doc is None:
@@ -200,7 +237,8 @@ def build_replacement_docstring(
 
 
 def find_docstring(node: ModuleClassOrFunc) -> ast.Expr | None:
-    """Return the first statement if it is a string-literal docstring.
+    """
+    Return the first statement if it is a string-literal docstring.
 
     Parameters
     ----------
@@ -213,7 +251,6 @@ def find_docstring(node: ModuleClassOrFunc) -> ast.Expr | None:
     ast.Expr or None
         The ``ast.Expr`` node that holds the docstring literal, if present;
         otherwise ``None``.
-
     """
     body: list[ast.stmt] | None = getattr(node, 'body', None)
     if not body:
@@ -231,7 +268,8 @@ def find_docstring(node: ModuleClassOrFunc) -> ast.Expr | None:
 
 
 def calc_abs_pos(line_starts: list[int], lineno: int, col: int) -> int:
-    """Convert a (lineno, col) pair to an absolute index.
+    """
+    Convert a (lineno, col) pair to an absolute index.
 
     Parameters
     ----------
@@ -246,19 +284,19 @@ def calc_abs_pos(line_starts: list[int], lineno: int, col: int) -> int:
     -------
     int
         The absolute character index into the source string.
-
     """
     return line_starts[lineno - 1] + col
 
 
 def rebuild_literal(original_literal: str, content: str) -> str | None:
-    """Rebuild a string literal preserving prefix and quote style.
+    """
+    Rebuild a string literal preserving prefix and quote style.
 
     Parameters
     ----------
     original_literal : str
-        The exact text of the original string literal including any prefix
-        and surrounding quotes.
+        The exact text of the original string literal including any prefix and
+        surrounding quotes.
     content : str
         The new inner content (without surrounding quotes).
 
@@ -267,7 +305,6 @@ def rebuild_literal(original_literal: str, content: str) -> str | None:
     str or None
         A new literal string with the same prefix and quotes and the new
         content. Returns ``None`` if the original cannot be parsed.
-
     """
     i = 0
     n = len(original_literal)
@@ -286,6 +323,11 @@ def rebuild_literal(original_literal: str, content: str) -> str | None:
     else:
         return None
 
+    newline: str = _determine_newline(original_literal)
+    if newline != '\n':
+        normalized_content = content.replace('\r\n', '\n').replace('\r', '\n')
+        content = newline.join(normalized_content.split('\n'))
+
     return f'{prefix}{delim}{content}{delim}'
 
 
@@ -296,7 +338,8 @@ def wrap_docstring(
         leading_indent: int = 0,
         fix_rst_backticks: bool = True,
 ) -> str:
-    """Wrap a docstring to the given line length (stub).
+    """
+    Wrap a docstring to the given line length (stub).
 
     Parameters
     ----------
@@ -309,8 +352,8 @@ def wrap_docstring(
     leading_indent : int, default=0
         The number of indentation spaces of this docstring.
     fix_rst_backticks : bool, default=True
-        If True, automatically fix single backticks to double backticks per
-        rST syntax.
+        If True, automatically fix single backticks to double backticks per rST
+        syntax.
 
     Returns
     -------
@@ -322,7 +365,6 @@ def wrap_docstring(
     This function dispatches to style-specific implementations:
     - 'numpy'  -> wrap_docstring_numpy
     - 'google' -> wrap_docstring_google
-
     """
     style = (docstring_style or '').strip().lower()
     if style == 'google':

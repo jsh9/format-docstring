@@ -75,6 +75,7 @@ def test_load_config_from_file_with_config(tmp_path: Path) -> None:
 line_length = 72
 docstring_style = "numpy"
 exclude = "\\\\.git|\\\\.venv"
+verbose = "diff"
 """
     config_file.write_text(config_content)
 
@@ -83,6 +84,7 @@ exclude = "\\\\.git|\\\\.venv"
         'line_length': 72,
         'docstring_style': 'numpy',
         'exclude': '\\.git|\\.venv',
+        'verbose': 'diff',
     }
 
 

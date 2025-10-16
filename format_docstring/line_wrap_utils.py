@@ -8,7 +8,8 @@ _PARAGRAPH_SPLIT_PATTERN = re.compile(r'\n\s*\n')
 
 
 def add_leading_indent(docstring: str, leading_indent: int | None) -> str:
-    r"""Ensure a docstring starts with a newline + indent when requested.
+    r"""
+    Ensure a docstring starts with a newline + indent when requested.
 
     If ``leading_indent`` is a positive integer and the docstring body doesn't
     already begin with ``"\n" + ' ' * leading_indent``, prepend it. Otherwise,
@@ -23,7 +24,8 @@ def add_leading_indent(docstring: str, leading_indent: int | None) -> str:
 
 
 def finalize_lines(out_lines: list[str], leading_indent: int | None) -> str:
-    """Trim trailing spaces, normalize blank lines, and append closing indent.
+    """
+    Trim trailing spaces, normalize blank lines, and append closing indent.
 
     - Trims trailing spaces from each line.
     - Converts lines that are only whitespace to truly empty lines.
@@ -46,11 +48,12 @@ def finalize_lines(out_lines: list[str], leading_indent: int | None) -> str:
 
 def collect_to_temp_output(temp_out: list[str | list[str]], line: str) -> None:
     """
-    Collect `line` into temporary output.
+    Collect ``line`` into temporary output.
 
-    If the last element of `temp_out` is `list[str]`, append `line` into it. If
-    the last element of `temp_out` is `str`, add new (empty) list as the last
-    element and use `line` as the first element of this new (empty) list.
+    If the last element of ``temp_out`` is ``list[str]``, append ``line`` into
+    it. If the last element of ``temp_out`` is ``str``, add new (empty) list as
+    the last element and use ``line`` as the first element of this new (empty)
+    list.
     """
     if len(temp_out) == 0:
         temp_out.append(line)
@@ -67,14 +70,13 @@ def process_temp_output(
         width: int,
 ) -> list[str]:
     """
-    Wrap the `list[str]` elements in `temp_out`.
+    Wrap the ``list[str]`` elements in ``temp_out``.
 
     To preserve literal blocks indicated by ``::``, the function first scans
     ``temp_out`` for the pattern ``<line ending with '::'>``, followed by
     ``''`` (exactly 1 empty line), followed by non-empty content. When found,
-    those three entries are merged into
-    a single ``list[str]`` so the literal block (including the separating blank
-    line) is wrapped as one unit.
+    those three entries are merged into a single ``list[str]`` so the literal
+    block (including the separating blank line) is wrapped as one unit.
     """
 
     def _to_list(element: str | list[str]) -> list[str]:
@@ -147,7 +149,8 @@ def process_temp_output(
 
 
 def wrap_preserving_indent(lines: list[str], width: int) -> list[str]:
-    """Wrap lines while preserving structure of tables, lists, and indentation.
+    """
+    Wrap lines while preserving structure of tables, lists, and indentation.
 
     Uses segmentation to identify rST tables and bulleted lists which shouldn't
     be wrapped, and only wraps the regular text content while preserving
@@ -163,8 +166,8 @@ def wrap_preserving_indent(lines: list[str], width: int) -> list[str]:
     Returns
     -------
     list[str]
-        The processed lines with wrappable content wrapped and
-        non-wrappable content (tables, lists) preserved.
+        The processed lines with wrappable content wrapped and non-wrappable
+        content (tables, lists) preserved.
     """
     if not lines:
         return []
@@ -187,7 +190,8 @@ def wrap_preserving_indent(lines: list[str], width: int) -> list[str]:
 
 
 def _wrap_text_segment(lines: list[str], width: int) -> list[str]:
-    """Wrap a segment of regular text lines while preserving indentation and
+    """
+    Wrap a segment of regular text lines while preserving indentation and
     paragraphs.
 
     This is the core wrapping logic extracted from the original
@@ -278,7 +282,8 @@ def _add_back_leading_or_trailing_newline(
 
 
 def merge_lines_and_strip(text: str) -> str:
-    r"""Merge lines within paragraphs, preserving paragraph breaks.
+    r"""
+    Merge lines within paragraphs, preserving paragraph breaks.
 
     Takes a multi-line string where each line may have leading or trailing
     whitespace. Lines within the same paragraph (separated by single newlines)
@@ -379,7 +384,8 @@ def fix_typos_in_section_headings(lines: list[str]) -> list[str]:
 def segment_lines_by_wrappability(
         lines: list[str],
 ) -> list[tuple[list[str], bool]]:
-    """Segment lines into chunks that can or cannot be wrapped.
+    """
+    Segment lines into chunks that can or cannot be wrapped.
 
     Scans through the lines to detect rST tables, bulleted lists, and literal
     blocks (paragraphs following ::), which should not be wrapped. Other
@@ -479,11 +485,12 @@ def segment_lines_by_wrappability(
 
 
 def is_rST_table(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
-    """Check if lines starting at start_idx form a reStructuredText table.
+    """
+    Check if lines starting at start_idx form a reStructuredText table.
 
     rST supports two table formats:
     1. Simple tables: columns separated by spaces, header/data separated by
-       `=` lines
+       ``=`` lines
     2. Grid tables: cells enclosed by + and - characters forming a grid
 
     Parameters
@@ -496,9 +503,9 @@ def is_rST_table(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
     Returns
     -------
     tuple[bool, int]
-        A tuple of (is_table, end_idx) where is_table indicates if an rST
-        table was found starting at start_idx, and end_idx is the index after
-        the last line of the table (or start_idx if no table found).
+        A tuple of (is_table, end_idx) where is_table indicates if an rST table
+        was found starting at start_idx, and end_idx is the index after the
+        last line of the table (or start_idx if no table found).
     """
     if start_idx >= len(lines):
         return False, start_idx
@@ -517,7 +524,8 @@ def is_rST_table(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
 
 
 def _is_grid_table(lines: list[str], start_idx: int) -> tuple[bool, int]:
-    """Check for rST grid table format.
+    """
+    Check for rST grid table format.
 
     Grid tables look like:
     +-----+-----+
@@ -561,7 +569,8 @@ def _is_grid_table(lines: list[str], start_idx: int) -> tuple[bool, int]:
 
 
 def _is_simple_table(lines: list[str], start_idx: int) -> tuple[bool, int]:
-    """Check for rST simple table format.
+    """
+    Check for rST simple table format.
 
     Simple tables look like:
     ===== =====
@@ -609,8 +618,8 @@ def _is_simple_table(lines: list[str], start_idx: int) -> tuple[bool, int]:
 
 
 def _is_grid_separator_line(line: str) -> bool:
-    """Check if line is a grid table separator (starts with + and
-    contains + - =).
+    """
+    Check if line is a grid table separator (starts with + and contains + - =).
     """
     if not line or not line.startswith('+'):
         return False
@@ -653,7 +662,8 @@ def _is_simple_content_line(line: str, separator_line: str) -> bool:
 
 
 def is_bulleted_list(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
-    """Check if lines starting at start_idx form a bulleted list.
+    """
+    Check if lines starting at start_idx form a bulleted list.
 
     A bulleted list consists of consecutive list items that start with:
     - Unordered: -, *, or + followed by space
@@ -745,7 +755,8 @@ def _is_unordered_list_item(line: str) -> bool:
 
 
 def _is_ordered_list_item(line: str) -> bool:
-    """Check if a line is an ordered list item.
+    """
+    Check if a line is an ordered list item.
 
     Supports formats:
     - number. (e.g., "1. ", "2. ")
@@ -766,7 +777,8 @@ def _is_ordered_list_item(line: str) -> bool:
 
 
 def _get_list_format(line: str) -> str | None:
-    """Get the format of an ordered list item.
+    """
+    Get the format of an ordered list item.
 
     Returns
     -------
@@ -798,10 +810,11 @@ def _get_list_format(line: str) -> str | None:
 
 
 def _is_continuation_line(line: str, list_item_indent: int) -> bool:
-    """Check if a line is a continuation of a multi-line list item.
+    """
+    Check if a line is a continuation of a multi-line list item.
 
-    A continuation line is indented further than the list item marker
-    and contains some content.
+    A continuation line is indented further than the list item marker and
+    contains some content.
     """
     if not line or not line.strip():
         return False
@@ -817,7 +830,8 @@ def _is_continuation_line(line: str, list_item_indent: int) -> bool:
 def _is_literal_block_paragraph(
         lines: list[str], start_idx: int
 ) -> tuple[bool, int]:
-    """Check if lines starting at start_idx form a literal block following ::.
+    """
+    Check if lines starting at start_idx form a literal block following ::.
 
     A literal block is a paragraph that follows a line ending with ::
     (double colon). The entire paragraph should not be wrapped.

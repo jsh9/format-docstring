@@ -17,6 +17,7 @@ A Python formatter to automatically format numpy-style docstrings.
 - [4. Usage](#4-usage)
   - [4.1. Command Line Interface](#41-command-line-interface)
   - [4.2. Pre-commit Hook](#42-pre-commit-hook)
+  - [4.3. Opting Out of Formatting](#43-opting-out-of-formatting)
 - [5. Configuration](#5-configuration)
   - [5.1. Command-Line Options](#51-command-line-options)
   - [5.2. Usage Examples](#52-usage-examples)
@@ -248,6 +249,19 @@ Then install the pre-commit hook:
 pre-commit install
 ```
 
+### 4.3. Opting Out of Formatting
+
+Add a comment containing `no-format-docstring` on the same line as the closing
+triple quotes to prevent the formatter from touching that docstring:
+`""" ... """  # no-format-docstring`.
+
+You can combine this "no-format-docstring" with other directives like "noqa".
+
+Tip: If you only want to keep specific formatter changes inside a docstring,
+first run `format-docstring`, accept the parts you like, revert the edits you
+dislike, and then add an inline `# no-format-docstring` comment so future runs
+leave that docstring untouched.
+
 ## 5. Configuration
 
 ### 5.1. Command-Line Options
@@ -258,6 +272,8 @@ pre-commit install
   default: `numpy`). Note: Currently only `numpy` style is fully supported.
 - `--fix-rst-backticks BOOL`: Automatically fix single backticks to double
   backticks per rST syntax (default: True)
+- `--verbose CHOICE`: Logging detail level (`default` keeps the existing
+  behaviour, `diff` prints unified diffs when rewrites happen)
 - `--exclude TEXT`: Regex pattern to exclude files/directories (default:
   `\.git|\.tox|\.pytest_cache`)
 - `--config PATH`: Path to a `pyproject.toml` config file. If not specified,
@@ -277,6 +293,9 @@ format-docstring --line-length 72 src/
 
 # Format Jupyter notebooks excluding certain directories
 format-docstring-jupyter --exclude "\.git|\.venv|__pycache__" notebooks/
+
+# Preview changes with unified diffs
+format-docstring --verbose diff src/
 
 # Use a specific config file
 format-docstring --config path/to/pyproject.toml src/
@@ -299,6 +318,7 @@ line_length = 79
 docstring_style = "numpy"
 fix_rst_backticks = true
 exclude = "\\.git|\\.venv|__pycache__"
+verbose = "default"  # or "diff" to print unified diffs
 ```
 
 **Available options:**
@@ -311,6 +331,7 @@ exclude = "\\.git|\\.venv|__pycache__"
   backticks per rST syntax (default: `true`)
 - `exclude` (str): Regex pattern to exclude files/directories (default:
   `"\\.git|\\.tox|\\.pytest_cache"`)
+- `verbose` (str): Logging detail level (`"default"` or `"diff"`)
 
 The tool searches for `pyproject.toml` starting from the target file/directory
 and walking up the parent directories until one is found.

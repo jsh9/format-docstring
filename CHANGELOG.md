@@ -6,6 +6,16 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unpublished]
+
+- Added
+  - A "`# no-format-docstring`" directive to ignore certain docstring
+  - Verbose diff output via `--verbose diff` and
+    `[tool.format_docstring] verbose`
+- Changed
+  - Added "self format" pre-commit hook to format docstrings within this repo
+    with its own formatting logic
+
 ## [0.1.8] - 2025-10-14
 
 - Fixed
