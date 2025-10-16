@@ -17,6 +17,7 @@ A Python formatter to automatically format numpy-style docstrings.
 - [4. Usage](#4-usage)
   - [4.1. Command Line Interface](#41-command-line-interface)
   - [4.2. Pre-commit Hook](#42-pre-commit-hook)
+  - [4.3. Opting Out of Formatting](#43-opting-out-of-formatting)
 - [5. Configuration](#5-configuration)
   - [5.1. Command-Line Options](#51-command-line-options)
   - [5.2. Usage Examples](#52-usage-examples)
@@ -247,6 +248,19 @@ Then install the pre-commit hook:
 ```bash
 pre-commit install
 ```
+
+### 4.3. Opting Out of Formatting
+
+Add a comment containing `no-format-docstring` on the same line as the closing
+triple quotes to prevent the formatter from touching that docstring:
+`""" ... """  # no-format-docstring`.
+
+You can combine this "no-format-docstring" with other directives like "noqa".
+
+Tip: If you only want to keep specific formatter changes inside a docstring,
+first run `format-docstring`, accept the parts you like, revert the edits you
+dislike, and then add an inline `# no-format-docstring` comment so future runs
+leave that docstring untouched.
 
 ## 5. Configuration
 

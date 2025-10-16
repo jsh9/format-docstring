@@ -55,9 +55,10 @@ class BaseFixer:
 
 
 def should_exclude_file(file_path: Path, exclude_pattern: str) -> bool:
-    """Return True if `file_path` matches the provided exclude regex.
+    """
+    Return True if ``file_path`` matches the provided exclude regex.
 
-    If `exclude_pattern` is empty or invalid, no files are excluded.
+    If ``exclude_pattern`` is empty or invalid, no files are excluded.
     """
     if not exclude_pattern:
         return False

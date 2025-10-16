@@ -6,7 +6,8 @@ SEPARATOR = '**********'
 
 
 def load_cases_from_dir(data_dir: Path) -> list[tuple[str, int, str, str]]:
-    """Load line-wrap test cases from text files in a directory.
+    """
+    Load line-wrap test cases from text files in a directory.
 
     Each file format:
     - First line: ``LINE_LENGTH: <int>``

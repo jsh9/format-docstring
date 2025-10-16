@@ -40,3 +40,19 @@ repos:
     rev: 0.0.11
     hooks:
       - id: markdown-toc-creator
+  - repo: local
+    hooks:
+      - id: format-docstring
+        name: format docstrings in python files
+        entry: format-docstring
+        language: python
+        types: [python]
+        exclude: ^tests/test_data/
+        additional_dependencies: [.]
+      - id: format-docstring-jupyter
+        name: format docstrings in notebooks
+        entry: format-docstring-jupyter
+        language: python
+        files: ^.*\.ipynb$
+        exclude: ^tests/test_data/
+        additional_dependencies: [.]

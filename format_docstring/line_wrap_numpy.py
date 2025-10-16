@@ -17,7 +17,8 @@ def wrap_docstring_numpy(
         leading_indent: int | None = None,
         fix_rst_backticks: bool = False,
 ) -> str:
-    """Wrap NumPy-style docstrings with light parsing rules.
+    """
+    Wrap NumPy-style docstrings with light parsing rules.
 
     Rules implemented (conservative):
     - Do not wrap section headings or their underline lines.
@@ -168,7 +169,8 @@ def wrap_docstring_numpy(
 
 
 def _is_hyphen_underline(s: str) -> bool:
-    """Return True if the line consists of only hyphens (>= 2).
+    """
+    Return True if the line consists of only hyphens (>= 2).
 
     Leading/trailing whitespace is ignored. This is a relaxed detector for
     NumPy-style section underlines such as the line beneath "Parameters".
@@ -183,18 +185,18 @@ def _is_hyphen_underline(s: str) -> bool:
     True
     >>> _is_hyphen_underline(' - - ')
     False
-
     """
     t = s.strip()
     return len(t) >= 2 and set(t) <= {'-'}
 
 
 def _get_section_heading_title(lines: list[str], idx: int) -> str | None:
-    """Return the lowercased section title at ``idx`` if underlined.
+    """
+    Return the lowercased section title at ``idx`` if underlined.
 
     Looks at ``lines[idx]`` for a non-empty title and ``lines[idx+1]`` for a
-    hyphen-only underline (at least 3 hyphens). If the pattern matches,
-    returns the lowercased title; otherwise returns ``None``.
+    hyphen-only underline (at least 3 hyphens). If the pattern matches, returns
+    the lowercased title; otherwise returns ``None``.
     """
     if idx + 1 >= len(lines):
         return None
@@ -229,7 +231,8 @@ _PARAM_SIGNATURE_RE = re.compile(
 
 
 def _is_param_signature(text: str) -> bool:
-    r"""Return True if a line looks like a NumPy parameter signature.
+    r"""
+    Return True if a line looks like a NumPy parameter signature.
 
     This function uses a single, precompiled regex to remain fast even when
     scanning many lines. We purposefully accept a broad set of "signature"
@@ -257,11 +260,12 @@ def _is_param_signature(text: str) -> bool:
 
 
 def _fix_colon_spacing(line: str) -> str:
-    """Fix spacing around colons in parameter signature lines.
+    """
+    Fix spacing around colons in parameter signature lines.
 
-    Ensures there is exactly one space before and one space after the colon
-    in parameter signatures. Only operates on lines that are detected as
-    parameter signatures by _is_param_signature().
+    Ensures there is exactly one space before and one space after the colon in
+    parameter signatures. Only operates on lines that are detected as parameter
+    signatures by _is_param_signature().
 
     Parameters
     ----------
@@ -322,18 +326,19 @@ _DEFAULT_SPACE_RE = re.compile(
 
 
 def _standardize_default_value(line: str) -> str:
-    """Standardize default value declarations in parameter signatures.
+    """
+    Standardize default value declarations in parameter signatures.
 
     Converts various formats of default value specifications to the standard
-    `, default=XXX` format. Handles formats like:
-    - ` default XXX`
-    - `, default XXX`
-    - `, default is XXX`
-    - ` default is XXX`
-    - ` default:XXX`
-    - ` default: XXX`
-    - `, default:XXX`
-    - `, default: XXX`
+    ``, default=XXX`` format. Handles formats like:
+    - `` default XXX``
+    - ``, default XXX``
+    - ``, default is XXX``
+    - `` default is XXX``
+    - `` default:XXX``
+    - `` default: XXX``
+    - ``, default:XXX``
+    - ``, default: XXX``
 
     Parameters
     ----------
@@ -380,8 +385,8 @@ def handle_single_line_docstring(
 ) -> str | None:
     """
     Handle single-line docstring that's a bit too long: the docstring content
-    is not long enough to be wrapped, but with the leading and ending quotes
-    (6 quotes in total) the whole line exceeds length limit.
+    is not long enough to be wrapped, but with the leading and ending quotes (6
+    quotes in total) the whole line exceeds length limit.
     """
     if whole_docstring_literal is None:
         return None
@@ -493,7 +498,7 @@ def _fix_rst_backticks(docstring: str) -> str:
 
     >>> _fix_rst_backticks('>>> `foo` in REPL')
     '>>> `foo` in REPL'
-    """
+    """  # no-format-docstring
 
     def replace_func(match: re.Match[str]) -> str:
         # match.group(0) is the full match

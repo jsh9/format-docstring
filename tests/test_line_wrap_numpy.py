@@ -337,7 +337,9 @@ def test_fix_rst_backticks_cases(src: str, expected: str) -> None:
 def test_fix_rst_backticks_option_on_and_off(
         fix_rst_backticks: bool, input_docstring: str, expected_docstring: str
 ) -> None:
-    """Verify the `fix_rst_backticks` option can be correctly turned on/off"""
+    """
+    Verify the ``fix_rst_backticks`` option can be correctly turned on/off
+    """
     result = wrap_docstring(
         input_docstring,
         line_length=79,
