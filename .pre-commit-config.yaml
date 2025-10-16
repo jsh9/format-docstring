@@ -45,7 +45,7 @@ repos:
       - id: format-docstring
         name: Format self (python docstrings)
         entry: python
-        args: [-m, format_docstring.main_py]
+        args: [-m, format_docstring.main_py, --verbose, diff]
         language: python
         types: [python]
         exclude: ^tests/test_data/
@@ -56,7 +56,7 @@ repos:
       - id: format-docstring-jupyter
         name: Format self (docstrings in Jupyter notebooks)
         entry: python
-        args: [-m, format_docstring.main_jupyter]
+        args: [-m, format_docstring.main_jupyter, --verbose, diff]
         language: python
         files: ^.*\.ipynb$
         exclude: ^tests/test_data/
