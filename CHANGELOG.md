@@ -6,12 +6,14 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unpublished]
+## [0.1.9] - 2025-10-16
 
 - Added
   - A "`# no-format-docstring`" directive to ignore certain docstring
   - Verbose diff output via `--verbose diff` and
     `[tool.format_docstring] verbose`
+  - Normalize NumPy section headings that include trailing colons (e.g.,
+    `Parameters:`); also, fix Google-style "Arg" header into "Parameters"
 - Changed
   - Added "self format" pre-commit hook to format docstrings within this repo
     with its own formatting logic
