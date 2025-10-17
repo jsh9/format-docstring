@@ -8,7 +8,18 @@ from typing import Any
 
 
 class BaseFixer:
-    """Base class for fixing code formatting issues."""
+    r"""
+    Base class for fixing code formatting issues.
+
+    Parameters
+    ----------
+    path : str
+        Target file or directory to process.
+    exclude_pattern : str, default='\.git|\.tox|\.pytest_cache'
+        Regular expression describing paths to skip.
+    verbose : str, default='default'
+        Verbosity mode; ``'diff'`` prints unified diffs for rewritten files.
+    """
 
     def __init__(
             self,
@@ -16,7 +27,6 @@ class BaseFixer:
             exclude_pattern: str = r'\.git|\.tox|\.pytest_cache',
             verbose: str = 'default',
     ) -> None:
-        """Initialize the fixer with a path and optional exclude pattern."""
         self.path = path
         self.exclude_pattern = exclude_pattern
         self.verbose = verbose

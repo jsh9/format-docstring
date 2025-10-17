@@ -513,8 +513,8 @@ def is_rST_table(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
     ----------
     lines : list[str]
         The list of lines to check.
-    start_idx : int, optional
-        The starting index to check from, by default 0.
+    start_idx : int, default=0
+        The starting index to check from.
 
     Returns
     -------
@@ -692,8 +692,8 @@ def is_bulleted_list(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
     ----------
     lines : list[str]
         The list of lines to check.
-    start_idx : int, optional
-        The starting index to check from, by default 0.
+    start_idx : int, default=0
+        The starting index to check from.
 
     Returns
     -------
@@ -796,12 +796,16 @@ def _get_list_format(line: str) -> str | None:
     """
     Get the format of an ordered list item.
 
+    Parameters
+    ----------
+    line : str
+        Line of text to inspect.
+
     Returns
     -------
-    - '.' for "1. " format
-    - ')' for "1) " format
-    - '()' for "(1) " format
-    - None if not an ordered list item
+    str | None
+        ``'.'`` for the ``"1. "`` style, ``')'`` for ``"1) "``, ``'()'`` for
+        ``"(1) "``, or ``None`` if the line is not an ordered list item.
     """
     stripped = line.lstrip()
     if not stripped:
