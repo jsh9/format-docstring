@@ -193,6 +193,17 @@ def _is_hyphen_underline(s: str) -> bool:
     Leading/trailing whitespace is ignored. This is a relaxed detector for
     NumPy-style section underlines such as the line beneath "Parameters".
 
+    Parameters
+    ----------
+    s : str
+        Candidate underline text to evaluate.
+
+    Returns
+    -------
+    bool
+        ``True`` when the stripped line contains at least two hyphens and no
+        other characters; otherwise ``False``.
+
     Examples
     --------
     >>> _is_hyphen_underline('---')
