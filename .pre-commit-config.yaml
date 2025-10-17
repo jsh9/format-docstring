@@ -9,8 +9,15 @@ repos:
       - id: double-quote-string-fixer
       - id: requirements-txt-fixer
       - id: pretty-format-json
-        args: [--no-ensure-ascii, --indent=4, --no-sort-keys]
+        args: [--autofix, --no-ensure-ascii, --indent=4, --no-sort-keys]
         exclude: \.ipynb$
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-toml
+      - id: check-yaml
+      - id: name-tests-test
+        args: [--pytest-test-first]
+      - id: check-merge-conflict
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.20.0
     hooks:
@@ -31,11 +38,11 @@ repos:
     hooks:
       - id: yamlfix
   - repo: https://github.com/hukkin/mdformat
-    rev: 0.7.22
+    rev: 1.0.0
     hooks:
       - id: mdformat
         args: [--wrap, '79', --number]
-        additional_dependencies: [mdformat-tables]
+        additional_dependencies: [mdformat-gfm]
   - repo: https://github.com/jsh9/markdown-toc-creator
     rev: 0.0.11
     hooks:
