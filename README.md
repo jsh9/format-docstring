@@ -24,6 +24,7 @@ ______________________________________________________________________
   - [5.1. Command-Line Options](#51-command-line-options)
   - [5.2. Usage Examples](#52-usage-examples)
   - [5.3. `pyproject.toml` Configuration](#53-pyprojecttoml-configuration)
+- [6. Caveat](#6-caveat)
 
 <!--TOC-->
 
@@ -359,6 +360,15 @@ verbose = "default"  # or "diff" to print unified diffs
 
 The tool searches for `pyproject.toml` starting from the target file/directory
 and walking up the parent directories until one is found.
+
+## 6. Caveat
+
+This tool assumes the docstrings are written in **mostly** the correct format,
+because it needs those formatting cues (such as section headers and `------`)
+to parse docstrings.
+
+If the docstrings are far from perfectly formatted, it's recommended that you
+use AI coding assistants to rewrite the docstrings first.
 
 [black]: https://github.com/psf/black
 [docformatter]: https://github.com/PyCQA/docformatter
