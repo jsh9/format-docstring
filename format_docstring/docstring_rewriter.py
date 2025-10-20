@@ -340,7 +340,7 @@ def build_replacement_docstring(
 
     Returns
     -------
-    tuple[int, int, str] or None
+    tuple[int, int, str] | None
         A tuple ``(start, end, new_literal)`` indicating the replacement range
         and text, or ``None`` if no change is needed.
     """
@@ -416,7 +416,7 @@ def find_docstring(node: ModuleClassOrFunc) -> ast.Expr | None:
 
     Returns
     -------
-    ast.Expr or None
+    ast.Expr | None
         The ``ast.Expr`` node that holds the docstring literal, if present;
         otherwise ``None``.
     """
@@ -470,7 +470,7 @@ def rebuild_literal(original_literal: str, content: str) -> str | None:
 
     Returns
     -------
-    str or None
+    str | None
         A new literal string with the same prefix and quotes and the new
         content. Returns ``None`` if the original cannot be parsed.
     """
@@ -516,7 +516,7 @@ def wrap_docstring(
         The original docstring contents without quotes.
     line_length : int, default=79
         Target maximum line length for wrapping logic.
-    docstring_style : str, default="numpy"
+    docstring_style : str, default='numpy'
         The docstring style to target ('numpy' or 'google').
     leading_indent : int, default=0
         The number of indentation spaces of this docstring.
