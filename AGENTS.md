@@ -39,8 +39,8 @@ oriented before making changes.
   literals, and rewrites source slices using absolute offsets from
   `calc_line_starts`; this avoids `ast.unparse` and keeps comments/spacing.
 - For functions, `_collect_param_metadata` records signature annotations and
-  default values so NumPy ``Parameters`` signatures in docstrings are
-  resynchronised with the real function definition (while leaving ``Returns``
+  default values so NumPy `Parameters` signatures in docstrings are
+  resynchronised with the real function definition (while leaving `Returns`
   untouched). Defaulted parameters omit redundant `, optional`, and forward
   references keep their original quoting.
 - Wrapping honors NumPy section heuristics, rST constructs, code fences,

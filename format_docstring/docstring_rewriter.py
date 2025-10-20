@@ -9,13 +9,13 @@ from format_docstring.line_wrap_numpy import (
     handle_single_line_docstring,
     wrap_docstring_numpy,
 )
+from format_docstring.line_wrap_utils import ParameterMetadata
 
 ModuleClassOrFunc = (
     ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
 )
 
 NO_FORMAT_DOCSTRING_MARKER = 'no-format-docstring'
-ParameterMetadata = dict[str, tuple[str | None, str | None]]
 
 
 def _determine_newline(text: str) -> str:
@@ -51,12 +51,12 @@ def _has_inline_no_format_comment(source_code: str, end_pos: int) -> bool:
 
 
 def _normalize_signature_segment(segment: str | None) -> str | None:
-    """
+    r"""
     Normalize signature fragments while preserving author-intended quoting.
 
     Parameters
     ----------
-    segment : str or None
+    segment : str | None
         Raw text captured from a function signature (annotation or default).
 
     Returns
@@ -91,7 +91,9 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
         # iterator order mirrors the unparse traversal so we can reapply them.
         original_strings: list[str] = []
         try:
-            for tok in tokenize.generate_tokens(io.StringIO(normalized).readline):
+            for tok in tokenize.generate_tokens(
+                io.StringIO(normalized).readline
+            ):
                 if tok.type == tokenize.STRING:
                     original_strings.append(tok.string)
         except tokenize.TokenError:
@@ -100,7 +102,9 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
         string_iter = iter(original_strings)
         try:
             rebuilt_tokens: list[tokenize.TokenInfo] = []
-            for tok in tokenize.generate_tokens(io.StringIO(canonical).readline):
+            for tok in tokenize.generate_tokens(
+                io.StringIO(canonical).readline
+            ):
                 if tok.type == tokenize.STRING:
                     replacement = next(string_iter, None)
                     if replacement is not None:
@@ -109,12 +113,13 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
                             # evaluate to the same value; this ensures we
                             # preserve double-quoted forward references without
                             # rewriting single-quoted strings unnecessarily.
-                            if ast.literal_eval(replacement) == ast.literal_eval(
-                                tok.string
-                            ):
+                            if ast.literal_eval(
+                                replacement
+                            ) == ast.literal_eval(tok.string):
                                 tok = tok._replace(string=replacement)
                         except Exception:
                             pass
+
                 rebuilt_tokens.append(tok)
                 if tok.type == tokenize.ENDMARKER:
                     break
@@ -128,7 +133,9 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
     return normalized
 
 
-def _render_signature_piece(node: ast.AST | None, source_code: str) -> str | None:
+def _render_signature_piece(
+        node: ast.AST | None, source_code: str
+) -> str | None:
     """
     Return the source representation for an annotation/default expression.
     """
@@ -159,17 +166,18 @@ def _collect_param_metadata(
             aliases: tuple[str, ...] = (),
     ) -> None:
         """
-        Store the annotation/default text for ``name`` and any syntactic aliases.
+        Store the annotation/default text for ``name`` and any syntactic
+        aliases.
 
         Parameters
         ----------
         name : str
             The canonical parameter identifier (without leading ``*``/``**``).
-        annotation_node : ast.AST or None
+        annotation_node : ast.AST | None
             AST node representing the annotation extracted from the signature.
-        default_node : ast.AST or None, optional
+        default_node : ast.AST | None, default=None
             AST node representing the default value; ``None`` when absent.
-        aliases : tuple[str, ...], optional
+        aliases : tuple[str, ...], default=()
             Additional keys (e.g. ``*args``) that should map to the same
             metadata payload.
         """
@@ -186,6 +194,7 @@ def _collect_param_metadata(
         default_node: ast.AST | None = None
         if idx >= defaults_start:
             default_node = positional_defaults[idx - defaults_start]
+
         record(arg.arg, arg.annotation, default_node)
 
     if node.args.vararg is not None:

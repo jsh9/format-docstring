@@ -15,7 +15,7 @@ ______________________________________________________________________
   - [2.3. Minor typos can be automatically fixed](#23-minor-typos-can-be-automatically-fixed)
   - [2.4. Default value declarations are standardized](#24-default-value-declarations-are-standardized)
   - [2.5. Single backticks are converted to double backticks (rST syntax)](#25-single-backticks-are-converted-to-double-backticks-rst-syntax)
-  - [2.6. Docstring parameters stay in sync with signatures](#26-docstring-parameters-stay-in-sync-with-signatures)
+  - [2.6. Input args (type hints & defaults) are consistent between docstring and signature](#26-input-args-type-hints--defaults-are-consistent-between-docstring-and-signature)
 - [3. Installation](#3-installation)
 - [4. Usage](#4-usage)
   - [4.1. Command Line Interface](#41-command-line-interface)

@@ -8,6 +8,7 @@ from format_docstring.line_wrap_utils import (
     collect_to_temp_output,
     finalize_lines,
     process_temp_output,
+    ParameterMetadata,
 )
 
 
@@ -16,7 +17,7 @@ def wrap_docstring_numpy(
         line_length: int,
         leading_indent: int | None = None,
         fix_rst_backticks: bool = False,
-        parameter_metadata: dict[str, tuple[str | None, str | None]] | None = None,
+        parameter_metadata: ParameterMetadata | None = None,
 ) -> str:
     """
     Wrap NumPy-style docstrings with light parsing rules.
@@ -417,7 +418,8 @@ _SIGNATURE_TAIL_KEYWORDS: tuple[str, ...] = (', optional', ', required')
 
 def _extract_signature_tail(after_colon: str) -> tuple[str, str]:
     """
-    Split ``after_colon`` into the core signature content and trailing qualifier.
+    Split ``after_colon`` into the core signature content and trailing
+    qualifier.
 
     The ``", optional"`` qualifier is intentionally stripped because the
     presence of a default value communicates optionality.
@@ -439,6 +441,7 @@ def _extract_signature_tail(after_colon: str) -> tuple[str, str]:
         tail = stripped[idx:]
         if keyword == ', optional':
             return base, ''
+
         return base, tail
 
     return stripped.strip(), ''
@@ -446,7 +449,7 @@ def _extract_signature_tail(after_colon: str) -> tuple[str, str]:
 
 def _rewrite_parameter_signature(
         line: str,
-        parameter_metadata: dict[str, tuple[str | None, str | None]] | None,
+        parameter_metadata: ParameterMetadata | None,
 ) -> str:
     """
     Replace the annotation/default portion of a signature line using metadata.
@@ -472,8 +475,10 @@ def _rewrite_parameter_signature(
     meta = parameter_metadata.get(name)
     if meta is None and name.startswith('**'):
         meta = parameter_metadata.get(name[2:])
+
     if meta is None and name.startswith('*'):
         meta = parameter_metadata.get(name[1:])
+
     if meta is None:
         return line
 
@@ -489,12 +494,16 @@ def _rewrite_parameter_signature(
             existing_annotation_text = existing_annotation_text.split(
                 ', default=', 1
             )[0].rstrip(', ')
+
     existing_annotation_text = existing_annotation_text.strip()
 
     rhs_parts: list[str] = []
-    annotation_text = annotation if annotation is not None else existing_annotation_text
+    annotation_text = (
+        annotation if annotation is not None else existing_annotation_text
+    )
     if annotation_text:
         rhs_parts.append(annotation_text)
+
     if default is not None:
         rhs_parts.append(f'default={default}')
 

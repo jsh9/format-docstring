@@ -6,6 +6,8 @@ import textwrap
 # Regex pattern to split text into paragraphs (multiple consecutive newlines)
 _PARAGRAPH_SPLIT_PATTERN = re.compile(r'\n\s*\n')
 
+ParameterMetadata = dict[str, tuple[str | None, str | None]]
+
 
 def add_leading_indent(docstring: str, leading_indent: int | None) -> str:
     r"""
