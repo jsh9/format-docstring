@@ -101,4 +101,3 @@ def yield_custom_type_2() -> Iterator[tuple['MyType1', "MyType2"]]:
     """
     yield 'value'
     yield 1
-
