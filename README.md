@@ -2,6 +2,8 @@
 
 A Python formatter to automatically format numpy-style docstrings.
 
+______________________________________________________________________
+
 **Table of Contents:**
 
 <!--TOC-->
@@ -22,24 +24,28 @@ A Python formatter to automatically format numpy-style docstrings.
   - [5.1. Command-Line Options](#51-command-line-options)
   - [5.2. Usage Examples](#52-usage-examples)
   - [5.3. `pyproject.toml` Configuration](#53-pyprojecttoml-configuration)
+- [6. Caveat](#6-caveat)
 
 <!--TOC-->
+
+______________________________________________________________________
 
 ## 1. Overview
 
 `format-docstring` is a tool that automatically formats and wraps docstring
 content in Python files and Jupyter notebooks.
 
-Compared with [`docformatter`](https://github.com/PyCQA/docformatter) and
-[`pydocstringformatter`](https://github.com/DanielNoord/pydocstringformatter),
-this tool (`format-docstring`) goes further by intelligently wrapping docstring
-contents, fixing common typos, etc.
+Baseline reflow corresponds to the common docstring cleanups offered by
+general-purpose formatters: splitting one-line docstrings into the canonical
+multi-line layout (triple quotes, blank line, summary), normalizing
+indentation, and wrapping text at a fixed column width without applying extra
+heuristics.
 
-The formatting that would be done by
-[docformatter](https://github.com/PyCQA/docformatter) and
-[pydocstringformatter](https://github.com/DanielNoord/pydocstringformatter) can
-be readily handled by [Ruff](https://github.com/astral-sh/ruff) or
-[Black](https://github.com/psf/black).
+| Feature                                   | `format-docstring` | [docformatter] | [pydocstringformatter] | [Ruff] | [Black] |
+| ----------------------------------------- | ------------------ | -------------- | ---------------------- | ------ | ------- |
+| Docstring wrapping                        | ✅                 | ❌             | ❌                     | ❌     | ❌      |
+| Compatible with line length linter (E501) | ✅                 | ❌             | ❌                     | N/A    | N/A     |
+| Fixes common docstring typos              | ✅                 | ❌             | ❌                     | ❌     | ❌      |
 
 ## 2. Before vs After Examples
 
@@ -151,6 +157,25 @@ def mu_function():
 +    -------
     int
         The return value
+    """
+    pass
+```
+
+or, Google-style section headers can be fixed:
+
+```diff
+def my_function():
+    """
+    My function
+
+-    Args:
+-    ----
++    Parameters
++    ----------
+    arg1 : str
+        Arg 1
+
+    ...
     """
     pass
 ```
@@ -335,3 +360,17 @@ verbose = "default"  # or "diff" to print unified diffs
 
 The tool searches for `pyproject.toml` starting from the target file/directory
 and walking up the parent directories until one is found.
+
+## 6. Caveat
+
+This tool assumes the docstrings are written in **mostly** the correct format,
+because it needs those formatting cues (such as section headers and `------`)
+to parse docstrings.
+
+If the docstrings are far from perfectly formatted, it's recommended that you
+use AI coding assistants to rewrite the docstrings first.
+
+[black]: https://github.com/psf/black
+[docformatter]: https://github.com/PyCQA/docformatter
+[pydocstringformatter]: https://github.com/DanielNoord/pydocstringformatter
+[ruff]: https://github.com/astral-sh/ruff
