@@ -224,6 +224,7 @@ def process_data(data):
 -        Processed data with key `result`.
 +        Processed data with key ``result``.
     """
+```
 
 ### 2.6. Input args (type hints & defaults) are consistent between docstring and signature
 
