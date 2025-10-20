@@ -387,8 +387,10 @@ def build_replacement_docstring(
     )
 
     param_metadata: ParameterMetadata | None = None
+    return_annotation: str | None = None
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         param_metadata = _collect_param_metadata(node, source_code)
+        return_annotation = _render_signature_piece(node.returns, source_code)
 
     wrapped: str = wrap_docstring(
         doc,
@@ -397,6 +399,7 @@ def build_replacement_docstring(
         leading_indent=leading_indent_,  # type: ignore[arg-type]
         fix_rst_backticks=fix_rst_backticks,
         function_param_metadata=param_metadata,
+        function_return_annotation=return_annotation,
     )
 
     new_literal: str | None = rebuild_literal(original_literal, wrapped)
@@ -517,6 +520,7 @@ def wrap_docstring(
         leading_indent: int = 0,
         fix_rst_backticks: bool = True,
         function_param_metadata: ParameterMetadata | None = None,
+        function_return_annotation: str | None = None,
 ) -> str:
     """
     Wrap a docstring to the given line length (stub).
@@ -537,6 +541,9 @@ def wrap_docstring(
     function_param_metadata : ParameterMetadata | None, default=None
         The parameter metadata (a mapping from parameter names to (type hint,
         default value) tuple) of the function node.
+    function_return_annotation : str | None, default=None
+        The function's return annotation text (normalized), used to keep
+        ``Returns``/``Yields`` signature lines synchronized.
 
     Returns
     -------
@@ -557,6 +564,7 @@ def wrap_docstring(
             leading_indent=leading_indent,
             fix_rst_backticks=fix_rst_backticks,
             parameter_metadata=function_param_metadata,
+            return_annotation=function_return_annotation,
         )
     # Default to NumPy-style for unknown/unspecified styles to be permissive.
     return wrap_docstring_numpy(
@@ -565,4 +573,5 @@ def wrap_docstring(
         leading_indent=leading_indent,
         fix_rst_backticks=fix_rst_backticks,
         parameter_metadata=function_param_metadata,
+        return_annotation=function_return_annotation,
     )

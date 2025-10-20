@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import re
 import textwrap
 
@@ -18,6 +19,7 @@ def wrap_docstring_numpy(
         leading_indent: int | None = None,
         fix_rst_backticks: bool = False,
         parameter_metadata: ParameterMetadata | None = None,
+        return_annotation: str | None = None,
 ) -> str:
     """
     Wrap NumPy-style docstrings with light parsing rules.
@@ -94,6 +96,17 @@ def wrap_docstring_numpy(
     in_code_fence: bool = False
     current_section: str = ''
     in_examples: bool = False
+    return_annotation_str: str | None = (
+        return_annotation.strip() if return_annotation else None
+    )
+    return_components: list[str] | None = (
+        _split_tuple_annotation(return_annotation_str)
+        if return_annotation_str is not None
+        else None
+    )
+    return_component_index: int = 0
+    return_signature_style_determined: bool = False
+    return_use_multiple_signatures: bool = False
 
     i: int = 0
     while i < len(lines):
@@ -177,8 +190,43 @@ def wrap_docstring_numpy(
                 continue
 
             # Treat top-level lines as signatures
-            if indent_length <= leading_indent:  # type: ignore[operator]
-                temp_out.append(line)
+            if leading_indent is None or indent_length <= leading_indent:
+                if not return_signature_style_determined:
+                    return_use_multiple_signatures = (
+                        _detect_multiple_return_signatures(
+                            lines, i, leading_indent
+                        )
+                    )
+                    return_signature_style_determined = True
+
+                desired_annotation: str | None = return_annotation_str
+                if (
+                    return_use_multiple_signatures
+                    and return_components
+                    and return_component_index < len(return_components)
+                ):
+                    desired_annotation = return_components[
+                        return_component_index
+                    ]
+                    return_component_index += 1
+                elif (
+                    return_use_multiple_signatures
+                    and return_components
+                    and return_component_index >= len(return_components)
+                ):
+                    # Fallback to last component when docstring expects more
+                    desired_annotation = return_components[-1]
+
+                if desired_annotation is None:
+                    temp_out.append(line)
+                    i += 1
+                    continue
+
+                rewritten = _rewrite_return_signature(
+                    line,
+                    desired_annotation,
+                )
+                temp_out.append(rewritten)
                 i += 1
                 continue
 
@@ -517,6 +565,101 @@ def _rewrite_parameter_signature(
         rebuilt = f'{rebuilt}{tail}'
 
     return rebuilt
+
+
+def _split_tuple_annotation(annotation: str | None) -> list[str] | None:
+    """
+    Return individual tuple element annotations when ``annotation`` is a tuple.
+    """
+    if annotation is None:
+        return None
+
+    try:
+        expr = ast.parse(annotation, mode='eval').body
+    except (SyntaxError, ValueError):
+        return None
+
+    def _name_of(node: ast.AST) -> str | None:
+        if isinstance(node, ast.Name):
+            return node.id
+
+        if isinstance(node, ast.Attribute):
+            base = _name_of(node.value)
+            if base is None:
+                return None
+
+            return f'{base}.{node.attr}'
+
+        return None
+
+    if isinstance(expr, ast.Subscript):
+        base_name = _name_of(expr.value)
+        if base_name not in {'tuple', 'Tuple'}:
+            return None
+
+        slice_node = expr.slice
+        if not isinstance(slice_node, ast.Tuple):
+            return None
+
+        if len(slice_node.elts) < 2:
+            return None
+
+        parts: list[str] = []
+        for elt in slice_node.elts:
+            segment = ast.get_source_segment(annotation, elt)
+            if segment is None:
+                segment = ast.unparse(elt)
+
+            parts.append(segment.strip())
+
+        return parts
+
+    return None
+
+
+def _detect_multiple_return_signatures(
+        lines: list[str],
+        start_idx: int,
+        leading_indent: int | None,
+) -> bool:
+    """
+    Return True if additional top-level return signatures appear after
+    start_idx.
+    """
+    indent_threshold = leading_indent if leading_indent is not None else 0
+    j = start_idx + 1
+    while j < len(lines):
+        candidate = lines[j]
+        if _get_section_heading_title(lines, j):
+            break
+
+        if candidate.strip() == '':
+            j += 1
+            continue
+
+        indent = len(candidate) - len(candidate.lstrip(' '))
+        if indent <= indent_threshold:
+            return True
+
+        j += 1
+
+    return False
+
+
+def _rewrite_return_signature(line: str, annotation: str) -> str:
+    """
+    Rewrite a return signature line to use the supplied annotation text.
+    """
+    indent_length = len(line) - len(line.lstrip(' '))
+    indent = line[:indent_length]
+    stripped = line[indent_length:]
+
+    colon_idx = stripped.find(':')
+    if colon_idx != -1:
+        name = stripped[:colon_idx].rstrip()
+        return f'{indent}{name} : {annotation}'
+
+    return f'{indent}{annotation}'
 
 
 def handle_single_line_docstring(

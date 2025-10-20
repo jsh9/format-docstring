@@ -40,9 +40,10 @@ oriented before making changes.
   `calc_line_starts`; this avoids `ast.unparse` and keeps comments/spacing.
 - For functions, `_collect_param_metadata` records signature annotations and
   default values so NumPy `Parameters` signatures in docstrings are
-  resynchronised with the real function definition (while leaving `Returns`
-  untouched). Defaulted parameters omit redundant `, optional`, and forward
-  references keep their original quoting.
+  resynchronised with the real function definition. Defaulted parameters omit
+  redundant `, optional`, and forward references keep their original quoting.
+- Return annotations are likewise projected into `Returns`/`Yields` sections,
+  mirroring tuple element splits when the docstring already enumerates them.
 - Wrapping honors NumPy section heuristics, rST constructs, code fences,
   `Examples` prompts, and literal blocks introduced by `::`.
 - `_normalize_signature_segment` flattens multiline annotations via
