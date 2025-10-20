@@ -4,11 +4,11 @@ import re
 import textwrap
 
 from format_docstring.line_wrap_utils import (
+    ParameterMetadata,
     add_leading_indent,
     collect_to_temp_output,
     finalize_lines,
     process_temp_output,
-    ParameterMetadata,
 )
 
 

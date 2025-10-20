@@ -205,7 +205,9 @@ def _collect_param_metadata(
             aliases=(f'*{vararg.arg}',),
         )
 
-    for kw_arg, kw_default in zip(node.args.kwonlyargs, node.args.kw_defaults):
+    for kw_arg, kw_default in zip(
+        node.args.kwonlyargs, node.args.kw_defaults, strict=False
+    ):
         record(kw_arg.arg, kw_arg.annotation, kw_default)
 
     if node.args.kwarg is not None:
