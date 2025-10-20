@@ -71,7 +71,7 @@ def wrap_docstring_numpy(
         'attribute',  # tolerate typo
         'attribute:',
     }
-    SECTION_RETURNS = {
+    SECTION_RETURNS_YIELDS = {
         'returns',
         'returns:',
         'return',  # tolerate typo
@@ -80,6 +80,8 @@ def wrap_docstring_numpy(
         'yields:',
         'yield',  # tolerate typo
         'yield:',
+    }
+    SECTION_RAISES = {
         'raises',
         'raises:',
         'raise',  # tolerate typo
@@ -183,7 +185,7 @@ def wrap_docstring_numpy(
             continue
 
         # Returns/Yields sections
-        if section_lower_case in SECTION_RETURNS:
+        if section_lower_case in SECTION_RETURNS_YIELDS:
             if line.strip() == '':
                 temp_out.append(line)
                 i += 1
@@ -233,6 +235,19 @@ def wrap_docstring_numpy(
             collect_to_temp_output(temp_out, line)
             i += 1
             continue
+
+        # Raises section
+        if section_lower_case in SECTION_RAISES:
+            if line.strip() == '':
+                temp_out.append(line)
+                i += 1
+                continue
+
+            # Treat top-level lines as signatures
+            if indent_length <= leading_indent:  # type: ignore[operator]
+                temp_out.append(line)
+                i += 1
+                continue
 
         # Examples or any other section
         collect_to_temp_output(temp_out, line)
