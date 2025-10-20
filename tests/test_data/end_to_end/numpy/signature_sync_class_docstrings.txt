@@ -18,6 +18,8 @@ class Widget:
         Additional options payload.
     callback : Callable
         Callback invoked after processing.
+    arg_not_in_init_signature    :"MyCustomClassThatHasVeryVeryVeryVeryVeryVeryVeryVeryLongName"
+        Arg
 
     Attributes
     ----------
@@ -58,10 +60,20 @@ class Widget:
 
 class Both:
     """
-    Both class docstring and __init__ docstring will have a Parameters section,
-    and this tool will format the type hints and default values in both
-    docstrings. Even though this is not best practice (and some linters will
-    report an error), it is out of the scope of this formatter to fix this.
+    Both class docstring and __init__
+    docstring will have a Parameters section,
+    and this tool will
+    format the type hints and default values in both
+    docstrings. Even
+    though this is not best
+    practice (and some linters will
+    report an error), it
+    is out of the scope
+    of this
+    formatter
+    to
+    fix
+    this.
 
     Parameters
     ----------
@@ -112,6 +124,8 @@ class Widget:
         Additional options payload.
     callback : Callable[[str, int], bool] | None, default=None
         Callback invoked after processing.
+    arg_not_in_init_signature : "MyCustomClassThatHasVeryVeryVeryVeryVeryVeryVeryVeryLongName"
+        Arg
 
     Attributes
     ----------
