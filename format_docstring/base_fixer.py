@@ -15,7 +15,7 @@ class BaseFixer:
     ----------
     path : str
         Target file or directory to process.
-    exclude_pattern : str, default='\.git|\.tox|\.pytest_cache'
+    exclude_pattern : str, default=r'\.git|\.tox|\.pytest_cache'
         Regular expression describing paths to skip.
     verbose : str, default='default'
         Verbosity mode; ``'diff'`` prints unified diffs for rewritten files.

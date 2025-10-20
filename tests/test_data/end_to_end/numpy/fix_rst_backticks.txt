@@ -162,7 +162,7 @@ class DataProcessor:
 
     Attributes
     ----------
-    mode : str
+    mode : str, default='standard'
         Processing mode, one of ``'simple'``, ``'standard'``, or
         ``'advanced'``.
     pipelines : list
