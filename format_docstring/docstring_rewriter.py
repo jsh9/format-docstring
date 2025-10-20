@@ -61,7 +61,7 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
 
     Returns
     -------
-    str or None
+    str | None
         The fragment with condensed whitespace. Double-quoted literals are kept
         double quoted; single-quoted literals are left untouched.
 
@@ -534,6 +534,9 @@ def wrap_docstring(
     fix_rst_backticks : bool, default=True
         If True, automatically fix single backticks to double backticks per rST
         syntax.
+    function_param_metadata : ParameterMetadata | None, default=None
+        The parameter metadata (a mapping from parameter names to (type hint,
+        default value) tuple) of the function node.
 
     Returns
     -------
