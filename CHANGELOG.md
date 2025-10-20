@@ -6,6 +6,15 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-10-20
+
+- Added
+  - AST-driven synchronization of NumPy `Parameters` and `Returns` signature
+    lines with the function signature, including tuple element expansion for
+    multi-line return blocks
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.1.9...0.2.0
+
 ## [0.1.9] - 2025-10-16
 
 - Added
@@ -17,6 +26,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Changed
   - Added "self format" pre-commit hook to format docstrings within this repo
     with its own formatting logic
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.1.8...0.1.9
 
 ## [0.1.8] - 2025-10-14
 
