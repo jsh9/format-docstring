@@ -1,0 +1,103 @@
+LINE_LENGTH: 79
+
+**********
+from collections.abc import Generator, Iterator
+
+
+def yield_numbers() -> Iterator[int]:
+    """
+    Yield numbers.
+
+    Yields
+    ------
+    str
+        Should match annotation.
+    """
+    yield 1
+
+
+def yield_named() -> Generator[int, None, None]:
+    """
+    Yield named.
+
+    Yields
+    ------
+    result : str
+        Should match annotation.
+    """
+    yield 1
+
+
+def yield_custom_type_1() -> Iterator['MyType1']:
+    """
+    Yield custom type.
+
+    Yields
+    ------
+    str
+    """
+    yield 'value'
+
+
+def yield_custom_type_2() -> Iterator[tuple['MyType1', "MyType2"]]:
+    """
+    Yield another custom type.
+
+    Yields
+    ------
+    str
+        Combined values.
+    """
+    yield 'value'
+    yield 1
+
+**********
+from collections.abc import Generator, Iterator
+
+
+def yield_numbers() -> Iterator[int]:
+    """
+    Yield numbers.
+
+    Yields
+    ------
+    Iterator[int]
+        Should match annotation.
+    """
+    yield 1
+
+
+def yield_named() -> Generator[int, None, None]:
+    """
+    Yield named.
+
+    Yields
+    ------
+    result : Generator[int, None, None]
+        Should match annotation.
+    """
+    yield 1
+
+
+def yield_custom_type_1() -> Iterator['MyType1']:
+    """
+    Yield custom type.
+
+    Yields
+    ------
+    Iterator['MyType1']
+    """
+    yield 'value'
+
+
+def yield_custom_type_2() -> Iterator[tuple['MyType1', "MyType2"]]:
+    """
+    Yield another custom type.
+
+    Yields
+    ------
+    Iterator[tuple['MyType1', "MyType2"]]
+        Combined values.
+    """
+    yield 'value'
+    yield 1

@@ -84,6 +84,35 @@ def custom_return_type_2() -> tuple['MyType1', "MyType2"]:
     """
     pass
 
+
+def with_return_var_name_1() -> str:
+    """
+    Do something
+
+    Returns
+    -------
+    result:float
+        The result
+    """
+    pass
+
+
+def with_return_var_name_2() -> tuple[str, int, int]:
+    """
+    Do something
+
+    Returns
+    -------
+    name:
+        The name
+    index :bool
+        The index
+    status: str
+        The status
+    """
+    pass
+
+
 **********
 from typing import List
 
@@ -165,5 +194,33 @@ def custom_return_type_2() -> tuple['MyType1', "MyType2"]:
         String
     "MyType2"
         Integer
+    """
+    pass
+
+
+def with_return_var_name_1() -> str:
+    """
+    Do something
+
+    Returns
+    -------
+    result : str
+        The result
+    """
+    pass
+
+
+def with_return_var_name_2() -> tuple[str, int, int]:
+    """
+    Do something
+
+    Returns
+    -------
+    name : str
+        The name
+    index : int
+        The index
+    status : int
+        The status
     """
     pass
