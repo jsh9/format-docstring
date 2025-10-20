@@ -15,6 +15,7 @@ ______________________________________________________________________
   - [2.3. Minor typos can be automatically fixed](#23-minor-typos-can-be-automatically-fixed)
   - [2.4. Default value declarations are standardized](#24-default-value-declarations-are-standardized)
   - [2.5. Single backticks are converted to double backticks (rST syntax)](#25-single-backticks-are-converted-to-double-backticks-rst-syntax)
+  - [2.6. Docstring parameters and returns stay in sync with signatures](#26-docstring-parameters-and-returns-stay-in-sync-with-signatures)
 - [3. Installation](#3-installation)
 - [4. Usage](#4-usage)
   - [4.1. Command Line Interface](#41-command-line-interface)
@@ -223,8 +224,93 @@ def process_data(data):
 -        Processed data with key `result`.
 +        Processed data with key ``result``.
     """
+```
+
+### 2.6. Docstring parameters and returns stay in sync with signatures
+
+```diff
+from typing import List, Optional
+
+
+def create_user(
+        user: Optional[str] = None,
+        roles: List["Role"] | None = None,
+        retries: int = 0,
+        serializer: "Serializer" | None = None,
+        something_else: tuple[int, ...] = (
+            "1",
+            '2',
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+        ),
+) -> None:
+    """
+    Parameters
+    ----------
+-    user : str
++    user : Optional[str], default=None
+        Login name.
+-    roles : list
++    roles : List["Role"] | None, default=None
+        Assigned roles.
+-    retries : int
++    retries : int, default=0
+        Number of retry attempts.
+-    serializer : Serializer, optional
++    serializer : "Serializer" | None, default=None
+        Custom serializer instance.
+-    something_else : tuple[int, ...]
++    something_else : tuple[int, ...], default=("1", '2', 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+    """
     pass
 ```
+
+And return type hint:
+
+```diff
+def build_mapping() -> dict[str, str]:
+    """
+    Returns
+    -------
+-    str
++    dict[str, str]
+        Mapping of values.
+    """
+```
+
+For tuple return annotations, tuple elements are split across multiple
+signature lines only when the docstring already adopted that layout:
+
+```diff
+def compute_values() -> tuple[int, str, list[str]]:
+    """
+    Returns
+    -------
+-    float
++    int
+        First element.
+-    str
++    str
+        Second element.
+-    List[str]
++    list[str]
+        Third element.
+    """
+```
+
+Annotations and defaults are extracted from the actual function signature, so
+docstring signature lines reflect the ground truth. Defaulted parameters omit
+redundant `, optional`, forward references keep their original quoting, and
+return signatures track tuple splitting conventions already present in the
+docstring.
 
 ## 3. Installation
 
