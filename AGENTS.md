@@ -3,7 +3,7 @@
 This guide briefs coding agents working on `format-docstring`. Use it to get
 oriented before making changes.
 
-## Quick Snapshot
+## 1. Quick Snapshot
 
 - Formats NumPy-style docstrings (with experimental Google support) in `.py`
   files and Jupyter notebooks while preserving surrounding code.
@@ -13,7 +13,7 @@ oriented before making changes.
   `jupyter-notebook-parser`, and `tomli/tomllib` for configuration loading.
 - Version is sourced dynamically in `format_docstring/__init__.py`.
 
-## Repository Layout
+## 2. Repository Layout
 
 - `format_docstring/main_py.py` – Click CLI for Python files; validates input
   and delegates to `PythonFileFixer`.
@@ -33,7 +33,7 @@ oriented before making changes.
 - `tests/` – Pytest suite with fixture-driven cases in `tests/test_data/`; see
   `tests/helpers.py` for fixture loading helpers.
 
-## Implementation Notes
+## 3. Implementation Notes
 
 - `docstring_rewriter.fix_src` parses with `ast.parse`, collects docstring
   literals, and rewrites source slices using absolute offsets from
@@ -44,6 +44,8 @@ oriented before making changes.
   redundant `, optional`, and forward references keep their original quoting.
 - Return annotations are likewise projected into `Returns`/`Yields` sections,
   mirroring tuple element splits when the docstring already enumerates them.
+- `Raises` section entries are treated like signature lines in the NumPy
+  wrapper so exception names stay untouched while descriptions wrap.
 - Wrapping honors NumPy section heuristics, rST constructs, code fences,
   `Examples` prompts, and literal blocks introduced by `::`.
 - `_normalize_signature_segment` flattens multiline annotations via
@@ -57,7 +59,7 @@ oriented before making changes.
 - Notebook fixer round-trips JSON via `json.dump(..., indent=1)` and rewrites
   cells only when content changes, preserving magics with `reconstruct_source`.
 
-## Configuration
+## 4. Configuration
 
 - User-facing configuration lives under `[tool.format_docstring]` inside
   `pyproject.toml` and supports `line_length`, `docstring_style`, `exclude`,
@@ -68,7 +70,7 @@ oriented before making changes.
 - Default exclude pattern is `\.git|\.tox|\.pytest_cache`; tests tweak it as
   needed.
 
-## Development Workflow
+## 5. Development Workflow
 
 - Install: `pip install -e .` for the project,
   `pip install -r requirements.dev` for tooling.
@@ -83,17 +85,20 @@ oriented before making changes.
   `format-docstring-jupyter --help`.
 - Pre-commit: `pre-commit run -a`.
 
-## Testing Notes
+## 6. Testing Notes
 
 - Fixture files under `tests/test_data/line_wrap` and
   `tests/test_data/end_to_end` use `LINE_LENGTH: <int>` headers followed by
   `BEFORE`/`AFTER` sections split by `**********`.
+- Regression fixture
+  `tests/test_data/end_to_end/numpy/signature_dont_sync_raises.txt` guards
+  against mutating exception names in `Raises` blocks.
 - `tests/test_playground.py` focuses on regression snippets;
   `tests/test_config.py` exercises config discovery and CLI overrides.
 - When modifying wrapping rules, update both the helper (`line_wrap_utils.py`)
   and the corresponding expectation files in `tests/test_data/`.
 
-## Style Guidance
+## 7. Style Guidance
 
 - Formatting rules mirror `muff.toml` (line length 79, single quotes, NumPy
   docstring convention). Respect these when adding code.
@@ -101,7 +106,7 @@ oriented before making changes.
   content, and add regression cases whenever handling around literal sections
   or tables changes.
 
-## What is a "signature line"?
+## 8. What is a "signature line"?
 
 They are the lines in the docstring where input and return args are defined,
 for example, in this docstring:

@@ -1,0 +1,48 @@
+LINE_LENGTH: 79
+
+**********
+def func1() -> Any:
+    """
+    Do something.
+
+    This test case is to make sure the raised exceptions are not modified by
+    this formatter.
+
+    Returns
+    -------
+    Any
+
+    Raises
+    ------
+    ValueError
+        When value is wrong. This is a very very very very very very very very very very very very very very very very very very very very very very very very very very very long line.
+    IOError
+        When IO is wrong. This is a very very very very very very very very very very very very very very very very very very very very very very very very very very very long line.
+    """
+    pass
+
+**********
+
+def func1() -> Any:
+    """
+    Do something.
+
+    This test case is to make sure the raised exceptions are not modified by
+    this formatter.
+
+    Returns
+    -------
+    Any
+
+    Raises
+    ------
+    ValueError
+        When value is wrong. This is a very very very very very very very very
+        very very very very very very very very very very very very very very
+        very very very very very long line.
+    IOError
+        When IO is wrong. This is a very very very very very very very very
+        very very very very very very very very very very very very very very
+        very very very very very long line.
+    """
+    pass
