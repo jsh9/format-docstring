@@ -16,6 +16,7 @@ def wrap_docstring_numpy(
         line_length: int,
         leading_indent: int | None = None,
         fix_rst_backticks: bool = False,
+        parameter_metadata: dict[str, tuple[str | None, str | None]] | None = None,
 ) -> str:
     """
     Wrap NumPy-style docstrings with light parsing rules.
@@ -149,8 +150,14 @@ def wrap_docstring_numpy(
             # section (indentation < 4). This prevents mis-detecting
             # description lines that happen to contain a colon (e.g., tables,
             # examples, notes) as new parameter signatures.
-            if _is_param_signature(line) and indent_length <= leading_indent:  # type: ignore[operator]
+            if _is_param_signature(line) and (
+                leading_indent is None or indent_length <= leading_indent
+            ):
                 fixed_line = _fix_colon_spacing(line)
+                fixed_line = _standardize_default_value(fixed_line)
+                fixed_line = _rewrite_parameter_signature(
+                    fixed_line, parameter_metadata
+                )
                 fixed_line = _standardize_default_value(fixed_line)
                 temp_out.append(fixed_line)
                 i += 1
@@ -392,6 +399,104 @@ def _standardize_default_value(line: str) -> str:
         return f'{before}, default={default_value}'
 
     return line
+
+
+_SIGNATURE_TAIL_KEYWORDS: tuple[str, ...] = (', optional', ', required')
+
+
+def _extract_signature_tail(after_colon: str) -> tuple[str, str]:
+    """
+    Split ``after_colon`` into the core signature content and trailing qualifier.
+
+    The ``", optional"`` qualifier is intentionally stripped because the
+    presence of a default value communicates optionality.
+    """
+    stripped = after_colon.rstrip()
+    lowered = stripped.lower()
+    for keyword in _SIGNATURE_TAIL_KEYWORDS:
+        idx = lowered.rfind(keyword)
+        if idx == -1:
+            continue
+
+        end = idx + len(keyword)
+        if end < len(stripped) and stripped[end] == '[':
+            # Skip cases like ", Optional[int]" where the keyword is part of a
+            # type annotation rather than a qualifier.
+            continue
+
+        base = stripped[:idx].rstrip()
+        tail = stripped[idx:]
+        if keyword == ', optional':
+            return base, ''
+        return base, tail
+
+    return stripped.strip(), ''
+
+
+def _rewrite_parameter_signature(
+        line: str,
+        parameter_metadata: dict[str, tuple[str | None, str | None]] | None,
+) -> str:
+    """
+    Replace the annotation/default portion of a signature line using metadata.
+    """
+    if not parameter_metadata:
+        return line
+
+    colon_idx = line.find(':')
+    if colon_idx == -1:
+        return line
+
+    leading_ws_len = len(line) - len(line.lstrip(' '))
+    indent = line[:leading_ws_len]
+    names_segment = line[leading_ws_len:colon_idx].strip()
+    if not names_segment:
+        return line
+
+    names = [part.strip() for part in names_segment.split(',') if part.strip()]
+    if len(names) != 1:
+        return line
+
+    name = names[0]
+    meta = parameter_metadata.get(name)
+    if meta is None and name.startswith('**'):
+        meta = parameter_metadata.get(name[2:])
+    if meta is None and name.startswith('*'):
+        meta = parameter_metadata.get(name[1:])
+    if meta is None:
+        return line
+
+    annotation, default = meta
+    if annotation is None and default is None:
+        return line
+
+    core, tail = _extract_signature_tail(line[colon_idx + 1 :])
+
+    existing_annotation_text = core.strip()
+    if existing_annotation_text:
+        if ', default=' in existing_annotation_text:
+            existing_annotation_text = existing_annotation_text.split(
+                ', default=', 1
+            )[0].rstrip(', ')
+    existing_annotation_text = existing_annotation_text.strip()
+
+    rhs_parts: list[str] = []
+    annotation_text = annotation if annotation is not None else existing_annotation_text
+    if annotation_text:
+        rhs_parts.append(annotation_text)
+    if default is not None:
+        rhs_parts.append(f'default={default}')
+
+    rhs = ', '.join(rhs_parts).strip()
+    if rhs:
+        rebuilt = f'{indent}{names_segment} : {rhs}'
+    else:
+        rebuilt = f'{indent}{names_segment} :'
+
+    if tail:
+        rebuilt = f'{rebuilt}{tail}'
+
+    return rebuilt
 
 
 def handle_single_line_docstring(

@@ -104,7 +104,7 @@ def process_data(data, config=None):
     data : list
         Input data to process. Each element should be a ``dict`` with keys
         ``id``, ``value``, and ``timestamp``.
-    config : dict, optional
+    config : dict, default=None
         Configuration dictionary. Valid keys are ``mode``, ``threshold``, and
         ``output_format``. Default is ``None``.
     processor : ``DataProcessor``

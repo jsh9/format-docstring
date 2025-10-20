@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import ast
+import io
+import tokenize
 
 from format_docstring.line_wrap_google import wrap_docstring_google
 from format_docstring.line_wrap_numpy import (
@@ -13,6 +15,7 @@ ModuleClassOrFunc = (
 )
 
 NO_FORMAT_DOCSTRING_MARKER = 'no-format-docstring'
+ParameterMetadata = dict[str, tuple[str | None, str | None]]
 
 
 def _determine_newline(text: str) -> str:
@@ -45,6 +48,166 @@ def _has_inline_no_format_comment(source_code: str, end_pos: int) -> bool:
         return False
 
     return NO_FORMAT_DOCSTRING_MARKER in same_line_segment[hash_index:]
+
+
+def _normalize_signature_segment(segment: str | None) -> str | None:
+    """
+    Normalize signature fragments while preserving author-intended quoting.
+
+    Parameters
+    ----------
+    segment : str or None
+        Raw text captured from a function signature (annotation or default).
+
+    Returns
+    -------
+    str or None
+        The fragment with condensed whitespace. Double-quoted literals are kept
+        double quoted; single-quoted literals are left untouched.
+
+    Examples
+    --------
+    >>> _normalize_signature_segment('Optional["Widget"]')
+    'Optional["Widget"]'
+    >>> _normalize_signature_segment('Optional[\\n    "Widget"\\n]')
+    'Optional["Widget"]'
+    >>> _normalize_signature_segment(None) is None
+    True
+    """
+    if segment is None:
+        return None
+
+    normalized: str = segment.strip()
+    if '\n' in normalized or '\r' in normalized or '\t' in normalized:
+        # `ast.unparse(ast.parse(...))` neatly flattens whitespace but it also
+        # canonicalises string quotes to single quotes. We still rely on it for
+        # whitespace normalization, so capture its output first.
+        try:
+            canonical = ast.unparse(ast.parse(normalized))
+        except (SyntaxError, ValueError):
+            return ' '.join(normalized.split())
+
+        # Remember the exact string literal tokens from the original text. The
+        # iterator order mirrors the unparse traversal so we can reapply them.
+        original_strings: list[str] = []
+        try:
+            for tok in tokenize.generate_tokens(io.StringIO(normalized).readline):
+                if tok.type == tokenize.STRING:
+                    original_strings.append(tok.string)
+        except tokenize.TokenError:
+            original_strings = []
+
+        string_iter = iter(original_strings)
+        try:
+            rebuilt_tokens: list[tokenize.TokenInfo] = []
+            for tok in tokenize.generate_tokens(io.StringIO(canonical).readline):
+                if tok.type == tokenize.STRING:
+                    replacement = next(string_iter, None)
+                    if replacement is not None:
+                        try:
+                            # Only swap the string token when both literals
+                            # evaluate to the same value; this ensures we
+                            # preserve double-quoted forward references without
+                            # rewriting single-quoted strings unnecessarily.
+                            if ast.literal_eval(replacement) == ast.literal_eval(
+                                tok.string
+                            ):
+                                tok = tok._replace(string=replacement)
+                        except Exception:
+                            pass
+                rebuilt_tokens.append(tok)
+                if tok.type == tokenize.ENDMARKER:
+                    break
+
+            # Untokenize the rebuilt stream while trimming the leading/trailing
+            # whitespace introduced by the tokeniser.
+            normalized = tokenize.untokenize(rebuilt_tokens).strip()
+        except tokenize.TokenError:
+            normalized = canonical
+
+    return normalized
+
+
+def _render_signature_piece(node: ast.AST | None, source_code: str) -> str | None:
+    """
+    Return the source representation for an annotation/default expression.
+    """
+    if node is None:
+        return None
+
+    text: str | None = ast.get_source_segment(source_code, node)
+    if text is None:
+        text = ast.unparse(node)
+
+    return _normalize_signature_segment(text)
+
+
+def _collect_param_metadata(
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+        source_code: str,
+) -> ParameterMetadata:
+    """
+    Build a lookup of parameter name -> (annotation, default) strings.
+    """
+    metadata: ParameterMetadata = {}
+
+    def record(
+            name: str,
+            annotation_node: ast.AST | None,
+            default_node: ast.AST | None = None,
+            *,
+            aliases: tuple[str, ...] = (),
+    ) -> None:
+        """
+        Store the annotation/default text for ``name`` and any syntactic aliases.
+
+        Parameters
+        ----------
+        name : str
+            The canonical parameter identifier (without leading ``*``/``**``).
+        annotation_node : ast.AST or None
+            AST node representing the annotation extracted from the signature.
+        default_node : ast.AST or None, optional
+            AST node representing the default value; ``None`` when absent.
+        aliases : tuple[str, ...], optional
+            Additional keys (e.g. ``*args``) that should map to the same
+            metadata payload.
+        """
+        annotation = _render_signature_piece(annotation_node, source_code)
+        default = _render_signature_piece(default_node, source_code)
+        metadata[name] = (annotation, default)
+        for alias in aliases:
+            metadata[alias] = (annotation, default)
+
+    positional_args = list(node.args.posonlyargs) + list(node.args.args)
+    positional_defaults = list(node.args.defaults)
+    defaults_start = len(positional_args) - len(positional_defaults)
+    for idx, arg in enumerate(positional_args):
+        default_node: ast.AST | None = None
+        if idx >= defaults_start:
+            default_node = positional_defaults[idx - defaults_start]
+        record(arg.arg, arg.annotation, default_node)
+
+    if node.args.vararg is not None:
+        vararg = node.args.vararg
+        record(
+            vararg.arg,
+            vararg.annotation,
+            aliases=(f'*{vararg.arg}',),
+        )
+
+    for kw_arg, kw_default in zip(node.args.kwonlyargs, node.args.kw_defaults):
+        record(kw_arg.arg, kw_arg.annotation, kw_default)
+
+    if node.args.kwarg is not None:
+        kwarg = node.args.kwarg
+        record(
+            kwarg.arg,
+            kwarg.annotation,
+            aliases=(f'**{kwarg.arg}',),
+        )
+
+    return metadata
 
 
 def fix_src(
@@ -87,7 +250,7 @@ def fix_src(
     replacements: list[tuple[int, int, str]] = []
 
     # Module-level docstring
-    rep = build_replacement_docstring(
+    replacement = build_replacement_docstring(
         tree,
         source_code,
         line_starts,
@@ -95,15 +258,15 @@ def fix_src(
         docstring_style,
         fix_rst_backticks,
     )
-    if rep is not None:
-        replacements.append(rep)
+    if replacement is not None:
+        replacements.append(replacement)
 
     # Class/function-level docstrings
     for node in ast.walk(tree):
         if isinstance(
             node, ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
         ):
-            rep = build_replacement_docstring(
+            replacement = build_replacement_docstring(
                 node,
                 source_code,
                 line_starts,
@@ -111,8 +274,8 @@ def fix_src(
                 docstring_style,
                 fix_rst_backticks,
             )
-            if rep is not None:
-                replacements.append(rep)
+            if replacement is not None:
+                replacements.append(replacement)
 
     # Apply replacements from the end to avoid shifting offsets
     if not replacements:
@@ -212,12 +375,17 @@ def build_replacement_docstring(
         leading_indent if ('\n' in doc or len(doc) > line_length) else None
     )
 
+    param_metadata: ParameterMetadata | None = None
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        param_metadata = _collect_param_metadata(node, source_code)
+
     wrapped: str = wrap_docstring(
         doc,
         line_length=line_length,
         docstring_style=docstring_style,
         leading_indent=leading_indent_,  # type: ignore[arg-type]
         fix_rst_backticks=fix_rst_backticks,
+        function_param_metadata=param_metadata,
     )
 
     new_literal: str | None = rebuild_literal(original_literal, wrapped)
@@ -337,6 +505,7 @@ def wrap_docstring(
         docstring_style: str = 'numpy',
         leading_indent: int = 0,
         fix_rst_backticks: bool = True,
+        function_param_metadata: ParameterMetadata | None = None,
 ) -> str:
     """
     Wrap a docstring to the given line length (stub).
@@ -373,6 +542,7 @@ def wrap_docstring(
             line_length,
             leading_indent=leading_indent,
             fix_rst_backticks=fix_rst_backticks,
+            parameter_metadata=function_param_metadata,
         )
     # Default to NumPy-style for unknown/unspecified styles to be permissive.
     return wrap_docstring_numpy(
@@ -380,4 +550,5 @@ def wrap_docstring(
         line_length,
         leading_indent=leading_indent,
         fix_rst_backticks=fix_rst_backticks,
+        parameter_metadata=function_param_metadata,
     )

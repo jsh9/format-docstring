@@ -38,8 +38,16 @@ oriented before making changes.
 - `docstring_rewriter.fix_src` parses with `ast.parse`, collects docstring
   literals, and rewrites source slices using absolute offsets from
   `calc_line_starts`; this avoids `ast.unparse` and keeps comments/spacing.
+- For functions, `_collect_param_metadata` records signature annotations and
+  default values so NumPy ``Parameters`` signatures in docstrings are
+  resynchronised with the real function definition (while leaving ``Returns``
+  untouched). Defaulted parameters omit redundant `, optional`, and forward
+  references keep their original quoting.
 - Wrapping honors NumPy section heuristics, rST constructs, code fences,
   `Examples` prompts, and literal blocks introduced by `::`.
+- `_normalize_signature_segment` flattens multiline annotations via
+  `ast.unparse` but uses token-level replay to preserve the author's quoting
+  style for forward references and string defaults.
 - CLI exposes `--docstring-style`, but the Python entry-point currently raises
   if a non-NumPy style is requested; Jupyter flow passes style through
   unchanged.
@@ -91,3 +99,31 @@ oriented before making changes.
 - Keep docstring style tests conservative: avoid mutating non-docstring
   content, and add regression cases whenever handling around literal sections
   or tables changes.
+
+## What is a "signature line"?
+
+They are the lines in the docstring where input and return args are defined,
+for example, in this docstring:
+
+```python
+"""
+Do something
+
+Parameters
+----------
+arg1 : str
+    Arg 1
+arg2 : int = 2
+    Arg 2
+
+Returns
+-------
+dict[str, str]
+   The mapping
+```
+
+Signature lines are:
+
+- arg1 : str
+- arg2 : int = 2
+- dict[str, str]
