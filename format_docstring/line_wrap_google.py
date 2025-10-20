@@ -8,6 +8,7 @@ def wrap_docstring_google(
         fix_rst_backticks: bool = True,
         parameter_metadata: ParameterMetadata | None = None,
         return_annotation: str | None = None,
+        attribute_metadata: ParameterMetadata | None = None,
 ) -> str:
     """A placeholder for now."""  # noqa: D401
     return ''

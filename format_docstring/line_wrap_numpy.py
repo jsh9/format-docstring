@@ -19,6 +19,7 @@ def wrap_docstring_numpy(
         leading_indent: int | None = None,
         fix_rst_backticks: bool = False,
         parameter_metadata: ParameterMetadata | None = None,
+        attribute_metadata: ParameterMetadata | None = None,
         return_annotation: str | None = None,
 ) -> str:
     """
@@ -66,11 +67,14 @@ def wrap_docstring_numpy(
         'other parameters:',
         'other parameter',  # tolerate typo
         'other parameter:',
+    }
+    SECTION_ATTRIBUTES = {
         'attributes',
         'attributes:',
         'attribute',  # tolerate typo
         'attribute:',
     }
+    SECTION_SIGNABLE = SECTION_PARAMS | SECTION_ATTRIBUTES
     SECTION_RETURNS_YIELDS = {
         'returns',
         'returns:',
@@ -156,7 +160,11 @@ def wrap_docstring_numpy(
 
         # Parameters-like sections
         section_lower_case: str = current_section.lower()
-        if section_lower_case in SECTION_PARAMS:
+        if section_lower_case in SECTION_SIGNABLE:
+            metadata_for_section = parameter_metadata
+            if section_lower_case in SECTION_ATTRIBUTES:
+                metadata_for_section = attribute_metadata or parameter_metadata
+
             if line.strip() == '':
                 temp_out.append(line)
                 i += 1
@@ -172,7 +180,7 @@ def wrap_docstring_numpy(
                 fixed_line = _fix_colon_spacing(line)
                 fixed_line = _standardize_default_value(fixed_line)
                 fixed_line = _rewrite_parameter_signature(
-                    fixed_line, parameter_metadata
+                    fixed_line, metadata_for_section
                 )
                 fixed_line = _standardize_default_value(fixed_line)
                 temp_out.append(fixed_line)

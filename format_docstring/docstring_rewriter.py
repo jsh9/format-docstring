@@ -221,6 +221,53 @@ def _collect_param_metadata(
     return metadata
 
 
+def _collect_class_metadata(
+        node: ast.ClassDef,
+        source_code: str,
+) -> tuple[ParameterMetadata, ParameterMetadata]:
+    """
+    Build metadata for class docstrings using ``__init__`` and class attrs.
+    """
+    init_metadata: ParameterMetadata = {}
+    attribute_metadata: ParameterMetadata = {}
+
+    init_method: ast.FunctionDef | None = None
+    for stmt in node.body:
+        if isinstance(stmt, ast.FunctionDef) and stmt.name == '__init__':
+            init_method = stmt
+            break
+
+    if init_method is not None:
+        init_metadata = _collect_param_metadata(init_method, source_code)
+        # ``self``/``cls`` rarely appear in docstrings; drop to avoid noise.
+        init_metadata.pop('self', None)
+        init_metadata.pop('cls', None)
+
+    for stmt in node.body:
+        if isinstance(stmt, ast.AnnAssign):
+            target = stmt.target
+            if not isinstance(target, ast.Name):
+                continue
+
+            annotation = _render_signature_piece(stmt.annotation, source_code)
+            default = _render_signature_piece(stmt.value, source_code)
+            attribute_metadata[target.id] = (annotation, default)
+            continue
+
+        if isinstance(stmt, ast.Assign):
+            if len(stmt.targets) != 1:
+                continue
+
+            assign_target = stmt.targets[0]
+            if not isinstance(assign_target, ast.Name):
+                continue
+
+            # Record that this attribute explicitly has no annotation/default.
+            attribute_metadata[assign_target.id] = ('', None)
+
+    return init_metadata, attribute_metadata
+
+
 def fix_src(
         source_code: str,
         *,
@@ -255,7 +302,7 @@ def fix_src(
     spans directly in the original text to preserve non-docstring formatting
     and comments.
     """
-    tree: ast.Module = ast.parse(source_code)
+    tree: ast.Module = ast.parse(source_code, type_comments=True)
     line_starts: list[int] = calc_line_starts(source_code)
 
     replacements: list[tuple[int, int, str]] = []
@@ -387,10 +434,20 @@ def build_replacement_docstring(
     )
 
     param_metadata: ParameterMetadata | None = None
+    attribute_metadata: ParameterMetadata | None = None
     return_annotation: str | None = None
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         param_metadata = _collect_param_metadata(node, source_code)
         return_annotation = _render_signature_piece(node.returns, source_code)
+    elif isinstance(node, ast.ClassDef):
+        init_metadata, class_attr_metadata = _collect_class_metadata(
+            node, source_code
+        )
+        if init_metadata:
+            param_metadata = init_metadata
+
+        if class_attr_metadata:
+            attribute_metadata = class_attr_metadata
 
     wrapped: str = wrap_docstring(
         doc,
@@ -400,6 +457,7 @@ def build_replacement_docstring(
         fix_rst_backticks=fix_rst_backticks,
         function_param_metadata=param_metadata,
         function_return_annotation=return_annotation,
+        class_attribute_metadata=attribute_metadata,
     )
 
     new_literal: str | None = rebuild_literal(original_literal, wrapped)
@@ -521,6 +579,7 @@ def wrap_docstring(
         fix_rst_backticks: bool = True,
         function_param_metadata: ParameterMetadata | None = None,
         function_return_annotation: str | None = None,
+        class_attribute_metadata: ParameterMetadata | None = None,
 ) -> str:
     """
     Wrap a docstring to the given line length (stub).
@@ -544,6 +603,9 @@ def wrap_docstring(
     function_return_annotation : str | None, default=None
         The function's return annotation text (normalized), used to keep
         ``Returns``/``Yields`` signature lines synchronized.
+    class_attribute_metadata : ParameterMetadata | None, default=None
+        Attribute metadata for class docstrings (names mapped to annotations
+        and default values) collected from class-level assignments.
 
     Returns
     -------
@@ -565,6 +627,7 @@ def wrap_docstring(
             fix_rst_backticks=fix_rst_backticks,
             parameter_metadata=function_param_metadata,
             return_annotation=function_return_annotation,
+            attribute_metadata=class_attribute_metadata,
         )
     # Default to NumPy-style for unknown/unspecified styles to be permissive.
     return wrap_docstring_numpy(
@@ -573,5 +636,6 @@ def wrap_docstring(
         leading_indent=leading_indent,
         fix_rst_backticks=fix_rst_backticks,
         parameter_metadata=function_param_metadata,
+        attribute_metadata=class_attribute_metadata,
         return_annotation=function_return_annotation,
     )
