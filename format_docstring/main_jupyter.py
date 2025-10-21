@@ -184,7 +184,7 @@ class JupyterNotebookFixer(BaseFixer):
             if ret_val == 1:
                 new_text = json.dumps(parsed.notebook_content, indent=1) + '\n'
                 print(f'Rewriting {filename}', file=sys.stderr)
-                self._print_diff(filename, original_text, new_text)
+                self.print_diff(filename, original_text, new_text)
                 with open(filename, 'w', encoding='utf-8') as fp:
                     fp.write(new_text)
 

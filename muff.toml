@@ -33,6 +33,9 @@ extend-select = [
     "PIE",    # flake8-pie
     "PYI",    # flake8-pyi
     "PT",     # flake8-pytest-style
+    "Q",      # flake8-quotes
+    "RET",    # flake8-return
+    "SLF",    # flake8-self
     "F",      #
     "E",
     "I",   # isort
@@ -41,10 +44,9 @@ extend-select = [
 
     "C4",  # flake8-comprehensions
     "ERA", # flake8-eradicate
-    "Q",   # flake8-quotes
     "T10", # flake8-debugger
     "ISC", # flake8-implicit-str-concat
-    "RET", # flake8-return
+
     "W505",
 ]
 ignore = [

@@ -144,7 +144,7 @@ class PythonFileFixer(BaseFixer):
             print(source_text, end='')
         elif source_text != source_text_orig:
             print(f'Rewriting {filename}', file=sys.stderr)
-            self._print_diff(filename, source_text_orig, source_text)
+            self.print_diff(filename, source_text_orig, source_text)
             with open(filename, 'wb') as f:
                 f.write(source_text.encode())
 
