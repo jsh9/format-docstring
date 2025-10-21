@@ -16,6 +16,7 @@ extend-select = [
     "ASYNC",
     "S",
     "BLE",
+    "FBT",
     "F",
     "E",
     "I",   # isort

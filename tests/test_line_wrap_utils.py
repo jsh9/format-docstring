@@ -846,6 +846,7 @@ def test_fix_typos_in_section_headings(
 def test_is_rST_table(
         lines: list[str],
         start_idx: int,
+        *,
         expected_is_table: bool,
         expected_end_idx: int,
 ) -> None:
@@ -1185,6 +1186,7 @@ def test_is_rST_table(
 def test_is_bulleted_list(
         lines: list[str],
         start_idx: int,
+        *,
         expected_is_list: bool,
         expected_end_idx: int,
 ) -> None:

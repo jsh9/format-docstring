@@ -58,7 +58,7 @@ def test_wrap_docstring_single_case() -> None:
         ('', False),
     ],
 )
-def test_is_hyphen_underline(line: str, expected: bool) -> None:
+def test_is_hyphen_underline(line: str, *, expected: bool) -> None:
     assert _is_hyphen_underline(line) == expected
 
 
@@ -118,7 +118,7 @@ def test_get_section_heading_title(
         ('** kwargs : Any', False),
     ],
 )
-def test_is_param_signature(text: str, expected: bool) -> None:
+def test_is_param_signature(text: str, *, expected: bool) -> None:
     assert _is_param_signature(text) == expected
 
 
@@ -335,7 +335,10 @@ def test_fix_rst_backticks_cases(src: str, expected: str) -> None:
     ],
 )
 def test_fix_rst_backticks_option_on_and_off(
-        fix_rst_backticks: bool, input_docstring: str, expected_docstring: str
+        *,
+        fix_rst_backticks: bool,
+        input_docstring: str,
+        expected_docstring: str,
 ) -> None:
     """
     Verify the ``fix_rst_backticks`` option can be correctly turned on/off

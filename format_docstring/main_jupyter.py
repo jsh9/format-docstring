@@ -70,6 +70,7 @@ from format_docstring.config import inject_config_from_file
 def main(
         paths: tuple[str, ...],
         config: str | None,  # noqa: ARG001 (used by Click callback)
+        *,
         exclude: str,
         line_length: int,
         docstring_style: str,
@@ -101,6 +102,7 @@ class JupyterNotebookFixer(BaseFixer):
             path: str,
             exclude_pattern: str = r'\.git|\.tox|\.pytest_cache',
             line_length: int = 79,
+            *,
             fix_rst_backticks: bool = True,
             verbose: str = 'default',
     ) -> None:

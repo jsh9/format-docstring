@@ -102,7 +102,7 @@ def test_rebuild_literal(literal: str, content: str, expected: str) -> None:
         ),
     ],
 )
-def test_find_docstring(src: str, selector: str, has_doc: bool) -> None:
+def test_find_docstring(src: str, selector: str, *, has_doc: bool) -> None:
     """Detect docstring Expr for module/class/function or absence thereof."""
     tree = ast.parse(src)
     if selector == 'module':
@@ -167,7 +167,12 @@ def test_build_replacement_docstring_no_change_for_short(
     else:
         node = next(n for n in tree.body if isinstance(n, ast.FunctionDef))
 
-    rep = docstring_rewriter.build_replacement_docstring(node, src, starts, 79)
+    rep = docstring_rewriter.build_replacement_docstring(
+        node,
+        source_code=src,
+        line_starts=starts,
+        line_length=79,
+    )
     assert rep is None
 
 
@@ -185,7 +190,12 @@ def test_module_level_docstring() -> None:
 
     tree = ast.parse(src)
     starts = docstring_rewriter.calc_line_starts(src)
-    rep = docstring_rewriter.build_replacement_docstring(tree, src, starts, 79)
+    rep = docstring_rewriter.build_replacement_docstring(
+        tree,
+        source_code=src,
+        line_starts=starts,
+        line_length=79,
+    )
 
     assert rep == (
         1,
@@ -366,7 +376,7 @@ def test_fix_src_single_case() -> None:
     ],
 )
 def test_fix_rst_backticks_end_to_end(
-        fix_rst_backticks: bool, input_source: str, expected_source: str
+        *, fix_rst_backticks: bool, input_source: str, expected_source: str
 ) -> None:
     """Test that backticks are fixed or preserved in end-to-end processing."""
     result = docstring_rewriter.fix_src(

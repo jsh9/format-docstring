@@ -310,11 +310,11 @@ def fix_src(
     # Module-level docstring
     replacement = build_replacement_docstring(
         tree,
-        source_code,
-        line_starts,
-        line_length,
-        docstring_style,
-        fix_rst_backticks,
+        source_code=source_code,
+        line_starts=line_starts,
+        line_length=line_length,
+        docstring_style=docstring_style,
+        fix_rst_backticks=fix_rst_backticks,
     )
     if replacement is not None:
         replacements.append(replacement)
@@ -326,11 +326,11 @@ def fix_src(
         ):
             replacement = build_replacement_docstring(
                 node,
-                source_code,
-                line_starts,
-                line_length,
-                docstring_style,
-                fix_rst_backticks,
+                source_code=source_code,
+                line_starts=line_starts,
+                line_length=line_length,
+                docstring_style=docstring_style,
+                fix_rst_backticks=fix_rst_backticks,
             )
             if replacement is not None:
                 replacements.append(replacement)
@@ -371,6 +371,7 @@ def calc_line_starts(source_code: str) -> list[int]:
 
 def build_replacement_docstring(
         node: ModuleClassOrFunc,
+        *,
         source_code: str,
         line_starts: list[int],
         line_length: int,
@@ -576,6 +577,7 @@ def wrap_docstring(
         line_length: int = 79,
         docstring_style: str = 'numpy',
         leading_indent: int = 0,
+        *,
         fix_rst_backticks: bool = True,
         function_param_metadata: ParameterMetadata | None = None,
         function_return_annotation: str | None = None,
@@ -622,7 +624,7 @@ def wrap_docstring(
     if style == 'google':
         return wrap_docstring_google(
             docstring,
-            line_length,
+            line_length=line_length,
             leading_indent=leading_indent,
             fix_rst_backticks=fix_rst_backticks,
             parameter_metadata=function_param_metadata,
@@ -632,7 +634,7 @@ def wrap_docstring(
     # Default to NumPy-style for unknown/unspecified styles to be permissive.
     return wrap_docstring_numpy(
         docstring,
-        line_length,
+        line_length=line_length,
         leading_indent=leading_indent,
         fix_rst_backticks=fix_rst_backticks,
         parameter_metadata=function_param_metadata,
