@@ -765,11 +765,7 @@ def _is_list_item(line: str) -> bool:
 def _is_unordered_list_item(line: str) -> bool:
     """Check if a line is an unordered list item (starts with -, *, or +)."""
     stripped = line.lstrip()
-    return (
-        stripped.startswith('- ')
-        or stripped.startswith('* ')
-        or stripped.startswith('+ ')
-    )
+    return stripped.startswith(('- ', '* ', '+ '))
 
 
 def _is_ordered_list_item(line: str) -> bool:

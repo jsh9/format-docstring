@@ -152,9 +152,7 @@ def wrap_docstring_numpy(
             continue
 
         # In Examples, skip wrapping and backtick fixing for REPL lines
-        if in_examples and (
-            stripped.startswith('>>> ') or stripped.startswith('... ')
-        ):
+        if in_examples and stripped.startswith(('>>> ', '... ')):
             temp_out.append(line)
             i += 1
             continue
@@ -847,7 +845,7 @@ def _fix_rst_backticks(docstring: str) -> str:
     for i, line in enumerate(lines):
         stripped = line.lstrip()
         # Protect REPL lines (>>> or ...) - don't fix backticks in these
-        if stripped.startswith('>>> ') or stripped.startswith('... '):
+        if stripped.startswith(('>>> ', '... ')):
             repl_lines[i] = line
             # Use a placeholder that won't be matched by the regex
             protected_lines.append(
