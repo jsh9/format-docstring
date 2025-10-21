@@ -12,6 +12,10 @@ preview = true
 
 [lint]
 extend-select = [
+    "ANN",
+    "ASYNC",
+    "S",
+    "BLE",
     "F",
     "E",
     "I",   # isort
@@ -27,6 +31,9 @@ extend-select = [
     "W505",
 ]
 ignore = [
+    "ANN401",
+    "S101",
+    "S110",
     "D100",
     "D104",
     "D105",

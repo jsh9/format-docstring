@@ -1,4 +1,5 @@
 import difflib
+from typing import Any
 
 import pytest
 
@@ -8,7 +9,7 @@ from format_docstring.base_fixer import BaseFixer
 class DummyFixer(BaseFixer):
     """Minimal fixer to expose BaseFixer internals for testing."""
 
-    def fix_one_file(self, *args, **kwargs):
+    def fix_one_file(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError
 
 

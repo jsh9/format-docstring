@@ -151,7 +151,7 @@ class JupyterNotebookFixer(BaseFixer):
             code_cell_sources: list[SourceCodeContainer] = (
                 parsed.get_code_cell_sources()
             )
-        except Exception as exc:
+        except OSError as exc:
             print(f'Error reading {filename}: {str(exc)}', file=sys.stderr)
             return 1
         else:

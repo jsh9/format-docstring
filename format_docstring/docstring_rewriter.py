@@ -117,7 +117,7 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
                                 replacement
                             ) == ast.literal_eval(tok.string):
                                 tok = tok._replace(string=replacement)
-                        except Exception:
+                        except Exception:  # noqa: BLE001
                             pass
 
                 rebuilt_tokens.append(tok)

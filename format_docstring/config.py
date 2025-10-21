@@ -144,7 +144,7 @@ def load_config_from_file(config_file: Path) -> dict[str, Any]:
         return {
             k.replace('-', '_'): v for k, v in format_docstring_section.items()
         }
-    except Exception:
+    except Exception:  # noqa: BLE001
         # If there's any error reading/parsing the file, return empty config
         return {}
 
