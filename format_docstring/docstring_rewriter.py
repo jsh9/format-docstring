@@ -412,7 +412,7 @@ def build_replacement_docstring(
         return None
 
     start: int = calc_abs_pos(line_starts, val.lineno, val.col_offset)
-    end: int = calc_abs_pos(line_starts, val.end_lineno, val.end_col_offset)  # type: ignore[arg-type]  # noqa: LN002
+    end: int = calc_abs_pos(line_starts, val.end_lineno, val.end_col_offset)  # type: ignore[arg-type]
     original_literal = source_code[start:end]
 
     if _has_inline_no_format_comment(source_code, end):
