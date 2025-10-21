@@ -9,7 +9,7 @@ from format_docstring import docstring_rewriter
 
 
 @pytest.mark.parametrize(
-    'src, expected',
+    ('src', 'expected'),
     [
         ('', [0]),
         ('a\n\nxyz\n', [0, 2, 3, 7]),
@@ -23,7 +23,7 @@ def test_calc_line_starts(src: str, expected: list[int]) -> None:
 
 
 @pytest.mark.parametrize(
-    'src, lineno, col, expected',
+    ('src', 'lineno', 'col', 'expected'),
     [
         ('a\n\nxyz\n', 1, 0, 0),
         ('a\n\nxyz\n', 2, 0, 2),
@@ -38,7 +38,7 @@ def test_calc_abs_pos(src: str, lineno: int, col: int, expected: int) -> None:
 
 
 @pytest.mark.parametrize(
-    'literal, content, expected',
+    ('literal', 'content', 'expected'),
     [
         ("'abc'", 'X', "'X'"),
         ('"abc"', 'Y', '"Y"'),
@@ -58,7 +58,7 @@ def test_rebuild_literal(literal: str, content: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    'src, selector, has_doc',
+    ('src', 'selector', 'has_doc'),
     [
         (
             dedent(
@@ -117,7 +117,7 @@ def test_find_docstring(src: str, selector: str, *, has_doc: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    'src, node_kind',
+    ('src', 'node_kind'),
     [
         (
             dedent(
@@ -333,7 +333,7 @@ def _load_test_case(filepath: Path) -> tuple[str, str, str, int] | None:
 
 
 @pytest.mark.parametrize(
-    'test_name, input_src, expected_src, line_length',
+    ('test_name', 'input_src', 'expected_src', 'line_length'),
     _load_end_to_end_test_cases(),
     ids=lambda case: case[0] if isinstance(case, tuple) else str(case),
 )
@@ -361,7 +361,7 @@ def test_fix_src_single_case() -> None:
 
 
 @pytest.mark.parametrize(
-    'fix_rst_backticks, input_source, expected_source',
+    ('fix_rst_backticks', 'input_source', 'expected_source'),
     [
         (
             True,

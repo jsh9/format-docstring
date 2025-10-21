@@ -31,6 +31,8 @@ extend-select = [
     "G",      # flake8-logging-format
     "INP",    # flake8-no-pep420
     "PIE",    # flake8-pie
+    "PYI",    # flake8-pyi
+    "PT",     # flake8-pytest-style
     "F",      #
     "E",
     "I",   # isort

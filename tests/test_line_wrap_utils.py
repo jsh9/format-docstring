@@ -16,7 +16,7 @@ from format_docstring.line_wrap_utils import (
 
 
 @pytest.mark.parametrize(
-    'lines, width, expected',
+    ('lines', 'width', 'expected'),
     [
         (
             ['    This is an indented paragraph that should wrap.'],
@@ -183,7 +183,7 @@ def test_wrap_preserving_indent(
 
 
 @pytest.mark.parametrize(
-    'docstring,leading_indent,expected',
+    ('docstring', 'leading_indent', 'expected'),
     [
         ('Hello', 4, '\n    Hello'),
         ('\n    Hello', 4, '\n    Hello'),  # unchanged when already present
@@ -198,7 +198,7 @@ def test_add_leading_indent(
 
 
 @pytest.mark.parametrize(
-    'lines,leading_indent,expected',
+    ('lines', 'leading_indent', 'expected'),
     [
         (
             ['foo  ', '   ', 'bar   '],
@@ -224,7 +224,7 @@ def test_finalize_lines(
 
 
 @pytest.mark.parametrize(
-    'temp_out,width,expected',
+    ('temp_out', 'width', 'expected'),
     [
         (
             [
@@ -321,7 +321,7 @@ def test_process_temp_output_merges_literal_block(
 
 
 @pytest.mark.parametrize(
-    'text,expected',
+    ('text', 'expected'),
     [
         (
             '    something like this\n    and this is the second\n    line,'
@@ -391,7 +391,7 @@ def test_merge_lines_and_strip(text: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    'lines,expected',
+    ('lines', 'expected'),
     [
         # Test basic typo corrections
         (
@@ -635,7 +635,7 @@ def test_fix_typos_in_section_headings(
 
 
 @pytest.mark.parametrize(
-    'lines,start_idx,expected_is_table,expected_end_idx',
+    ('lines', 'start_idx', 'expected_is_table', 'expected_end_idx'),
     [
         # Basic grid table
         (
@@ -856,7 +856,7 @@ def test_is_rST_table(
 
 
 @pytest.mark.parametrize(
-    'lines,start_idx,expected_is_list,expected_end_idx',
+    ('lines', 'start_idx', 'expected_is_list', 'expected_end_idx'),
     [
         # Basic unordered list with dashes
         (
@@ -1196,7 +1196,7 @@ def test_is_bulleted_list(
 
 
 @pytest.mark.parametrize(
-    'lines,expected_segments',
+    ('lines', 'expected_segments'),
     [
         # Empty input
         (

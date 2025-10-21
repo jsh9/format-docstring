@@ -17,7 +17,8 @@ DATA_DIR: Path = Path(__file__).parent / 'test_data/line_wrap/numpy'
 
 
 @pytest.mark.parametrize(
-    'name,line_length,before,after', load_cases_from_dir(DATA_DIR)
+    ('name', 'line_length', 'before', 'after'),
+    load_cases_from_dir(DATA_DIR),
 )
 def test_wrap_docstring(
         name: str, line_length: int, before: str, after: str
@@ -48,7 +49,7 @@ def test_wrap_docstring_single_case() -> None:
 
 
 @pytest.mark.parametrize(
-    'line, expected',
+    ('line', 'expected'),
     [
         ('---', True),
         ('  ----  ', True),
@@ -63,7 +64,7 @@ def test_is_hyphen_underline(line: str, *, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    'lines, idx, expected',
+    ('lines', 'idx', 'expected'),
     [
         (['Parameters', '----------'], 0, 'parameters'),
         (['Returns', '---', 'x'], 0, 'returns'),
@@ -79,7 +80,7 @@ def test_get_section_heading_title(
 
 
 @pytest.mark.parametrize(
-    'text, expected',
+    ('text', 'expected'),
     [
         ('x : int', True),
         ('x: int', True),  # no space before `:` is fine
@@ -123,7 +124,7 @@ def test_is_param_signature(text: str, *, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    'line, expected',
+    ('line', 'expected'),
     [
         # Basic cases with different spacing
         ('arg1: dict[str, list[str]]', 'arg1 : dict[str, list[str]]'),
@@ -161,7 +162,7 @@ def test_fix_colon_spacing(line: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    'line, expected',
+    ('line', 'expected'),
     [
         # Format: ` default XXX`
         ('arg : int default 10', 'arg : int, default=10'),
@@ -245,7 +246,7 @@ def test_standardize_default_value(line: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    'src, expected',
+    ('src', 'expected'),
     [
         # --- should fix (inline literals) ---
         ('Use `foo` to do something', 'Use ``foo`` to do something'),
@@ -320,7 +321,7 @@ def test_fix_rst_backticks_cases(src: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    'fix_rst_backticks, input_docstring, expected_docstring',
+    ('fix_rst_backticks', 'input_docstring', 'expected_docstring'),
     [
         (
             True,
