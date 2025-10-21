@@ -37,6 +37,8 @@ extend-select = [
     "RET",    # flake8-return
     "SLF",    # flake8-self
     "SIM",    # flake8-simplify
+    "SLOT",   # flake8-slots
+    "TID",    # flake8-tidy-imports
     "F",      #
     "E",
     "I",   # isort
@@ -73,3 +75,9 @@ inline-quotes = "single"
 
 [lint.pydocstyle]
 convention = "numpy"
+
+[lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[lint.flake8-import-conventions.banned-aliases]
+typing = ["ty", "typ"]
