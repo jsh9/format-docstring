@@ -338,7 +338,7 @@ def _load_test_case(filepath: Path) -> tuple[str, str, str, int] | None:
     ids=lambda case: case[0] if isinstance(case, tuple) else str(case),
 )
 def test_fix_src_end_to_end(
-        test_name: str,
+        test_name: str,  # noqa: ARG001
         input_src: str,
         expected_src: str,
         line_length: int,

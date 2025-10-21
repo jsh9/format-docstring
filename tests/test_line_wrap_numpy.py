@@ -21,7 +21,7 @@ DATA_DIR: Path = Path(__file__).parent / 'test_data/line_wrap/numpy'
     load_cases_from_dir(DATA_DIR),
 )
 def test_wrap_docstring(
-        name: str, line_length: int, before: str, after: str
+        name: str, line_length: int, before: str, after: str  # noqa: ARG001
 ) -> None:
     out = wrap_docstring(
         before, line_length=line_length, docstring_style='numpy'
