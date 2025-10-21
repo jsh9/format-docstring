@@ -3,13 +3,16 @@ from __future__ import annotations
 import ast
 import io
 import tokenize
+from typing import TYPE_CHECKING
 
 from format_docstring.line_wrap_google import wrap_docstring_google
 from format_docstring.line_wrap_numpy import (
     handle_single_line_docstring,
     wrap_docstring_numpy,
 )
-from format_docstring.line_wrap_utils import ParameterMetadata
+
+if TYPE_CHECKING:
+    from format_docstring.line_wrap_utils import ParameterMetadata
 
 ModuleClassOrFunc = (
     ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef

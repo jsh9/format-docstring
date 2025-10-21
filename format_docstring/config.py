@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import click
+if TYPE_CHECKING:
+    import click
 
 if sys.version_info >= (3, 11):
     import tomllib
