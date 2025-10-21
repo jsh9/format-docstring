@@ -2,11 +2,11 @@
 
 A Python formatter to automatically format numpy-style docstrings.
 
+<!--TOC-->
+
 ______________________________________________________________________
 
-**Table of Contents:**
-
-<!--TOC-->
+**Table of Contents**
 
 - [1. Overview](#1-overview)
 - [2. Before vs After Examples](#2-before-vs-after-examples)
@@ -27,9 +27,9 @@ ______________________________________________________________________
   - [5.3. `pyproject.toml` Configuration](#53-pyprojecttoml-configuration)
 - [6. Caveat](#6-caveat)
 
-<!--TOC-->
-
 ______________________________________________________________________
+
+<!--TOC-->
 
 ## 1. Overview
 

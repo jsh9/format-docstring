@@ -19,7 +19,7 @@ repos:
         exclude: ^tests/test_data/|^tests/helpers\.py$
       - id: check-merge-conflict
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.20.0
+    rev: v3.21.0
     hooks:
       - id: pyupgrade
         args: [--py310-plus]
@@ -54,9 +54,10 @@ repos:
           - --no-sort-keys
           - --no-eof-newline
   - repo: https://github.com/jsh9/markdown-toc-creator
-    rev: 0.0.11
+    rev: 0.1.0
     hooks:
       - id: markdown-toc-creator
+        exclude: ^tests/test_data/|^AGENTS\.md$|^CHANGELOG\.md$
   - repo: https://github.com/jsh9/markdown-heading-numbering
     rev: 0.1.0
     hooks:
