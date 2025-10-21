@@ -42,6 +42,7 @@ extend-select = [
     "TD",     # flake8-todos
     "TC",     # flake8-type-checking
     "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
     "F",      #
     "E",
     "I",   # isort

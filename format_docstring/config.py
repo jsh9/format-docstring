@@ -133,7 +133,7 @@ def load_config_from_file(config_file: Path) -> dict[str, Any]:
         return {}
 
     try:
-        with open(config_file, 'rb') as fp:
+        with Path(config_file).open('rb') as fp:
             raw_config = tomllib.load(fp)
 
         # Extract [tool.format_docstring] section
