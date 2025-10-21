@@ -36,6 +36,7 @@ extend-select = [
     "Q",      # flake8-quotes
     "RET",    # flake8-return
     "SLF",    # flake8-self
+    "SIM",    # flake8-simplify
     "F",      #
     "E",
     "I",   # isort

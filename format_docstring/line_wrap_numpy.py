@@ -559,11 +559,10 @@ def _rewrite_parameter_signature(
     core, tail = _extract_signature_tail(line[colon_idx + 1 :])
 
     existing_annotation_text = core.strip()
-    if existing_annotation_text:
-        if ', default=' in existing_annotation_text:
-            existing_annotation_text = existing_annotation_text.split(
-                ', default=', 1
-            )[0].rstrip(', ')
+    if existing_annotation_text and ', default=' in existing_annotation_text:
+        existing_annotation_text = existing_annotation_text.split(
+            ', default=', 1
+        )[0].rstrip(', ')
 
     existing_annotation_text = existing_annotation_text.strip()
 
@@ -823,7 +822,7 @@ def _fix_rst_backticks(docstring: str) -> str:
 
         # Check if this is an external link (contains <...> pattern)
         # External links look like: `text <url>`_
-        if '<' in content and '>' in content:
+        if '<' in content and '>' in content:  # noqa: SIM102
             # Check if < comes before > (basic validation)
             if content.index('<') < content.rindex('>'):
                 return full_match  # Keep original (it's an external link)
