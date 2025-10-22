@@ -37,11 +37,21 @@ repos:
     rev: 1.18.0
     hooks:
       - id: yamlfix
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.24.2
+    hooks:
+      - id: toml-sort-fix
+        args:
+          - --in-place
+          - --sort-table-keys
+          - --sort-inline-tables
+          - --sort-first=name,version,dependencies,requires-python,authors,maintainers
+          - --trailing-comma-inline-array
   - repo: https://github.com/hukkin/mdformat
     rev: 1.0.0
     hooks:
       - id: mdformat
-        args: [--wrap, '79', --number]
+        args: [--wrap=79, --number]
         additional_dependencies: [mdformat-gfm]
   - repo: https://github.com/jsh9/format-json
     rev: 0.1.2

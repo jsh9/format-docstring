@@ -1,102 +1,96 @@
 # Docs: https://docs.astral.sh/ruff/configuration
 
-line-length = 79
 exclude = ["tests/test_data"]
-
+line-length = 79
 target-version = "py310"
 
 [format]
-quote-style = "single"
 docstring-code-format = true
 preview = true
+quote-style = "single"
 
 [lint]
 # Explanations: https://docs.astral.sh/ruff/rules
 extend-select = [
-    "ANN",    # flake8-annotations
-    "ASYNC",  # flake8-async
-    "S",      # flake8-bandit
-    "BLE",    # flake8-blind-except
-    "FBT",    # flake8-boolean-trap
-    "B",      # flake8-bugbear
-    "A",      # flake8-builtins
-    "C4",     # flake8-comprehensions
-    "DTZ",    # flake8-datetimez
-    "T10",    # flake8-debugger
-    "EXE",    # flake8-executable
-    "FA",     # flake8-future-annotations
-    "ISC",    # flake8-implicit-str-concat
-    "ICN",    # flake8-import-conventions
-    "LOG",    # flake8-logging
-    "G",      # flake8-logging-format
-    "INP",    # flake8-no-pep420
-    "PIE",    # flake8-pie
-    "PYI",    # flake8-pyi
-    "PT",     # flake8-pytest-style
-    "Q",      # flake8-quotes
-    "RET",    # flake8-return
-    "SLF",    # flake8-self
-    "SIM",    # flake8-simplify
-    "SLOT",   # flake8-slots
-    "TID",    # flake8-tidy-imports
-    "TD",     # flake8-todos
-    "TC",     # flake8-type-checking
-    "ARG",    # flake8-unused-arguments
-    "PTH",    # flake8-use-pathlib
-    "FLY",    # flake8-flynt
-    "I",      # isort
-    "C901",   # mccabe
-    "NPY",    # numpy-specific rules
-    "PD",     # pandas-vet
-    "N",      # pep8-naming
-    "PERF",   # Perflint
-    "E",      # pycodestyle: error
-    "W",      # pycodestyle: warning
-    "D",      # pydocstyle
-    "F",      # Pyflakes
-    "PGH",    # pygrep-hooks
-    "PL",     # Pylint
-
-    "UP",  # pyupgrade
-
-
-    "C4",  # flake8-comprehensions
-    "ERA", # flake8-eradicate
-    "T10", # flake8-debugger
-    "ISC", # flake8-implicit-str-concat
-
-
+  "ANN", # flake8-annotations
+  "ASYNC", # flake8-async
+  "S", # flake8-bandit
+  "BLE", # flake8-blind-except
+  "FBT", # flake8-boolean-trap
+  "B", # flake8-bugbear
+  "A", # flake8-builtins
+  "C4", # flake8-comprehensions
+  "DTZ", # flake8-datetimez
+  "T10", # flake8-debugger
+  "EXE", # flake8-executable
+  "FA", # flake8-future-annotations
+  "ISC", # flake8-implicit-str-concat
+  "ICN", # flake8-import-conventions
+  "LOG", # flake8-logging
+  "G", # flake8-logging-format
+  "INP", # flake8-no-pep420
+  "PIE", # flake8-pie
+  "PYI", # flake8-pyi
+  "PT", # flake8-pytest-style
+  "Q", # flake8-quotes
+  "RET", # flake8-return
+  "SLF", # flake8-self
+  "SIM", # flake8-simplify
+  "SLOT", # flake8-slots
+  "TID", # flake8-tidy-imports
+  "TD", # flake8-todos
+  "TC", # flake8-type-checking
+  "ARG", # flake8-unused-arguments
+  "PTH", # flake8-use-pathlib
+  "FLY", # flake8-flynt
+  "I", # isort
+  "C901", # mccabe
+  "NPY", # numpy-specific rules
+  "PD", # pandas-vet
+  "N", # pep8-naming
+  "PERF", # Perflint
+  "E", # pycodestyle: error
+  "W", # pycodestyle: warning
+  "D", # pydocstyle
+  "F", # Pyflakes
+  "PGH", # pygrep-hooks
+  "PL", # Pylint
+  "UP", # pyupgrade
+  "C4", # flake8-comprehensions
+  "ERA", # flake8-eradicate
+  "T10", # flake8-debugger
+  "ISC", # flake8-implicit-str-concat
 ]
 ignore = [
-    "ANN401",
-    "S101",
-    "S110",
-    "TD002",
-    "D100",
-    "D104",
-    "D105",
-    "D107",
-    "D200",
-    "D205",
-    "D400",
+  "ANN401",
+  "S101",
+  "S110",
+  "TD002",
+  "D100",
+  "D104",
+  "D105",
+  "D107",
+  "D200",
+  "D205",
+  "D400",
 ]
 preview = true
+
+[lint.flake8-import-conventions.banned-aliases]
+typing = ["ty", "typ"]
 
 [lint.flake8-quotes]
 docstring-quotes = "double"
 inline-quotes = "single"
 
-[lint.per-file-ignores]
-"tests/*" = ["D101", "D102", "D103"]  # No need for docstrings in tests
-
-[lint.pydocstyle]
-convention = "numpy"
-
 [lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
-[lint.flake8-import-conventions.banned-aliases]
-typing = ["ty", "typ"]
-
 [lint.mccabe]
 max-complexity = 14
+
+[lint.per-file-ignores]
+"tests/*" = ["D101", "D102", "D103"] # No need for docstrings in tests
+
+[lint.pydocstyle]
+convention = "numpy"

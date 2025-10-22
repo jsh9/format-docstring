@@ -1,60 +1,58 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools-scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
+requires = ["setuptools>=45", "setuptools-scm[toml]>=6.2"]
 
 [project]
 name = "format-docstring"
 version = "0.2.2"
-description = "A Python formatter to wrap/adjust docstring lines"
-readme = "README.md"
-license = {text = "MIT"}
-authors = [
-    {name = "jsh9", email = "25124332+jsh9@users.noreply.github.com"}
+dependencies = [
+  "jupyter-notebook-parser>=0.1.4",
+  "click>=8.0",
+  "tomli>=1.1.0; python_version<'3.11'",
 ]
+requires-python = ">=3.10"
+authors = [{name = "jsh9", email = "25124332+jsh9@users.noreply.github.com"}]
 maintainers = [
-    {name = "jsh9", email = "25124332+jsh9@users.noreply.github.com"}
+  {name = "jsh9", email = "25124332+jsh9@users.noreply.github.com"},
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Environment :: Console",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Software Development :: Quality Assurance",
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Software Development :: Quality Assurance",
 ]
+description = "A Python formatter to wrap/adjust docstring lines"
 keywords = ["formatter", "code-style", "docstring", "python"]
-requires-python = ">=3.10"
-dependencies = [
-    "jupyter-notebook-parser>=0.1.4",
-    "click>=8.0",
-    "tomli>=1.1.0; python_version<'3.11'",
-]
-
-[project.urls]
-Homepage = "https://github.com/your/repo"
-Repository = "https://github.com/your/repo.git"
-Issues = "https://github.com/your/repo/issues"
+license = {text = "MIT"}
+readme = "README.md"
 
 [project.scripts]
 format-docstring = "format_docstring.main_py:main"
 format-docstring-jupyter = "format_docstring.main_jupyter:main"
 
-[tool.setuptools.packages.find]
-exclude = ["tests*", "testing*"]
-
-[tool.setuptools.package-data]
-"*" = ["py.typed"]
+[project.urls]
+Homepage = "https://github.com/your/repo"
+Issues = "https://github.com/your/repo/issues"
+Repository = "https://github.com/your/repo.git"
 
 [tool.mypy]
 strict = true
 
 [[tool.mypy.overrides]]
-module = "jupyter_notebook_parser"
 ignore_missing_imports = true
+module = "jupyter_notebook_parser"
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
+[tool.setuptools.packages.find]
+exclude = ["tests*", "testing*"]
