@@ -502,7 +502,7 @@ def segment_lines_by_wrappability(
     return segments
 
 
-def is_rST_table(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
+def is_rST_table(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:  # noqa: N802
     """
     Check if lines starting at start_idx form a reStructuredText table.
 

@@ -843,7 +843,7 @@ def test_fix_typos_in_section_headings(
         ),
     ],
 )
-def test_is_rST_table(
+def test_is_rST_table(  # noqa: N802
         lines: list[str],
         start_idx: int,
         *,

@@ -46,6 +46,9 @@ extend-select = [
     "FLY",    # flake8-flynt
     "I",      # isort
     "C901",   # mccabe
+    "NPY",    # numpy-specific rules
+    "PD",     # pandas-vet
+    "N",      # pep8-naming
     "F",      #
     "E",
 

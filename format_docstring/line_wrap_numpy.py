@@ -54,8 +54,7 @@ def wrap_docstring_numpy(  # noqa: C901, TODO: https://github.com/jsh9/format-do
     if not lines:
         return docstring_
 
-    # Track section state
-    SECTION_PARAMS = {
+    section_params = {
         'parameters',
         'parameters:',
         'parameter',  # tolerate typo
@@ -69,14 +68,13 @@ def wrap_docstring_numpy(  # noqa: C901, TODO: https://github.com/jsh9/format-do
         'other parameter',  # tolerate typo
         'other parameter:',
     }
-    SECTION_ATTRIBUTES = {
+    section_attributes = {
         'attributes',
         'attributes:',
         'attribute',  # tolerate typo
         'attribute:',
     }
-    SECTION_SIGNABLE = SECTION_PARAMS | SECTION_ATTRIBUTES
-    SECTION_RETURNS_YIELDS = {
+    section_returns_yields = {
         'returns',
         'returns:',
         'return',  # tolerate typo
@@ -86,13 +84,13 @@ def wrap_docstring_numpy(  # noqa: C901, TODO: https://github.com/jsh9/format-do
         'yield',  # tolerate typo
         'yield:',
     }
-    SECTION_RAISES = {
+    section_raises = {
         'raises',
         'raises:',
         'raise',  # tolerate typo
         'raise:',
     }
-    SECTION_EXAMPLES = {
+    section_examples = {
         'examples',
         'examples:',
         'example',  # tolerate typo
@@ -139,7 +137,7 @@ def wrap_docstring_numpy(  # noqa: C901, TODO: https://github.com/jsh9/format-do
             heading: str | None = _get_section_heading_title(lines, i)
             if heading:
                 current_section = heading
-                in_examples = heading in SECTION_EXAMPLES
+                in_examples = heading in section_examples
                 temp_out.append(line)
                 temp_out.append(lines[i + 1])
                 i += 2
@@ -159,9 +157,9 @@ def wrap_docstring_numpy(  # noqa: C901, TODO: https://github.com/jsh9/format-do
 
         # Parameters-like sections
         section_lower_case: str = current_section.lower()
-        if section_lower_case in SECTION_SIGNABLE:
+        if section_lower_case in section_params | section_attributes:
             metadata_for_section = parameter_metadata
-            if section_lower_case in SECTION_ATTRIBUTES:
+            if section_lower_case in section_attributes:
                 metadata_for_section = attribute_metadata or parameter_metadata
 
             if line.strip() == '':
@@ -192,7 +190,7 @@ def wrap_docstring_numpy(  # noqa: C901, TODO: https://github.com/jsh9/format-do
             continue
 
         # Returns/Yields sections
-        if section_lower_case in SECTION_RETURNS_YIELDS:
+        if section_lower_case in section_returns_yields:
             if line.strip() == '':
                 temp_out.append(line)
                 i += 1
@@ -244,7 +242,7 @@ def wrap_docstring_numpy(  # noqa: C901, TODO: https://github.com/jsh9/format-do
             continue
 
         # Raises section
-        if section_lower_case in SECTION_RAISES:
+        if section_lower_case in section_raises:
             if line.strip() == '':
                 temp_out.append(line)
                 i += 1
