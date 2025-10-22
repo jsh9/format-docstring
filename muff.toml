@@ -62,6 +62,7 @@ extend-select = [
   "UP", # pyupgrade
   "FURB", # refurb
   "RUF", # Ruff-specific rules
+  "TRY", # tryceratops
 ]
 ignore = [
   "ANN401",
@@ -76,6 +77,7 @@ ignore = [
   "D200",
   "D205",
   "D400",
+  "TRY003", # we can allow on-the-fly exception messages
 ]
 preview = true
 

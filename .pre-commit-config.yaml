@@ -7,7 +7,6 @@ repos:
       - id: end-of-file-fixer
         exclude: \.json$|\.ipynb$
       - id: debug-statements
-      - id: double-quote-string-fixer
       - id: requirements-txt-fixer
         exclude: \.ipynb$
       - id: check-added-large-files

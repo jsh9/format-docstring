@@ -147,7 +147,10 @@ def process_temp_output(
 
             out.extend(wrapped)
         else:
-            raise RuntimeError("Something's wrong. Please contact the author.")
+            raise TypeError(
+                f'`element` has unexpected type: {type(element)}.'
+                ' Please contact the author.'
+            )
 
     return fix_typos_in_section_headings(out)
 
