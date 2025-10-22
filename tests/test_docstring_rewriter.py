@@ -9,7 +9,7 @@ from format_docstring import docstring_rewriter
 
 
 @pytest.mark.parametrize(
-    'src, expected',
+    ('src', 'expected'),
     [
         ('', [0]),
         ('a\n\nxyz\n', [0, 2, 3, 7]),
@@ -23,7 +23,7 @@ def test_calc_line_starts(src: str, expected: list[int]) -> None:
 
 
 @pytest.mark.parametrize(
-    'src, lineno, col, expected',
+    ('src', 'lineno', 'col', 'expected'),
     [
         ('a\n\nxyz\n', 1, 0, 0),
         ('a\n\nxyz\n', 2, 0, 2),
@@ -38,7 +38,7 @@ def test_calc_abs_pos(src: str, lineno: int, col: int, expected: int) -> None:
 
 
 @pytest.mark.parametrize(
-    'literal, content, expected',
+    ('literal', 'content', 'expected'),
     [
         ("'abc'", 'X', "'X'"),
         ('"abc"', 'Y', '"Y"'),
@@ -58,7 +58,7 @@ def test_rebuild_literal(literal: str, content: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    'src, selector, has_doc',
+    ('src', 'selector', 'has_doc'),
     [
         (
             dedent(
@@ -102,7 +102,7 @@ def test_rebuild_literal(literal: str, content: str, expected: str) -> None:
         ),
     ],
 )
-def test_find_docstring(src: str, selector: str, has_doc: bool) -> None:
+def test_find_docstring(src: str, selector: str, *, has_doc: bool) -> None:
     """Detect docstring Expr for module/class/function or absence thereof."""
     tree = ast.parse(src)
     if selector == 'module':
@@ -117,7 +117,7 @@ def test_find_docstring(src: str, selector: str, has_doc: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    'src, node_kind',
+    ('src', 'node_kind'),
     [
         (
             dedent(
@@ -167,7 +167,12 @@ def test_build_replacement_docstring_no_change_for_short(
     else:
         node = next(n for n in tree.body if isinstance(n, ast.FunctionDef))
 
-    rep = docstring_rewriter.build_replacement_docstring(node, src, starts, 79)
+    rep = docstring_rewriter.build_replacement_docstring(
+        node,
+        source_code=src,
+        line_starts=starts,
+        line_length=79,
+    )
     assert rep is None
 
 
@@ -185,7 +190,12 @@ def test_module_level_docstring() -> None:
 
     tree = ast.parse(src)
     starts = docstring_rewriter.calc_line_starts(src)
-    rep = docstring_rewriter.build_replacement_docstring(tree, src, starts, 79)
+    rep = docstring_rewriter.build_replacement_docstring(
+        tree,
+        source_code=src,
+        line_starts=starts,
+        line_length=79,
+    )
 
     assert rep == (
         1,
@@ -272,7 +282,7 @@ def _load_end_to_end_test_cases() -> list[tuple[str, str, str, int]]:
 
 def _load_test_case(filepath: Path) -> tuple[str, str, str, int] | None:
     """Load end-to-end test cases from test data files."""
-    with filepath.open('r') as f:
+    with filepath.open('r', encoding='utf-8') as f:
         content: str = f.read()
 
         lines: list[str] = content.split('\n')
@@ -323,12 +333,12 @@ def _load_test_case(filepath: Path) -> tuple[str, str, str, int] | None:
 
 
 @pytest.mark.parametrize(
-    'test_name, input_src, expected_src, line_length',
+    ('test_name', 'input_src', 'expected_src', 'line_length'),
     _load_end_to_end_test_cases(),
     ids=lambda case: case[0] if isinstance(case, tuple) else str(case),
 )
 def test_fix_src_end_to_end(
-        test_name: str,
+        test_name: str,  # noqa: ARG001
         input_src: str,
         expected_src: str,
         line_length: int,
@@ -343,7 +353,7 @@ def test_fix_src_single_case() -> None:
     A placeholder test for easy debugging. You can replace the file name with
     the test case file that's producing errors.
     """
-    test_case_name, before_src, after_src, line_length = _load_test_case(
+    _, before_src, after_src, line_length = _load_test_case(
         DATA_DIR / 'single_line_docstring.txt'
     )
     out: str = docstring_rewriter.fix_src(before_src, line_length=line_length)
@@ -351,7 +361,7 @@ def test_fix_src_single_case() -> None:
 
 
 @pytest.mark.parametrize(
-    'fix_rst_backticks, input_source, expected_source',
+    ('fix_rst_backticks', 'input_source', 'expected_source'),
     [
         (
             True,
@@ -366,7 +376,7 @@ def test_fix_src_single_case() -> None:
     ],
 )
 def test_fix_rst_backticks_end_to_end(
-        fix_rst_backticks: bool, input_source: str, expected_source: str
+        *, fix_rst_backticks: bool, input_source: str, expected_source: str
 ) -> None:
     """Test that backticks are fixed or preserved in end-to-end processing."""
     result = docstring_rewriter.fix_src(

@@ -161,7 +161,7 @@ line_length = 50
     result = runner.invoke(
         cli_main_py, ['--config', str(config_file), str(test_file)]
     )
-    assert result.exit_code in (0, 1), result.output
+    assert result.exit_code in {0, 1}, result.output
 
     # The docstring should be wrapped
     output = test_file.read_text()
@@ -193,7 +193,7 @@ line_length = 50
     # Run the CLI without specifying config file
     runner = CliRunner()
     result = runner.invoke(cli_main_py, [str(test_file)])
-    assert result.exit_code in (0, 1), result.output
+    assert result.exit_code in {0, 1}, result.output
 
     # The docstring should be wrapped due to auto-discovered config
     output = test_file.read_text()
@@ -224,7 +224,7 @@ line_length = 50
         cli_main_py,
         ['--config', str(config_file), '--line-length', '100', str(test_file)],
     )
-    assert result.exit_code in (0, 1), result.output
+    assert result.exit_code in {0, 1}, result.output
 
     # File should remain largely the same since line length is high
     output = test_file.read_text()

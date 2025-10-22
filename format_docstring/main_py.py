@@ -62,6 +62,7 @@ from format_docstring.config import inject_config_from_file
 def main(
         paths: tuple[str, ...],
         config: str | None,  # noqa: ARG001 (used by Click callback)
+        *,
         exclude: str,
         line_length: int,
         docstring_style: str,
@@ -97,6 +98,7 @@ class PythonFileFixer(BaseFixer):
             path: str,
             exclude_pattern: str = r'\.git|\.tox|\.pytest_cache',
             line_length: int = 79,
+            *,
             fix_rst_backticks: bool = True,
             verbose: str = 'default',
     ) -> None:
@@ -120,7 +122,7 @@ class PythonFileFixer(BaseFixer):
                 print(msg, file=sys.stderr)
                 return 0
 
-            with open(filename, 'rb') as fb:
+            with Path(filename).open('rb') as fb:
                 source_bytes = fb.read()
 
         try:
@@ -142,8 +144,8 @@ class PythonFileFixer(BaseFixer):
             print(source_text, end='')
         elif source_text != source_text_orig:
             print(f'Rewriting {filename}', file=sys.stderr)
-            self._print_diff(filename, source_text_orig, source_text)
-            with open(filename, 'wb') as f:
+            self.print_diff(filename, source_text_orig, source_text)
+            with Path(filename).open('wb') as f:
                 f.write(source_text.encode())
 
         return int(source_text != source_text_orig)

@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import ast
 import io
+import operator
 import tokenize
+from typing import TYPE_CHECKING
 
 from format_docstring.line_wrap_google import wrap_docstring_google
 from format_docstring.line_wrap_numpy import (
     handle_single_line_docstring,
     wrap_docstring_numpy,
 )
-from format_docstring.line_wrap_utils import ParameterMetadata
+
+if TYPE_CHECKING:
+    from format_docstring.line_wrap_utils import ParameterMetadata
 
 ModuleClassOrFunc = (
     ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
@@ -91,11 +95,13 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
         # iterator order mirrors the unparse traversal so we can reapply them.
         original_strings: list[str] = []
         try:
-            for tok in tokenize.generate_tokens(
-                io.StringIO(normalized).readline
-            ):
-                if tok.type == tokenize.STRING:
-                    original_strings.append(tok.string)
+            original_strings.extend(
+                tok.string
+                for tok in tokenize.generate_tokens(
+                    io.StringIO(normalized).readline
+                )
+                if tok.type == tokenize.STRING
+            )
         except tokenize.TokenError:
             original_strings = []
 
@@ -105,6 +111,7 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
             for tok in tokenize.generate_tokens(
                 io.StringIO(canonical).readline
             ):
+                current_tok: tokenize.TokenInfo = tok
                 if tok.type == tokenize.STRING:
                     replacement = next(string_iter, None)
                     if replacement is not None:
@@ -116,12 +123,12 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
                             if ast.literal_eval(
                                 replacement
                             ) == ast.literal_eval(tok.string):
-                                tok = tok._replace(string=replacement)
-                        except Exception:
+                                current_tok = tok._replace(string=replacement)
+                        except Exception:  # noqa: BLE001
                             pass
 
-                rebuilt_tokens.append(tok)
-                if tok.type == tokenize.ENDMARKER:
+                rebuilt_tokens.append(current_tok)
+                if current_tok.type == tokenize.ENDMARKER:
                     break
 
             # Untokenize the rebuilt stream while trimming the leading/trailing
@@ -305,16 +312,17 @@ def fix_src(
     tree: ast.Module = ast.parse(source_code, type_comments=True)
     line_starts: list[int] = calc_line_starts(source_code)
 
+    # Store (start, end, replacement text) tuples
     replacements: list[tuple[int, int, str]] = []
 
     # Module-level docstring
     replacement = build_replacement_docstring(
         tree,
-        source_code,
-        line_starts,
-        line_length,
-        docstring_style,
-        fix_rst_backticks,
+        source_code=source_code,
+        line_starts=line_starts,
+        line_length=line_length,
+        docstring_style=docstring_style,
+        fix_rst_backticks=fix_rst_backticks,
     )
     if replacement is not None:
         replacements.append(replacement)
@@ -326,11 +334,11 @@ def fix_src(
         ):
             replacement = build_replacement_docstring(
                 node,
-                source_code,
-                line_starts,
-                line_length,
-                docstring_style,
-                fix_rst_backticks,
+                source_code=source_code,
+                line_starts=line_starts,
+                line_length=line_length,
+                docstring_style=docstring_style,
+                fix_rst_backticks=fix_rst_backticks,
             )
             if replacement is not None:
                 replacements.append(replacement)
@@ -339,7 +347,8 @@ def fix_src(
     if not replacements:
         return source_code
 
-    replacements.sort(key=lambda x: x[0], reverse=True)
+    # Sort by starting index descending
+    replacements.sort(key=operator.itemgetter(0), reverse=True)
     new_src = source_code
     for start, end, text in replacements:
         new_src = new_src[:start] + text + new_src[end:]
@@ -371,6 +380,7 @@ def calc_line_starts(source_code: str) -> list[int]:
 
 def build_replacement_docstring(
         node: ModuleClassOrFunc,
+        *,
         source_code: str,
         line_starts: list[int],
         line_length: int,
@@ -411,7 +421,7 @@ def build_replacement_docstring(
         return None
 
     start: int = calc_abs_pos(line_starts, val.lineno, val.col_offset)
-    end: int = calc_abs_pos(line_starts, val.end_lineno, val.end_col_offset)  # type: ignore[arg-type]  # noqa: LN002
+    end: int = calc_abs_pos(line_starts, val.end_lineno, val.end_col_offset)  # type: ignore[arg-type]
     original_literal = source_code[start:end]
 
     if _has_inline_no_format_comment(source_code, end):
@@ -554,10 +564,10 @@ def rebuild_literal(original_literal: str, content: str) -> str | None:
     prefix = original_literal[:i]
 
     delim = ''
-    if original_literal[i : i + 3] in ('"""', "'''"):
+    if original_literal[i : i + 3] in {'"""', "'''"}:
         delim = original_literal[i : i + 3]
         i += 3
-    elif i < n and original_literal[i] in ('"', "'"):
+    elif i < n and original_literal[i] in {'"', "'"}:
         delim = original_literal[i]
         i += 1
     else:
@@ -576,6 +586,7 @@ def wrap_docstring(
         line_length: int = 79,
         docstring_style: str = 'numpy',
         leading_indent: int = 0,
+        *,
         fix_rst_backticks: bool = True,
         function_param_metadata: ParameterMetadata | None = None,
         function_return_annotation: str | None = None,
@@ -622,7 +633,7 @@ def wrap_docstring(
     if style == 'google':
         return wrap_docstring_google(
             docstring,
-            line_length,
+            line_length=line_length,
             leading_indent=leading_indent,
             fix_rst_backticks=fix_rst_backticks,
             parameter_metadata=function_param_metadata,
@@ -632,7 +643,7 @@ def wrap_docstring(
     # Default to NumPy-style for unknown/unspecified styles to be permissive.
     return wrap_docstring_numpy(
         docstring,
-        line_length,
+        line_length=line_length,
         leading_indent=leading_indent,
         fix_rst_backticks=fix_rst_backticks,
         parameter_metadata=function_param_metadata,

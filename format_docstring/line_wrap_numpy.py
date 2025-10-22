@@ -13,8 +13,9 @@ from format_docstring.line_wrap_utils import (
 )
 
 
-def wrap_docstring_numpy(
+def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/format-docstring/issues/17
         docstring: str,
+        *,
         line_length: int,
         leading_indent: int | None = None,
         fix_rst_backticks: bool = False,
@@ -53,8 +54,7 @@ def wrap_docstring_numpy(
     if not lines:
         return docstring_
 
-    # Track section state
-    SECTION_PARAMS = {
+    section_params = {
         'parameters',
         'parameters:',
         'parameter',  # tolerate typo
@@ -68,14 +68,13 @@ def wrap_docstring_numpy(
         'other parameter',  # tolerate typo
         'other parameter:',
     }
-    SECTION_ATTRIBUTES = {
+    section_attributes = {
         'attributes',
         'attributes:',
         'attribute',  # tolerate typo
         'attribute:',
     }
-    SECTION_SIGNABLE = SECTION_PARAMS | SECTION_ATTRIBUTES
-    SECTION_RETURNS_YIELDS = {
+    section_returns_yields = {
         'returns',
         'returns:',
         'return',  # tolerate typo
@@ -85,13 +84,13 @@ def wrap_docstring_numpy(
         'yield',  # tolerate typo
         'yield:',
     }
-    SECTION_RAISES = {
+    section_raises = {
         'raises',
         'raises:',
         'raise',  # tolerate typo
         'raise:',
     }
-    SECTION_EXAMPLES = {
+    section_examples = {
         'examples',
         'examples:',
         'example',  # tolerate typo
@@ -138,9 +137,8 @@ def wrap_docstring_numpy(
             heading: str | None = _get_section_heading_title(lines, i)
             if heading:
                 current_section = heading
-                in_examples = heading in SECTION_EXAMPLES
-                temp_out.append(line)
-                temp_out.append(lines[i + 1])
+                in_examples = heading in section_examples
+                temp_out.extend((line, lines[i + 1]))
                 i += 2
                 continue
 
@@ -151,18 +149,16 @@ def wrap_docstring_numpy(
             continue
 
         # In Examples, skip wrapping and backtick fixing for REPL lines
-        if in_examples and (
-            stripped.startswith('>>> ') or stripped.startswith('... ')
-        ):
+        if in_examples and stripped.startswith(('>>> ', '... ')):
             temp_out.append(line)
             i += 1
             continue
 
         # Parameters-like sections
         section_lower_case: str = current_section.lower()
-        if section_lower_case in SECTION_SIGNABLE:
+        if section_lower_case in section_params | section_attributes:
             metadata_for_section = parameter_metadata
-            if section_lower_case in SECTION_ATTRIBUTES:
+            if section_lower_case in section_attributes:
                 metadata_for_section = attribute_metadata or parameter_metadata
 
             if line.strip() == '':
@@ -193,7 +189,7 @@ def wrap_docstring_numpy(
             continue
 
         # Returns/Yields sections
-        if section_lower_case in SECTION_RETURNS_YIELDS:
+        if section_lower_case in section_returns_yields:
             if line.strip() == '':
                 temp_out.append(line)
                 i += 1
@@ -245,7 +241,7 @@ def wrap_docstring_numpy(
             continue
 
         # Raises section
-        if section_lower_case in SECTION_RAISES:
+        if section_lower_case in section_raises:
             if line.strip() == '':
                 temp_out.append(line)
                 i += 1
@@ -294,8 +290,9 @@ def _is_hyphen_underline(s: str) -> bool:
     >>> _is_hyphen_underline(' - - ')
     False
     """
-    t = s.strip()
-    return len(t) >= 2 and set(t) <= {'-'}
+    t: str = s.strip()
+    min_hyphens_in_section_header: int = 2
+    return len(t) >= min_hyphens_in_section_header and set(t) <= {'-'}
 
 
 def _get_section_heading_title(lines: list[str], idx: int) -> str | None:
@@ -560,11 +557,10 @@ def _rewrite_parameter_signature(
     core, tail = _extract_signature_tail(line[colon_idx + 1 :])
 
     existing_annotation_text = core.strip()
-    if existing_annotation_text:
-        if ', default=' in existing_annotation_text:
-            existing_annotation_text = existing_annotation_text.split(
-                ', default=', 1
-            )[0].rstrip(', ')
+    if existing_annotation_text and ', default=' in existing_annotation_text:
+        existing_annotation_text = existing_annotation_text.split(
+            ', default=', 1
+        )[0].rstrip(', ')
 
     existing_annotation_text = existing_annotation_text.strip()
 
@@ -624,7 +620,8 @@ def _split_tuple_annotation(annotation: str | None) -> list[str] | None:
         if not isinstance(slice_node, ast.Tuple):
             return None
 
-        if len(slice_node.elts) < 2:
+        min_elements_for_an_actual_tuple: int = 2
+        if len(slice_node.elts) < min_elements_for_an_actual_tuple:
             return None
 
         parts: list[str] = []
@@ -824,7 +821,7 @@ def _fix_rst_backticks(docstring: str) -> str:
 
         # Check if this is an external link (contains <...> pattern)
         # External links look like: `text <url>`_
-        if '<' in content and '>' in content:
+        if '<' in content and '>' in content:  # noqa: SIM102
             # Check if < comes before > (basic validation)
             if content.index('<') < content.rindex('>'):
                 return full_match  # Keep original (it's an external link)
@@ -846,7 +843,7 @@ def _fix_rst_backticks(docstring: str) -> str:
     for i, line in enumerate(lines):
         stripped = line.lstrip()
         # Protect REPL lines (>>> or ...) - don't fix backticks in these
-        if stripped.startswith('>>> ') or stripped.startswith('... '):
+        if stripped.startswith(('>>> ', '... ')):
             repl_lines[i] = line
             # Use a placeholder that won't be matched by the regex
             protected_lines.append(

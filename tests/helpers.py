@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 SEPARATOR = '**********'
 
@@ -24,7 +27,7 @@ def load_cases_from_dir(data_dir: Path) -> list[tuple[str, int, str, str]]:
 
 
 def load_case_from_file(filename: Path) -> tuple[str, int, str, str]:
-    raw = filename.read_text()
+    raw = filename.read_text(encoding='utf-8')
     first_nl = raw.find('\n')
     if first_nl == -1:
         raise AssertionError(f'Malformed test file (no newline): {filename}')

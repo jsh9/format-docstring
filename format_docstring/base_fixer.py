@@ -42,7 +42,7 @@ class BaseFixer:
             if not should_exclude_file(f, self.exclude_pattern)
         ]
 
-    def _print_diff(self, filename: str, before: str, after: str) -> None:
+    def print_diff(self, filename: str, before: str, after: str) -> None:
         """Print a unified diff when verbose mode is enabled."""
         if self.verbose != 'diff':
             return

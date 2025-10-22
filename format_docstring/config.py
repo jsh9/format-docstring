@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import click
+if TYPE_CHECKING:
+    import click
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -132,7 +133,7 @@ def load_config_from_file(config_file: Path) -> dict[str, Any]:
         return {}
 
     try:
-        with open(config_file, 'rb') as fp:
+        with Path(config_file).open('rb') as fp:
             raw_config = tomllib.load(fp)
 
         # Extract [tool.format_docstring] section
@@ -144,7 +145,7 @@ def load_config_from_file(config_file: Path) -> dict[str, Any]:
         return {
             k.replace('-', '_'): v for k, v in format_docstring_section.items()
         }
-    except Exception:
+    except Exception:  # noqa: BLE001
         # If there's any error reading/parsing the file, return empty config
         return {}
 

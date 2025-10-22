@@ -43,7 +43,7 @@ def finalize_lines(out_lines: list[str], leading_indent: int | None) -> str:
     if leading_indent is not None:
         suffix = '\n' + (' ' * leading_indent)
         if not result.endswith(suffix):
-            result = result + suffix
+            result += suffix
 
     return result
 
@@ -139,13 +139,18 @@ def process_temp_output(
                 and element.index('') < len(element) - 1
             ):
                 insertion_idx = min(element.index(''), len(wrapped))
-                wrapped = (
-                    wrapped[:insertion_idx] + [''] + wrapped[insertion_idx:]
-                )
+                wrapped = [
+                    *wrapped[:insertion_idx],
+                    '',
+                    *wrapped[insertion_idx:],
+                ]
 
             out.extend(wrapped)
         else:
-            raise RuntimeError("Something's wrong. Please contact the author.")
+            raise TypeError(
+                f'`element` has unexpected type: {type(element)}.'
+                ' Please contact the author.'
+            )
 
     return fix_typos_in_section_headings(out)
 
@@ -256,7 +261,7 @@ def _wrap_text_segment(lines: list[str], width: int) -> list[str]:
     if result and result[-1] == '':
         result.pop()
 
-    result_: list[str] = result if result else lines
+    result_: list[str] = result or lines
 
     return _add_back_leading_or_trailing_newline(
         original_lines=lines,
@@ -273,12 +278,12 @@ def _add_back_leading_or_trailing_newline(
 
     new_result: list[str] = []
     if original_lines[0] == '':
-        new_result = [''] + wrapped_lines
+        new_result = ['', *wrapped_lines]
     else:
         new_result = wrapped_lines
 
     if original_lines[-1] == '':
-        return new_result + ['']
+        return [*new_result, '']
 
     return new_result
 
@@ -331,7 +336,8 @@ def merge_lines_and_strip(text: str) -> str:
 
 def fix_typos_in_section_headings(lines: list[str]) -> list[str]:
     """Fix typos such as 'Return' in section headings."""
-    if len(lines) < 2:
+    min_num_lines_to_form_a_section_header: int = 2
+    if len(lines) < min_num_lines_to_form_a_section_header:
         return lines
 
     # Define typo corrections (case-insensitive keys, proper case values)
@@ -379,7 +385,10 @@ def fix_typos_in_section_headings(lines: list[str]) -> list[str]:
 
         # Check if next line is dashes (at least 2 dashes, only dashes and
         # whitespace)
-        if len(next_line) >= 2 and all(c == '-' for c in next_line):
+        min_hyphens_in_section_header: int = 2
+        if len(next_line) >= min_hyphens_in_section_header and all(
+            c == '-' for c in next_line
+        ):
             # Current line is a section heading, check for typos
             # (which are case-insensitive)
             current_line_lower = current_line.lower()
@@ -502,7 +511,7 @@ def segment_lines_by_wrappability(
     return segments
 
 
-def is_rST_table(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
+def is_rST_table(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:  # noqa: N802
     """
     Check if lines starting at start_idx form a reStructuredText table.
 
@@ -765,11 +774,7 @@ def _is_list_item(line: str) -> bool:
 def _is_unordered_list_item(line: str) -> bool:
     """Check if a line is an unordered list item (starts with -, *, or +)."""
     stripped = line.lstrip()
-    return (
-        stripped.startswith('- ')
-        or stripped.startswith('* ')
-        or stripped.startswith('+ ')
-    )
+    return stripped.startswith(('- ', '* ', '+ '))
 
 
 def _is_ordered_list_item(line: str) -> bool:
@@ -788,7 +793,6 @@ def _is_ordered_list_item(line: str) -> bool:
     # Look for patterns:
     # - digits followed by . or ) followed by space
     # - ( followed by digits followed by ) followed by space
-    import re
 
     pattern = r'^(\d+[.)] |\(\d+\) )'
     return bool(re.match(pattern, stripped))
@@ -812,8 +816,6 @@ def _get_list_format(line: str) -> str | None:
     stripped = line.lstrip()
     if not stripped:
         return None
-
-    import re
 
     dot_match = re.match(r'^\d+\. ', stripped)
     paren_match = re.match(r'^\d+\) ', stripped)

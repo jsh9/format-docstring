@@ -70,6 +70,7 @@ from format_docstring.config import inject_config_from_file
 def main(
         paths: tuple[str, ...],
         config: str | None,  # noqa: ARG001 (used by Click callback)
+        *,
         exclude: str,
         line_length: int,
         docstring_style: str,
@@ -101,6 +102,7 @@ class JupyterNotebookFixer(BaseFixer):
             path: str,
             exclude_pattern: str = r'\.git|\.tox|\.pytest_cache',
             line_length: int = 79,
+            *,
             fix_rst_backticks: bool = True,
             verbose: str = 'default',
     ) -> None:
@@ -115,8 +117,6 @@ class JupyterNotebookFixer(BaseFixer):
 
     def fix_one_directory_or_one_file(self) -> int:
         """Fix formatting in a file or all .ipynb files in a directory."""
-        from pathlib import Path
-
         path_obj = Path(self.path)
 
         if path_obj.is_file():
@@ -151,8 +151,8 @@ class JupyterNotebookFixer(BaseFixer):
             code_cell_sources: list[SourceCodeContainer] = (
                 parsed.get_code_cell_sources()
             )
-        except Exception as exc:
-            print(f'Error reading {filename}: {str(exc)}', file=sys.stderr)
+        except OSError as exc:
+            print(f'Error reading {filename}: {exc!s}', file=sys.stderr)
             return 1
         else:
             ret_val = 0
@@ -182,8 +182,8 @@ class JupyterNotebookFixer(BaseFixer):
             if ret_val == 1:
                 new_text = json.dumps(parsed.notebook_content, indent=1) + '\n'
                 print(f'Rewriting {filename}', file=sys.stderr)
-                self._print_diff(filename, original_text, new_text)
-                with open(filename, 'w', encoding='utf-8') as fp:
+                self.print_diff(filename, original_text, new_text)
+                with Path(filename).open('w', encoding='utf-8') as fp:
                     fp.write(new_text)
 
             return ret_val
