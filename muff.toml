@@ -2,6 +2,7 @@
 
 exclude = ["tests/test_data"]
 line-length = 79
+target-version = "py310"
 
 [format]
 docstring-code-format = true
