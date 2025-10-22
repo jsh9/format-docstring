@@ -61,6 +61,7 @@ extend-select = [
   "PL", # Pylint
   "UP", # pyupgrade
   "FURB", # refurb
+  "RUF", # Ruff-specific rules
 ]
 ignore = [
   "ANN401",

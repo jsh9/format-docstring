@@ -152,7 +152,7 @@ class JupyterNotebookFixer(BaseFixer):
                 parsed.get_code_cell_sources()
             )
         except OSError as exc:
-            print(f'Error reading {filename}: {str(exc)}', file=sys.stderr)
+            print(f'Error reading {filename}: {exc!s}', file=sys.stderr)
             return 1
         else:
             ret_val = 0

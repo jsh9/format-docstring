@@ -353,7 +353,7 @@ def test_fix_src_single_case() -> None:
     A placeholder test for easy debugging. You can replace the file name with
     the test case file that's producing errors.
     """
-    test_case_name, before_src, after_src, line_length = _load_test_case(
+    _, before_src, after_src, line_length = _load_test_case(
         DATA_DIR / 'single_line_docstring.txt'
     )
     out: str = docstring_rewriter.fix_src(before_src, line_length=line_length)

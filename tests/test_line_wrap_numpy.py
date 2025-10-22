@@ -39,7 +39,7 @@ def test_wrap_docstring_single_case() -> None:
     A placeholder test for easy debugging. You can replace the file name with
     the test case file that's producing errors.
     """
-    filename, length, before, after = load_case_from_file(
+    _, length, before, after = load_case_from_file(
         DATA_DIR / 'contents_that_are_not_wrapped.txt'
     )
     out = wrap_docstring(

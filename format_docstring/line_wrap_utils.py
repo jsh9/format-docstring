@@ -139,9 +139,11 @@ def process_temp_output(
                 and element.index('') < len(element) - 1
             ):
                 insertion_idx = min(element.index(''), len(wrapped))
-                wrapped = (
-                    wrapped[:insertion_idx] + [''] + wrapped[insertion_idx:]
-                )
+                wrapped = [
+                    *wrapped[:insertion_idx],
+                    '',
+                    *wrapped[insertion_idx:],
+                ]
 
             out.extend(wrapped)
         else:
@@ -273,12 +275,12 @@ def _add_back_leading_or_trailing_newline(
 
     new_result: list[str] = []
     if original_lines[0] == '':
-        new_result = [''] + wrapped_lines
+        new_result = ['', *wrapped_lines]
     else:
         new_result = wrapped_lines
 
     if original_lines[-1] == '':
-        return new_result + ['']
+        return [*new_result, '']
 
     return new_result
 
