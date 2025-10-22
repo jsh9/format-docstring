@@ -12,64 +12,60 @@ quote-style = "single"
 [lint]
 # Explanations: https://docs.astral.sh/ruff/rules
 extend-select = [
-  "ANN", # flake8-annotations
-  "ASYNC", # flake8-async
-  "S", # flake8-bandit
-  "BLE", # flake8-blind-except
-  "FBT", # flake8-boolean-trap
-  "B", # flake8-bugbear
   "A", # flake8-builtins
-  "C4", # flake8-comprehensions
-  "DTZ", # flake8-datetimez
-  "T10", # flake8-debugger
-  "EXE", # flake8-executable
-  "FA", # flake8-future-annotations
-  "ISC", # flake8-implicit-str-concat
-  "ICN", # flake8-import-conventions
-  "LOG", # flake8-logging
-  "G", # flake8-logging-format
-  "INP", # flake8-no-pep420
-  "PIE", # flake8-pie
-  "PYI", # flake8-pyi
-  "PT", # flake8-pytest-style
-  "Q", # flake8-quotes
-  "RET", # flake8-return
-  "SLF", # flake8-self
-  "SIM", # flake8-simplify
-  "SLOT", # flake8-slots
-  "TID", # flake8-tidy-imports
-  "TD", # flake8-todos
-  "TC", # flake8-type-checking
+  "ANN", # flake8-annotations
   "ARG", # flake8-unused-arguments
-  "PTH", # flake8-use-pathlib
-  "FLY", # flake8-flynt
-  "I", # isort
+  "ASYNC", # flake8-async
+  "B", # flake8-bugbear
+  "BLE", # flake8-blind-except
+  "C4", # flake8-comprehensions
+  "C4", # flake8-comprehensions
   "C901", # mccabe
+  "D", # pydocstyle
+  "DTZ", # flake8-datetimez
+  "E", # pycodestyle: error
+  "ERA", # flake8-eradicate
+  "EXE", # flake8-executable
+  "F", # Pyflakes
+  "FA", # flake8-future-annotations
+  "FBT", # flake8-boolean-trap
+  "FLY", # flake8-flynt
+  "FURB", # refurb
+  "G", # flake8-logging-format
+  "I", # isort
+  "ICN", # flake8-import-conventions
+  "INP", # flake8-no-pep420
+  "ISC", # flake8-implicit-str-concat
+  "ISC", # flake8-implicit-str-concat
+  "LOG", # flake8-logging
+  "N", # pep8-naming
   "NPY", # numpy-specific rules
   "PD", # pandas-vet
-  "N", # pep8-naming
   "PERF", # Perflint
-  "E", # pycodestyle: error
-  "W", # pycodestyle: warning
-  "D", # pydocstyle
-  "F", # Pyflakes
   "PGH", # pygrep-hooks
-  "C4", # flake8-comprehensions
-  "ERA", # flake8-eradicate
-  "T10", # flake8-debugger
-  "ISC", # flake8-implicit-str-concat
+  "PIE", # flake8-pie
   "PL", # Pylint
-  "UP", # pyupgrade
-  "FURB", # refurb
+  "PT", # flake8-pytest-style
+  "PTH", # flake8-use-pathlib
+  "PYI", # flake8-pyi
+  "Q", # flake8-quotes
+  "RET", # flake8-return
   "RUF", # Ruff-specific rules
+  "S", # flake8-bandit
+  "SIM", # flake8-simplify
+  "SLF", # flake8-self
+  "SLOT", # flake8-slots
+  "T10", # flake8-debugger
+  "T10", # flake8-debugger
+  "TC", # flake8-type-checking
+  "TD", # flake8-todos
+  "TID", # flake8-tidy-imports
   "TRY", # tryceratops
+  "UP", # pyupgrade
+  "W", # pycodestyle: warning
 ]
 ignore = [
   "ANN401",
-  "S101",
-  "S110",
-  "TD002",
-  "PLC1901", # compare with empty string
   "D100",
   "D104",
   "D105",
@@ -77,6 +73,10 @@ ignore = [
   "D200",
   "D205",
   "D400",
+  "PLC1901", # compare with empty string
+  "S101",
+  "S110",
+  "TD002",
   "TRY003", # we can allow on-the-fly exception messages
 ]
 preview = true
@@ -99,8 +99,8 @@ max-complexity = 14
   "D101", # no need for docstrings in tests
   "D102",
   "D103",
-  "PLR2004", # using magic numbers is allowed in tests
   "PLC2701", # importing private functions is allowed in tests
+  "PLR2004", # using magic numbers is allowed in tests
 ]
 
 [lint.pydocstyle]

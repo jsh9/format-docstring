@@ -46,6 +46,7 @@ repos:
           - --sort-inline-tables
           - --sort-first=name,version,dependencies,requires-python,authors,maintainers
           - --trailing-comma-inline-array
+          - --sort-inline-arrays
   - repo: https://github.com/hukkin/mdformat
     rev: 1.0.0
     hooks:

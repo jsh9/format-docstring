@@ -1,13 +1,13 @@
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=45", "setuptools-scm[toml]>=6.2"]
+requires = ["setuptools-scm[toml]>=6.2", "setuptools>=45"]
 
 [project]
 name = "format-docstring"
 version = "0.2.2"
 dependencies = [
-  "jupyter-notebook-parser>=0.1.4",
   "click>=8.0",
+  "jupyter-notebook-parser>=0.1.4",
   "tomli>=1.1.0; python_version<'3.11'",
 ]
 requires-python = ">=3.10"
@@ -21,17 +21,17 @@ classifiers = [
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Software Development :: Quality Assurance",
 ]
 description = "A Python formatter to wrap/adjust docstring lines"
-keywords = ["formatter", "code-style", "docstring", "python"]
+keywords = ["code-style", "docstring", "formatter", "python"]
 license = {text = "MIT"}
 readme = "README.md"
 
@@ -55,4 +55,4 @@ module = "jupyter_notebook_parser"
 "*" = ["py.typed"]
 
 [tool.setuptools.packages.find]
-exclude = ["tests*", "testing*"]
+exclude = ["testing*", "tests*"]
