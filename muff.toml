@@ -49,6 +49,7 @@ extend-select = [
     "NPY",    # numpy-specific rules
     "PD",     # pandas-vet
     "N",      # pep8-naming
+    "PERF",   # Perflint
     "F",      #
     "E",
 

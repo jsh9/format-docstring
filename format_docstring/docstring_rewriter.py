@@ -94,11 +94,13 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
         # iterator order mirrors the unparse traversal so we can reapply them.
         original_strings: list[str] = []
         try:
-            for tok in tokenize.generate_tokens(
-                io.StringIO(normalized).readline
-            ):
-                if tok.type == tokenize.STRING:
-                    original_strings.append(tok.string)
+            original_strings.extend(
+                tok.string
+                for tok in tokenize.generate_tokens(
+                    io.StringIO(normalized).readline
+                )
+                if tok.type == tokenize.STRING
+            )
         except tokenize.TokenError:
             original_strings = []
 
