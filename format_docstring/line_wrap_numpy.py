@@ -138,8 +138,7 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
             if heading:
                 current_section = heading
                 in_examples = heading in section_examples
-                temp_out.append(line)
-                temp_out.append(lines[i + 1])
+                temp_out.extend((line, lines[i + 1]))
                 i += 2
                 continue
 

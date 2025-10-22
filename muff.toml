@@ -54,12 +54,13 @@ extend-select = [
   "D", # pydocstyle
   "F", # Pyflakes
   "PGH", # pygrep-hooks
-  "UP", # pyupgrade
   "C4", # flake8-comprehensions
   "ERA", # flake8-eradicate
   "T10", # flake8-debugger
   "ISC", # flake8-implicit-str-concat
   "PL", # Pylint
+  "UP", # pyupgrade
+  "FURB", # refurb
 ]
 ignore = [
   "ANN401",

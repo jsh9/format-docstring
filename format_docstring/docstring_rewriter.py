@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import io
+import operator
 import tokenize
 from typing import TYPE_CHECKING
 
@@ -311,6 +312,7 @@ def fix_src(
     tree: ast.Module = ast.parse(source_code, type_comments=True)
     line_starts: list[int] = calc_line_starts(source_code)
 
+    # Store (start, end, replacement text) tuples
     replacements: list[tuple[int, int, str]] = []
 
     # Module-level docstring
@@ -345,7 +347,8 @@ def fix_src(
     if not replacements:
         return source_code
 
-    replacements.sort(key=lambda x: x[0], reverse=True)
+    # Sort by starting index descending
+    replacements.sort(key=operator.itemgetter(0), reverse=True)
     new_src = source_code
     for start, end, text in replacements:
         new_src = new_src[:start] + text + new_src[end:]

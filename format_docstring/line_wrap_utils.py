@@ -256,7 +256,7 @@ def _wrap_text_segment(lines: list[str], width: int) -> list[str]:
     if result and result[-1] == '':
         result.pop()
 
-    result_: list[str] = result if result else lines
+    result_: list[str] = result or lines
 
     return _add_back_leading_or_trailing_newline(
         original_lines=lines,
