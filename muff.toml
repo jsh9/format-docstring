@@ -43,9 +43,12 @@ extend-select = [
     "TC",     # flake8-type-checking
     "ARG",    # flake8-unused-arguments
     "PTH",    # flake8-use-pathlib
+    "FLY",    # flake8-flynt
+    "I",      # isort
+    "C901",   # mccabe
     "F",      #
     "E",
-    "I",   # isort
+
     "UP",  # pyupgrade
     "D",   # pydocstyle
 
@@ -60,6 +63,7 @@ ignore = [
     "ANN401",
     "S101",
     "S110",
+    "TD002",
     "D100",
     "D104",
     "D105",
@@ -85,3 +89,6 @@ ban-relative-imports = "all"
 
 [lint.flake8-import-conventions.banned-aliases]
 typing = ["ty", "typ"]
+
+[lint.mccabe]
+max-complexity = 14

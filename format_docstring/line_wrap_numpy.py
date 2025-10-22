@@ -13,7 +13,7 @@ from format_docstring.line_wrap_utils import (
 )
 
 
-def wrap_docstring_numpy(
+def wrap_docstring_numpy(  # noqa: C901, TODO: https://github.com/jsh9/format-docstring/issues/17
         docstring: str,
         *,
         line_length: int,
