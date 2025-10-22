@@ -1,4 +1,5 @@
 ---
+exclude: ^tests/test_data/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -13,7 +14,7 @@ repos:
       - id: check-yaml
       - id: name-tests-test
         args: [--pytest-test-first]
-        exclude: ^tests/test_data/|^tests/helpers\.py$
+        exclude: ^tests/helpers\.py$
       - id: check-merge-conflict
   - repo: https://github.com/jsh9/muff-pre-commit
     rev: 0.13.2
@@ -65,7 +66,7 @@ repos:
     rev: 0.1.0
     hooks:
       - id: markdown-toc-creator
-        exclude: ^tests/test_data/|^AGENTS\.md$|^CHANGELOG\.md$
+        exclude: ^AGENTS\.md$|^CHANGELOG\.md$
   - repo: https://github.com/jsh9/markdown-heading-numbering
     rev: 0.1.0
     hooks:
@@ -79,7 +80,6 @@ repos:
         args: [-m, format_docstring.main_py, --verbose, diff]
         language: python
         types: [python]
-        exclude: ^tests/test_data/
         additional_dependencies:
           - click>=8.0
           - jupyter-notebook-parser>=0.1.4
@@ -90,7 +90,6 @@ repos:
         args: [-m, format_docstring.main_jupyter, --verbose, diff]
         language: python
         files: ^.*\.ipynb$
-        exclude: ^tests/test_data/
         additional_dependencies:
           - click>=8.0
           - jupyter-notebook-parser>=0.1.4
