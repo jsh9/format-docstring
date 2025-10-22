@@ -17,7 +17,7 @@ def test_integration_cli_py(tmp_path: Path) -> None:
 
     runner = CliRunner()
     res = runner.invoke(cli_main_py, [str(work_file)])
-    assert res.exit_code in (0, 1), res.output
+    assert res.exit_code in {0, 1}, res.output
 
     actual = work_file.read_text()
     expected = after.read_text()
@@ -35,7 +35,7 @@ def test_integration_cli_py_len50(tmp_path: Path) -> None:
 
     runner = CliRunner()
     res = runner.invoke(cli_main_py, ['--line-length', '50', str(work_file)])
-    assert res.exit_code in (0, 1), res.output
+    assert res.exit_code in {0, 1}, res.output
 
     actual = work_file.read_text()
     expected = after.read_text()
@@ -53,7 +53,7 @@ def test_cli_verbose_diff_outputs_diff(tmp_path: Path) -> None:
 
     runner = CliRunner()
     result = runner.invoke(cli_main_py, ['--verbose', 'diff', str(work_file)])
-    assert result.exit_code in (0, 1), result.output
+    assert result.exit_code in {0, 1}, result.output
     assert '(before)' in result.output
     assert '(after)' in result.output
     assert '@@' in result.output
@@ -77,7 +77,7 @@ def test_cli_config_verbose_diff(tmp_path: Path) -> None:
     result = runner.invoke(
         cli_main_py, ['--config', str(config_file), str(test_file)]
     )
-    assert result.exit_code in (0, 1), result.output
+    assert result.exit_code in {0, 1}, result.output
     assert '(before)' in result.output
     assert '(after)' in result.output
     assert '@@' in result.output

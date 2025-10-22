@@ -18,7 +18,7 @@ def test_integration_cli_ipynb(tmp_path: Path) -> None:
 
     runner = CliRunner()
     res = runner.invoke(cli_main_ipynb, [str(work_file)])
-    assert res.exit_code in (0, 1), res.output
+    assert res.exit_code in {0, 1}, res.output
 
     actual = json.loads(work_file.read_text())
     expected = json.loads(after.read_text())
@@ -38,7 +38,7 @@ def test_integration_cli_ipynb_len50(tmp_path: Path) -> None:
     res = runner.invoke(
         cli_main_ipynb, ['--line-length', '50', str(work_file)]
     )
-    assert res.exit_code in (0, 1), res.output
+    assert res.exit_code in {0, 1}, res.output
 
     actual = json.loads(work_file.read_text())
     expected = json.loads(after.read_text())
@@ -55,7 +55,7 @@ def test_cli_ipynb_verbose_diff(tmp_path: Path) -> None:
     result = runner.invoke(
         cli_main_ipynb, ['--verbose', 'diff', str(work_file)]
     )
-    assert result.exit_code in (0, 1), result.output
+    assert result.exit_code in {0, 1}, result.output
     assert '(before)' in result.output
     assert '(after)' in result.output
     assert '@@' in result.output
@@ -80,7 +80,7 @@ def test_cli_ipynb_config_verbose_diff(tmp_path: Path) -> None:
     result = runner.invoke(
         cli_main_ipynb, ['--config', str(config_file), str(work_file)]
     )
-    assert result.exit_code in (0, 1), result.output
+    assert result.exit_code in {0, 1}, result.output
     assert '(before)' in result.output
     assert '(after)' in result.output
     assert '@@' in result.output

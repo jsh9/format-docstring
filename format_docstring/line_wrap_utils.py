@@ -43,7 +43,7 @@ def finalize_lines(out_lines: list[str], leading_indent: int | None) -> str:
     if leading_indent is not None:
         suffix = '\n' + (' ' * leading_indent)
         if not result.endswith(suffix):
-            result = result + suffix
+            result += suffix
 
     return result
 
@@ -331,7 +331,8 @@ def merge_lines_and_strip(text: str) -> str:
 
 def fix_typos_in_section_headings(lines: list[str]) -> list[str]:
     """Fix typos such as 'Return' in section headings."""
-    if len(lines) < 2:
+    min_num_lines_to_form_a_section_header: int = 2
+    if len(lines) < min_num_lines_to_form_a_section_header:
         return lines
 
     # Define typo corrections (case-insensitive keys, proper case values)
@@ -379,7 +380,10 @@ def fix_typos_in_section_headings(lines: list[str]) -> list[str]:
 
         # Check if next line is dashes (at least 2 dashes, only dashes and
         # whitespace)
-        if len(next_line) >= 2 and all(c == '-' for c in next_line):
+        min_hyphens_in_section_header: int = 2
+        if len(next_line) >= min_hyphens_in_section_header and all(
+            c == '-' for c in next_line
+        ):
             # Current line is a section heading, check for typos
             # (which are case-insensitive)
             current_line_lower = current_line.lower()
@@ -784,7 +788,6 @@ def _is_ordered_list_item(line: str) -> bool:
     # Look for patterns:
     # - digits followed by . or ) followed by space
     # - ( followed by digits followed by ) followed by space
-    import re
 
     pattern = r'^(\d+[.)] |\(\d+\) )'
     return bool(re.match(pattern, stripped))
@@ -808,8 +811,6 @@ def _get_list_format(line: str) -> str | None:
     stripped = line.lstrip()
     if not stripped:
         return None
-
-    import re
 
     dot_match = re.match(r'^\d+\. ', stripped)
     paren_match = re.match(r'^\d+\) ', stripped)

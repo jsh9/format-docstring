@@ -117,8 +117,6 @@ class JupyterNotebookFixer(BaseFixer):
 
     def fix_one_directory_or_one_file(self) -> int:
         """Fix formatting in a file or all .ipynb files in a directory."""
-        from pathlib import Path
-
         path_obj = Path(self.path)
 
         if path_obj.is_file():

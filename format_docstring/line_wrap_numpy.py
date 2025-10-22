@@ -13,7 +13,7 @@ from format_docstring.line_wrap_utils import (
 )
 
 
-def wrap_docstring_numpy(  # noqa: C901, TODO: https://github.com/jsh9/format-docstring/issues/17
+def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/format-docstring/issues/17
         docstring: str,
         *,
         line_length: int,
@@ -291,8 +291,9 @@ def _is_hyphen_underline(s: str) -> bool:
     >>> _is_hyphen_underline(' - - ')
     False
     """
-    t = s.strip()
-    return len(t) >= 2 and set(t) <= {'-'}
+    t: str = s.strip()
+    min_hyphens_in_section_header: int = 2
+    return len(t) >= min_hyphens_in_section_header and set(t) <= {'-'}
 
 
 def _get_section_heading_title(lines: list[str], idx: int) -> str | None:
@@ -620,7 +621,8 @@ def _split_tuple_annotation(annotation: str | None) -> list[str] | None:
         if not isinstance(slice_node, ast.Tuple):
             return None
 
-        if len(slice_node.elts) < 2:
+        min_elements_for_an_actual_tuple: int = 2
+        if len(slice_node.elts) < min_elements_for_an_actual_tuple:
             return None
 
         parts: list[str] = []

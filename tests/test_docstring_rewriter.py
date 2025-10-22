@@ -282,7 +282,7 @@ def _load_end_to_end_test_cases() -> list[tuple[str, str, str, int]]:
 
 def _load_test_case(filepath: Path) -> tuple[str, str, str, int] | None:
     """Load end-to-end test cases from test data files."""
-    with filepath.open('r') as f:
+    with filepath.open('r', encoding='utf-8') as f:
         content: str = f.read()
 
         lines: list[str] = content.split('\n')

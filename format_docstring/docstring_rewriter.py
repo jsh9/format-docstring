@@ -110,6 +110,7 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
             for tok in tokenize.generate_tokens(
                 io.StringIO(canonical).readline
             ):
+                current_tok: tokenize.TokenInfo = tok
                 if tok.type == tokenize.STRING:
                     replacement = next(string_iter, None)
                     if replacement is not None:
@@ -121,12 +122,12 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
                             if ast.literal_eval(
                                 replacement
                             ) == ast.literal_eval(tok.string):
-                                tok = tok._replace(string=replacement)
+                                current_tok = tok._replace(string=replacement)
                         except Exception:  # noqa: BLE001
                             pass
 
-                rebuilt_tokens.append(tok)
-                if tok.type == tokenize.ENDMARKER:
+                rebuilt_tokens.append(current_tok)
+                if current_tok.type == tokenize.ENDMARKER:
                     break
 
             # Untokenize the rebuilt stream while trimming the leading/trailing
@@ -560,10 +561,10 @@ def rebuild_literal(original_literal: str, content: str) -> str | None:
     prefix = original_literal[:i]
 
     delim = ''
-    if original_literal[i : i + 3] in ('"""', "'''"):
+    if original_literal[i : i + 3] in {'"""', "'''"}:
         delim = original_literal[i : i + 3]
         i += 3
-    elif i < n and original_literal[i] in ('"', "'"):
+    elif i < n and original_literal[i] in {'"', "'"}:
         delim = original_literal[i]
         i += 1
     else:

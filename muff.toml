@@ -54,18 +54,19 @@ extend-select = [
   "D", # pydocstyle
   "F", # Pyflakes
   "PGH", # pygrep-hooks
-  "PL", # Pylint
   "UP", # pyupgrade
   "C4", # flake8-comprehensions
   "ERA", # flake8-eradicate
   "T10", # flake8-debugger
   "ISC", # flake8-implicit-str-concat
+  "PL", # Pylint
 ]
 ignore = [
   "ANN401",
   "S101",
   "S110",
   "TD002",
+  "PLC1901", # compare with empty string
   "D100",
   "D104",
   "D105",
@@ -90,7 +91,22 @@ ban-relative-imports = "all"
 max-complexity = 14
 
 [lint.per-file-ignores]
-"tests/*" = ["D101", "D102", "D103"] # No need for docstrings in tests
+"tests/*" = [
+  "D101", # no need for docstrings in tests
+  "D102",
+  "D103",
+  "PLR2004", # using magic numbers is allowed in tests
+  "PLC2701", # importing private functions is allowed in tests
+]
 
 [lint.pydocstyle]
 convention = "numpy"
+
+[lint.pylint]
+max-args = 1000
+max-bool-expr = 10
+max-branches = 100
+max-locals = 1000
+max-nested-blocks = 10
+max-returns = 30
+max-statements = 50
