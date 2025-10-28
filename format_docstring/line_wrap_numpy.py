@@ -730,11 +730,19 @@ def handle_single_line_docstring(
 # or certain punctuation (like > and . for `>>> ` and `... ` literals)
 # Note: We match [^`]+ (anything except backticks) and then check in the
 # replacement function whether it's an external link (contains < followed by >)
-# The opening backtick must not be immediately followed by _ or __ (to avoid
-# matching the trailing backtick of cross-references like `text`_ or `text`__)
 _RST_BACKTICK_PATTERN = re.compile(
     r'(?:^|(?<=\s)|(?<=\()|(?<=[>.]))(?::[\w-]+:)?`(?!_)([^`]+)`(?!`)(?!__)(?!_)'
 )
+
+# 2nd-stage fixer for ``__dunder__`` names that slipped past the main pattern
+# because the literal starts with an underscore. Negative lookbehinds/aheads
+# ensure we only touch isolated single-backtick literals and leave
+# cross-references (`name`_ / `name`__) alone.
+_DUNDER_LITERAL_PATTERN = re.compile(
+    r'(?<!`)`(__[A-Za-z0-9_]+__)`(?!`)(?!_)(?!__)'
+)
+# Replacement wraps the captured dunder name (group 1) with double backticks.
+_DUNDER_LITERAL_REPLACEMENT = r'``\1``'
 
 
 def _fix_rst_backticks(docstring: str) -> str:
@@ -857,6 +865,11 @@ def _fix_rst_backticks(docstring: str) -> str:
     # Process the entire docstring (with REPL lines protected)
     protected_docstring = ''.join(protected_lines)
     processed = _RST_BACKTICK_PATTERN.sub(replace_func, protected_docstring)
+    # Upgrade remaining single-backtick ``__dunder__`` literals to double
+    # backticks; they are safe literals (not targets or refs) after the guards.
+    processed = _DUNDER_LITERAL_PATTERN.sub(
+        _DUNDER_LITERAL_REPLACEMENT, processed
+    )
 
     # Restore REPL lines
     result_lines = processed.splitlines(keepends=True)
