@@ -263,6 +263,14 @@ def test_standardize_default_value(line: str, expected: str) -> None:
             'Underscores inside literal are fine: ``foo_bar``.',
         ),
         (
+            'Dunder names should be wrapped: `__init__`',
+            'Dunder names should be wrapped: ``__init__``',
+        ),
+        (
+            'Dunder names should be wrapped: `__init123__`',
+            'Dunder names should be wrapped: ``__init123__``',
+        ),
+        (
             'Adjacent to parentheses: (`call_me`) and `ok`',
             'Adjacent to parentheses: (``call_me``) and ``ok``',
         ),
