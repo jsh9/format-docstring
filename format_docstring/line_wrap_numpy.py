@@ -468,6 +468,8 @@ def _standardize_default_value(line: str) -> str:
     if colon_idx == -1:
         return line
 
+    # `prefix` is everything before the 1st colon (param identifier portion).
+    # We leave `prefix` untouched so arg names like `default` aren't rewritten.
     prefix = line[: colon_idx + 1]
     after_colon = line[colon_idx + 1 :]
 
@@ -489,6 +491,9 @@ def _standardize_default_value(line: str) -> str:
         if before.strip() == '':
             return line
 
+        # ``before`` still contains any annotation text; tightening the spacing
+        # here standardizes the ``", default=..."`` suffix while preserving
+        # whatever appeared to the left.
         default_value = match.group(2).strip()
         rebuilt_suffix = f'{before.rstrip()}, default={default_value}'
         return f'{prefix}{rebuilt_suffix}'
