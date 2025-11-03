@@ -464,19 +464,34 @@ def _standardize_default_value(line: str) -> str:
     >>> _standardize_default_value('arg : bool, default: True')
     'arg : bool, default=True'
     """
+    colon_idx = line.find(':')
+    if colon_idx == -1:
+        return line
+
+    prefix = line[: colon_idx + 1]
+    after_colon = line[colon_idx + 1 :]
+
     # Check colon format first to avoid matching colons in space-based pattern
-    match = _DEFAULT_COLON_RE.match(line)
+    match = _DEFAULT_COLON_RE.match(after_colon)
     if match:
-        before = match.group(1).rstrip()
+        before = match.group(1)
+        if before.strip() == '':
+            return line
+
         default_value = match.group(2).strip()
-        return f'{before}, default={default_value}'
+        rebuilt_suffix = f'{before.rstrip()}, default={default_value}'
+        return f'{prefix}{rebuilt_suffix}'
 
     # Try space-separated format with optional "is"
-    match = _DEFAULT_SPACE_RE.match(line)
+    match = _DEFAULT_SPACE_RE.match(after_colon)
     if match:
-        before = match.group(1).rstrip()
+        before = match.group(1)
+        if before.strip() == '':
+            return line
+
         default_value = match.group(2).strip()
-        return f'{before}, default={default_value}'
+        rebuilt_suffix = f'{before.rstrip()}, default={default_value}'
+        return f'{prefix}{rebuilt_suffix}'
 
     return line
 

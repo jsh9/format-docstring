@@ -1,0 +1,44 @@
+LINE_LENGTH: 79
+
+**********
+def func1(arg1: str, default: int = 2, _default: str = "value", default_: list[int] | None = None) -> None:
+    """
+    Do something
+
+    Parameters
+    ----------
+    arg1 : str
+        Very very very very very very very very very very very very very very very very
+        very very very very very very very very very very very very very very very very
+        very very very very very very very
+    default : int
+        Quite quite quite quite quite quite quite quite quite quite quite quite quite quite quite quite
+        quite quite quite quite quite quite quite quite quite quite quite quite quite quite quite quite long
+    _default : str default is "value"
+        Placeholder description for _default parameter.
+    default_ : list[int] | None default None
+        Placeholder description for default_ parameter.
+    """
+    pass
+
+**********
+def func1(arg1: str, default: int = 2, _default: str = "value", default_: list[int] | None = None) -> None:
+    """
+    Do something
+
+    Parameters
+    ----------
+    arg1 : str
+        Very very very very very very very very very very very very very very
+        very very very very very very very very very very very very very very
+        very very very very very very very very very very very
+    default : int, default=2
+        Quite quite quite quite quite quite quite quite quite quite quite quite
+        quite quite quite quite quite quite quite quite quite quite quite quite
+        quite quite quite quite quite quite quite quite long
+    _default : str, default="value"
+        Placeholder description for _default parameter.
+    default_ : list[int] | None, default=None
+        Placeholder description for default_ parameter.
+    """
+    pass
