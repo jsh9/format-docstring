@@ -238,6 +238,8 @@ def test_fix_colon_spacing(line: str, expected: str) -> None:
         ('arg : int', 'arg : int'),
         ('arg : str', 'arg : str'),
         ('  arg : bool', '  arg : bool'),
+        ('default : int', 'default : int'),
+        ('    default : int', '    default : int'),
         # Case insensitive "default"
         ('arg : int Default 10', 'arg : int, default=10'),
         ('arg : int DEFAULT 10', 'arg : int, default=10'),

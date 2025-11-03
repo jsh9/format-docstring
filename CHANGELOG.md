@@ -11,6 +11,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Fixed
   - A bug where 2nd pair of backticks can't be added for dunder names (such as
     `__init__`)
+  - A bug where input args named `default` would get treated incorrectly (the
+    tool would confuse it with the default values)
 - Full diff
   - https://github.com/jsh9/format-docstring/compare/0.2.3...0.2.4
 
