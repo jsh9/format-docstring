@@ -208,3 +208,6 @@ __marimo__/
 
 # JetBrains IDEs
 .idea/
+
+# VS Code
+.vscode/

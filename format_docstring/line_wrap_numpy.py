@@ -197,6 +197,7 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
 
             # Treat top-level lines as signatures
             if leading_indent is None or indent_length <= leading_indent:
+                is_yields_section = section_lower_case.startswith('yield')
                 if not return_signature_style_determined:
                     return_use_multiple_signatures = (
                         _detect_multiple_return_signatures(
@@ -222,6 +223,12 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
                 ):
                     # Fallback to last component when docstring expects more
                     desired_annotation = return_components[-1]
+
+                if is_yields_section:
+                    desired_annotation = (
+                        _unwrap_generator_annotation(desired_annotation)
+                        or desired_annotation
+                    )
 
                 if desired_annotation is None:
                     temp_out.append(line)
@@ -618,19 +625,6 @@ def _split_tuple_annotation(annotation: str | None) -> list[str] | None:
     except (SyntaxError, ValueError):
         return None
 
-    def _name_of(node: ast.AST) -> str | None:
-        if isinstance(node, ast.Name):
-            return node.id
-
-        if isinstance(node, ast.Attribute):
-            base = _name_of(node.value)
-            if base is None:
-                return None
-
-            return f'{base}.{node.attr}'
-
-        return None
-
     if isinstance(expr, ast.Subscript):
         base_name = _name_of(expr.value)
         if base_name not in {'tuple', 'Tuple'}:
@@ -655,6 +649,63 @@ def _split_tuple_annotation(annotation: str | None) -> list[str] | None:
         return parts
 
     return None
+
+
+def _name_of(node: ast.AST) -> str | None:
+    """
+    Return the dotted name represented by ``node`` if possible.
+    """
+    if isinstance(node, ast.Name):
+        return node.id
+
+    if isinstance(node, ast.Attribute):
+        base = _name_of(node.value)
+        if base is None:
+            return None
+
+        return f'{base}.{node.attr}'
+
+    return None
+
+
+def _unwrap_generator_annotation(annotation: str | None) -> str | None:
+    """
+    Return the first yield type when ``annotation`` is a Generator or
+    AsyncGenerator.
+
+    This is a small helper to keep ``Yields`` sections intuitive; Python
+    signatures often annotate generator functions as ``Generator[T, None,
+    None]`` but docstrings should spell out the yielded type ``T`` instead of
+    the whole container.
+    """
+    if annotation is None:
+        return None
+
+    try:
+        expr = ast.parse(annotation, mode='eval').body
+    except (SyntaxError, ValueError):
+        return None
+
+    if not isinstance(expr, ast.Subscript):
+        return None
+
+    base_name = _name_of(expr.value)
+    if base_name is None or base_name.split('.')[-1] not in {
+        'Generator',
+        'AsyncGenerator',
+    }:
+        return None
+
+    slice_node = expr.slice
+    if not isinstance(slice_node, ast.Tuple) or not slice_node.elts:
+        return None
+
+    first = slice_node.elts[0]
+    segment = ast.get_source_segment(annotation, first)
+    if segment is None:
+        segment = ast.unparse(first)
+
+    return segment.strip()
 
 
 def _detect_multiple_return_signatures(
