@@ -1,0 +1,38 @@
+LINE_LENGTH: 55
+
+**********
+Parameters
+----------
+arg1 : str
+    Something short
+**kwargs
+    Keyword args that should remain on their own entry.
+*custom_args
+    Positional extras that should wrap to their own block even without a colon.
+**some_other_strange_name
+    Keyword extras that likewise need wrapping to stay with their entry.
+*explicit_typed_args : tuple[int, ...]
+    Shows a variadic entry that still provides a type annotation.
+**typed_kwargs : dict[str, int]
+    Another variadic keyword argument that uses a type hint.
+
+**********
+
+Parameters
+----------
+arg1 : str
+    Something short
+**kwargs
+    Keyword args that should remain on their own entry.
+*custom_args
+    Positional extras that should wrap to their own
+    block even without a colon.
+**some_other_strange_name
+    Keyword extras that likewise need wrapping to stay
+    with their entry.
+*explicit_typed_args : tuple[int, ...]
+    Shows a variadic entry that still provides a type
+    annotation.
+**typed_kwargs : dict[str, int]
+    Another variadic keyword argument that uses a type
+    hint.
