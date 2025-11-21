@@ -170,18 +170,22 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
             # section (indentation < 4). This prevents mis-detecting
             # description lines that happen to contain a colon (e.g., tables,
             # examples, notes) as new parameter signatures.
-            if _is_param_signature(line) and (
-                leading_indent is None or indent_length <= leading_indent
-            ):
-                fixed_line = _fix_colon_spacing(line)
-                fixed_line = _standardize_default_value(fixed_line)
-                fixed_line = _rewrite_parameter_signature(
-                    fixed_line, metadata_for_section
-                )
-                fixed_line = _standardize_default_value(fixed_line)
-                temp_out.append(fixed_line)
-                i += 1
-                continue
+            if leading_indent is None or indent_length <= leading_indent:
+                if _is_param_signature(line):
+                    fixed_line = _fix_colon_spacing(line)
+                    fixed_line = _standardize_default_value(fixed_line)
+                    fixed_line = _rewrite_parameter_signature(
+                        fixed_line, metadata_for_section
+                    )
+                    fixed_line = _standardize_default_value(fixed_line)
+                    temp_out.append(fixed_line)
+                    i += 1
+                    continue
+
+                if _is_bare_variadic_signature(line):
+                    temp_out.append(line)
+                    i += 1
+                    continue
 
             # Description lines (typically indented): wrap if too long
             collect_to_temp_output(temp_out, line)
@@ -341,6 +345,13 @@ _PARAM_SIGNATURE_RE = re.compile(
     rf'^\s*\*{{0,2}}{START}{CONT}*(?:\s*,\s*\*{{0,2}}{START}{CONT}*)*\s*:\s*.*$'
 )
 
+# Matches bare variadic signatures without a colon, e.g. ``**kwargs`` or
+# ``*args, **kwargs``. These should be treated like signatures so description
+# text doesn't get collapsed into the preceding entry.
+_BARE_VARIADIC_SIGNATURE_RE = re.compile(
+    rf'^\s*\*{{1,2}}{START}{CONT}*(?:\s*,\s*\*{{1,2}}{START}{CONT}*)*\s*$'
+)
+
 
 def _is_param_signature(text: str) -> bool:
     r"""
@@ -369,6 +380,16 @@ def _is_param_signature(text: str) -> bool:
       (e.g. ``1name : int``, ``alpha, beta gamma : int``)
     """
     return bool(_PARAM_SIGNATURE_RE.match(text))
+
+
+def _is_bare_variadic_signature(text: str) -> bool:
+    """
+    Return True for variadic parameter lines lacking ``:`` annotations.
+
+    Handles stripped signatures such as ``**kwargs`` so they are preserved as
+    their own logical entries inside ``Parameters`` sections.
+    """
+    return bool(_BARE_VARIADIC_SIGNATURE_RE.match(text))
 
 
 def _fix_colon_spacing(line: str) -> str:

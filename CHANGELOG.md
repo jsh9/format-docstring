@@ -12,6 +12,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Multiline annotations now normalize without inserting spaces inside
     `Literal[...]` or other bracketed signatures, even when they span several
     lines.
+  - A bug where bare `*args`/`**kwargs` signature lines (typed or untyped)
+    would be merged into previous descriptions
 
 ## [0.2.5] - 2025-11-20
 
