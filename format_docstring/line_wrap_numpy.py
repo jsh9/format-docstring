@@ -769,6 +769,12 @@ def _rewrite_return_signature(line: str, annotation: str) -> str:
     colon_idx = stripped.find(':')
     if colon_idx != -1:
         name = stripped[:colon_idx].rstrip()
+        # Only treat the colon as a signature separator if something precedes
+        # it. rST cross references such as ``:class:`Foo``` start with a colon,
+        # in which case we just want to output the synced annotation.
+        if not name:
+            return f'{indent}{annotation}'
+
         return f'{indent}{name} : {annotation}'
 
     return f'{indent}{annotation}'

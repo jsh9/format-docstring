@@ -6,7 +6,7 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unpublished]
+## [0.2.6] - 2025-11-21
 
 - Fixed
   - Multiline annotations now normalize without inserting spaces inside
@@ -14,6 +14,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     lines.
   - A bug where bare `*args`/`**kwargs` signature lines (typed or untyped)
     would be merged into previous descriptions
+  - NumPy signature syncing left the `:class:` / `:meth:` role prefixes behind,
+    producing mismatched annotations like ` : MyClass`
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.2.5...0.2.6
 
 ## [0.2.5] - 2025-11-20
 
