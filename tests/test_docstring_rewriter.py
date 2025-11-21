@@ -4,7 +4,6 @@ from textwrap import dedent
 
 import pytest
 
-import format_docstring.docstring_rewriter
 from format_docstring import docstring_rewriter
 
 
@@ -55,6 +54,57 @@ def test_calc_abs_pos(src: str, lineno: int, col: int, expected: int) -> None:
 def test_rebuild_literal(literal: str, content: str, expected: str) -> None:
     """Ensure original prefixes and quote styles are preserved."""
     assert docstring_rewriter.rebuild_literal(literal, content) == expected
+
+
+@pytest.mark.parametrize(
+    ('segment', 'expected'),
+    [
+        (
+            dedent(
+                """
+                Literal[
+                    'auto', 'default', 'flex', 'scale', 'priority'
+                ]
+                | None
+                | NotGiven
+                """
+            ),
+            "Literal['auto', 'default', 'flex', 'scale', 'priority'] | None | NotGiven",  # noqa: E501
+        ),
+        (
+            dedent(
+                """
+                Optional[
+                    'Widget'
+                ]
+                | None
+                """
+            ),
+            "Optional['Widget'] | None",
+        ),
+        (
+            dedent(
+                """
+                tuple[
+                    dict[str, int],
+                    list[
+                        tuple[str, float]
+                    ]
+                ]
+                """
+            ),
+            'tuple[dict[str, int], list[tuple[str, float]]]',
+        ),
+    ],
+)
+def test_normalize_signature_segment_multiline_cases(
+        segment: str, expected: str
+) -> None:
+    """
+    Multiline annotations should normalize without inserting bracket gaps.
+    """
+    normalized = docstring_rewriter._normalize_signature_segment(segment)  # noqa: SLF001
+    assert normalized == expected
 
 
 @pytest.mark.parametrize(
@@ -232,9 +282,7 @@ def test_wrap_docstring_numpy_parameters_and_examples() -> None:
         """  # noqa: E501
     ).strip('\n')
 
-    wrapped = format_docstring.docstring_rewriter.wrap_docstring(
-        doc, line_length=79
-    )
+    wrapped = docstring_rewriter.wrap_docstring(doc, line_length=79)
 
     temp: str = 'very very very very very very very very very very'
 

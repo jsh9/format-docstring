@@ -6,6 +6,13 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unpublished]
+
+- Fixed
+  - Multiline annotations now normalize without inserting spaces inside
+    `Literal[...]` or other bracketed signatures, even when they span several
+    lines.
+
 ## [0.2.5] - 2025-11-20
 
 - Fixed
