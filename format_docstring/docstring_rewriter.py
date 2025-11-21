@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import io
 import operator
+import textwrap
 import tokenize
 from typing import TYPE_CHECKING
 
@@ -83,12 +84,18 @@ def _normalize_signature_segment(segment: str | None) -> str | None:
 
     normalized: str = segment.strip()
     if '\n' in normalized or '\r' in normalized or '\t' in normalized:
+        dedented: str = textwrap.dedent(normalized)
+        # Wrap in parentheses so unions split across lines
+        # (e.g. ``Literal[...] | None``)
+        # remain valid ``eval`` expressions even when indentation is uneven.
+        wrapped_for_parse = f'({dedented})'
+
         # `ast.unparse(ast.parse(...))` neatly flattens whitespace but it also
         # canonicalises string quotes to single quotes. We still rely on it for
         # whitespace normalization, so capture its output first.
         try:
-            canonical = ast.unparse(ast.parse(normalized))
-        except (SyntaxError, ValueError):
+            canonical = ast.unparse(ast.parse(wrapped_for_parse, mode='eval'))
+        except (SyntaxError, ValueError, IndentationError):
             return ' '.join(normalized.split())
 
         # Remember the exact string literal tokens from the original text. The
