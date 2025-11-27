@@ -474,7 +474,7 @@ def _parse_param_signature_line(
     if ':' not in stripped:
         return None
 
-    lhs, rhs = stripped.split(':', 1)
+    lhs, rhs = _split_signature_colon(stripped)
     lhs = lhs.rstrip()
     inline_desc = rhs.lstrip(' \t')
     if not lhs:
@@ -564,6 +564,19 @@ def _split_name_and_annotation(segment: str) -> tuple[str | None, str | None]:
         return stripped, None
 
     return None, None
+
+
+def _split_signature_colon(text: str) -> tuple[str, str]:
+    depth = 0
+    for idx, ch in enumerate(text):
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth = max(0, depth - 1)
+        elif ch == ':' and depth == 0:
+            return text[:idx], text[idx + 1 :]
+
+    return text, ''
 
 
 def _is_valid_param_name(name: str) -> bool:

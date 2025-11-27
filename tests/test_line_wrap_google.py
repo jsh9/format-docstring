@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from format_docstring.docstring_rewriter import wrap_docstring
+from format_docstring.line_wrap_google import _parse_param_signature_line
 from tests.helpers import load_case_from_file, load_cases_from_dir
 
 DATA_DIR: Path = Path(__file__).parent / 'test_data/line_wrap/google'
@@ -35,3 +36,34 @@ def test_wrap_docstring_single_case() -> None:
         fix_rst_backticks=False,
     )
     assert out.strip('\n') == after.strip('\n')
+
+
+@pytest.mark.parametrize(
+    ('line', 'expected_name', 'expected_annotation', 'expected_inline_desc'),
+    [
+        (
+            '    arg4 (float default: 3.14): Fourth argument.',
+            'arg4',
+            'float default: 3.14',
+            'Fourth argument.',
+        ),
+        (
+            'arg1 (dict[str, int]): Description',
+            'arg1',
+            'dict[str, int]',
+            'Description',
+        ),
+    ],
+)
+def test_parse_param_signature_line_handles_colons(
+        line: str,
+        expected_name: str,
+        expected_annotation: str,
+        expected_inline_desc: str,
+) -> None:
+    parsed = _parse_param_signature_line(line)
+    assert parsed is not None
+    _indent, name, annotation, inline_desc = parsed
+    assert name == expected_name
+    assert annotation == expected_annotation
+    assert inline_desc.strip() == expected_inline_desc
