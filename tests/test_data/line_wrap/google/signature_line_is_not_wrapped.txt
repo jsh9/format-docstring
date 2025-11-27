@@ -1,0 +1,12 @@
+LINE_LENGTH: 50
+
+**********
+Args:
+    arg1 (list[str] | None | dict[str, tuple[int, str]], default=3, optional): The first argument description is intentionally very long and should be wrapped across multiple lines while keeping indentation.
+**********
+
+Args:
+    arg1 (list[str] | None | dict[str, tuple[int, str]], default=3, optional): The first argument description is
+        intentionally very long and should be
+        wrapped across multiple lines while
+        keeping indentation.
