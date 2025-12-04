@@ -28,12 +28,20 @@ def test_calc_line_starts(src: str, expected: list[int]) -> None:
         ('a\n\nxyz\n', 2, 0, 2),
         ('a\n\nxyz\n', 3, 2, 5),
         ('one\ntwo\nthree', 2, 1, 5),
+        (
+            'def f():\n    """π"""\n    pass\n',
+            2,
+            len('    """π"""'.encode()),
+            len('def f():\n') + len('    """π"""'),
+        ),
     ],
 )
 def test_calc_abs_pos(src: str, lineno: int, col: int, expected: int) -> None:
     """Convert (lineno, col) to absolute indices using starts mapping."""
     starts = docstring_rewriter.calc_line_starts(src)
-    assert docstring_rewriter.calc_abs_pos(starts, lineno, col) == expected
+    assert (
+        docstring_rewriter.calc_abs_pos(src, starts, lineno, col) == expected
+    )
 
 
 @pytest.mark.parametrize(

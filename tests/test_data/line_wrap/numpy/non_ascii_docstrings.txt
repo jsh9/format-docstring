@@ -1,0 +1,89 @@
+LINE_LENGTH: 79
+
+**********
+
+Non-ASCII characters should not interfere with line length calculation.
+
+Function f_square
+-----------------
+a² + b² = c²
+
+Function f_delta
+----------------
+Δ = √(b² - 4ac)
+
+Function f_emoji
+----------------
+emoji 😄🚀 with sparkle ✨
+
+Function f_accents
+------------------
+accents naïve façade jalapeño año
+
+Function f_greek
+----------------
+Greek letters αβγδεζηθ
+
+Function f_cyrillic
+-------------------
+Cyrillic Привет мир
+
+Function f_cjk
+---------------
+CJK 面積は平方メートルです
+
+Function f_pi_tau
+-----------------
+Math π·r² + τ is about 6.283
+
+Function f_currency
+-------------------
+Currency mix € £ ¥ ₽
+
+Function f_hebrew
+-----------------
+Hebrew שלום עליכם
+
+**********
+
+Non-ASCII characters should not interfere with line length calculation.
+
+Function f_square
+-----------------
+a² + b² = c²
+
+Function f_delta
+----------------
+Δ = √(b² - 4ac)
+
+Function f_emoji
+----------------
+emoji 😄🚀 with sparkle ✨
+
+Function f_accents
+------------------
+accents naïve façade jalapeño año
+
+Function f_greek
+----------------
+Greek letters αβγδεζηθ
+
+Function f_cyrillic
+-------------------
+Cyrillic Привет мир
+
+Function f_cjk
+---------------
+CJK 面積は平方メートルです
+
+Function f_pi_tau
+-----------------
+Math π·r² + τ is about 6.283
+
+Function f_currency
+-------------------
+Currency mix € £ ¥ ₽
+
+Function f_hebrew
+-----------------
+Hebrew שלום עליכם
