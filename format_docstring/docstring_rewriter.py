@@ -427,8 +427,23 @@ def build_replacement_docstring(
     if not hasattr(val, 'lineno') or not hasattr(val, 'end_lineno'):
         return None
 
-    start: int = calc_abs_pos(line_starts, val.lineno, val.col_offset)
-    end: int = calc_abs_pos(line_starts, val.end_lineno, val.end_col_offset)  # type: ignore[arg-type]
+    # ``end_lineno``/``end_col_offset`` are optional on older AST nodes or
+    # when running under tooling that strips positional info, so bail out if
+    # they are missing to avoid slicing with ``None`` later.
+    end_lineno: int | None = getattr(val, 'end_lineno', None)
+    end_col_offset: int | None = getattr(val, 'end_col_offset', None)
+    if end_lineno is None or end_col_offset is None:
+        return None
+
+    start: int = calc_abs_pos(
+        source_code, line_starts, val.lineno, val.col_offset
+    )
+    end: int = calc_abs_pos(
+        source_code,
+        line_starts,
+        end_lineno,
+        end_col_offset,
+    )
     original_literal = source_code[start:end]
 
     if _has_inline_no_format_comment(source_code, end):
@@ -524,12 +539,19 @@ def find_docstring(node: ModuleClassOrFunc) -> ast.Expr | None:
     return None
 
 
-def calc_abs_pos(line_starts: list[int], lineno: int, col: int) -> int:
+def calc_abs_pos(
+        source_code: str, line_starts: list[int], lineno: int, col: int
+) -> int:
     """
     Convert a (lineno, col) pair to an absolute index.
 
     Parameters
     ----------
+    source_code : str
+        Full source text for computing character offsets. AST column offsets
+        are byte-based, so we need the actual text to translate them back to
+        character indices when multi-byte Unicode code points (e.g., 😄, é, 文)
+        are present.
     line_starts : list[int]
         Precomputed start offsets for each line, from :func:`_line_starts`.
     lineno : int
@@ -542,7 +564,29 @@ def calc_abs_pos(line_starts: list[int], lineno: int, col: int) -> int:
     int
         The absolute character index into the source string.
     """
-    return line_starts[lineno - 1] + col
+    line_idx = lineno - 1
+    line_start = line_starts[line_idx]
+    next_line_start = (
+        line_starts[line_idx + 1]
+        if line_idx + 1 < len(line_starts)
+        else len(source_code)
+    )
+    line_segment = source_code[line_start:next_line_start]
+
+    # Column offsets from the AST are measured in bytes, so convert them back
+    # to character offsets when slicing the original ``str`` source. Iterate
+    # through the current line until reaching the requested byte position.
+    byte_count = 0
+    char_offset = 0
+    for char in line_segment:
+        if byte_count >= col:
+            break
+
+        byte_count += len(char.encode('utf-8'))
+        char_offset += 1
+
+    # Clamp to the line length in case the reported byte offset overshoots.
+    return line_start + min(char_offset, len(line_segment))
 
 
 def rebuild_literal(original_literal: str, content: str) -> str | None:

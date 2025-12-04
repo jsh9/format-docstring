@@ -1,0 +1,89 @@
+LINE_LENGTH: 79
+
+**********
+
+# Non-ASCII characters should not interfere with line length calculation.
+
+def unicode_docstring_pythagoras() -> None:
+    """a² + b² = c²"""
+    return None
+
+def unicode_docstring_quadratic() -> None:
+    """Δ = √(b² - 4ac)"""
+    return None
+
+def unicode_docstring_emoji() -> None:
+    """emoji 😄🚀 with sparkle ✨"""
+    return None
+
+def unicode_docstring_accents() -> None:
+    """accents naïve façade jalapeño año"""
+    return None
+
+def unicode_docstring_greek() -> None:
+    """Greek letters αβγδεζηθ"""
+    return None
+
+def unicode_docstring_cyrillic() -> None:
+    """Cyrillic Привет мир"""
+    return None
+
+def unicode_docstring_cjk() -> None:
+    """CJK 面積は平方メートルです"""
+    return None
+
+def unicode_docstring_pi_tau() -> None:
+    """Math π·r² + τ is about 6.283"""
+    return None
+
+def unicode_docstring_currency() -> None:
+    """Currency mix € £ ¥ ₽"""
+    return None
+
+def unicode_docstring_hebrew() -> None:
+    """Hebrew שלום עליכם"""
+    return None
+
+**********
+
+# Non-ASCII characters should not interfere with line length calculation.
+
+def unicode_docstring_pythagoras() -> None:
+    """a² + b² = c²"""
+    return None
+
+def unicode_docstring_quadratic() -> None:
+    """Δ = √(b² - 4ac)"""
+    return None
+
+def unicode_docstring_emoji() -> None:
+    """emoji 😄🚀 with sparkle ✨"""
+    return None
+
+def unicode_docstring_accents() -> None:
+    """accents naïve façade jalapeño año"""
+    return None
+
+def unicode_docstring_greek() -> None:
+    """Greek letters αβγδεζηθ"""
+    return None
+
+def unicode_docstring_cyrillic() -> None:
+    """Cyrillic Привет мир"""
+    return None
+
+def unicode_docstring_cjk() -> None:
+    """CJK 面積は平方メートルです"""
+    return None
+
+def unicode_docstring_pi_tau() -> None:
+    """Math π·r² + τ is about 6.283"""
+    return None
+
+def unicode_docstring_currency() -> None:
+    """Currency mix € £ ¥ ₽"""
+    return None
+
+def unicode_docstring_hebrew() -> None:
+    """Hebrew שלום עליכם"""
+    return None
