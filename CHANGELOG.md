@@ -6,6 +6,13 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] - 2025-12-04
+
+- Fixed
+  - Bug where non-ASCII characters would mess up auto formatting
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.2.6...0.2.7
+
 ## [0.2.6] - 2025-11-21
 
 - Fixed
