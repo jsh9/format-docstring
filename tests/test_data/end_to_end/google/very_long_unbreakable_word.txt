@@ -3,10 +3,8 @@ LINE_LENGTH: 50
 **********
 def example_function():
     """
-    Parameters
-    ----------
-    arg1 : str
-        https://example.com/this_is_a_very_long_single_token_that_should_not_break_even_if_it_exceeds_the_line_length
+    Args:
+        arg1 (str): https://example.com/this_is_a_very_long_single_token_that_should_not_break_even_if_it_exceeds_the_line_length
     """
     pass
 
@@ -14,9 +12,8 @@ def example_function():
 
 def example_function():
     """
-    Parameters
-    ----------
-    arg1 : str
-        https://example.com/this_is_a_very_long_single_token_that_should_not_break_even_if_it_exceeds_the_line_length
+    Args:
+        arg1 (str):
+            https://example.com/this_is_a_very_long_single_token_that_should_not_break_even_if_it_exceeds_the_line_length
     """
     pass

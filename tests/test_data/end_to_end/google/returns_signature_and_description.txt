@@ -3,10 +3,8 @@ LINE_LENGTH: 50
 **********
 def example_function():
     """
-    Returns
-    -------
-    list[dict[str, tuple[int, str]]] | tuple[str, str, str, int, float] | dict[str, Any | tuple[str, int, bool]] | None
-        A very long description that should be wrapped properly while the type line remains unwrapped and short, and it should demonstrate wrapping.
+    Returns:
+        list[dict[str, tuple[int, str]]] | tuple[str, str, str, int, float] | dict[str, Any | tuple[str, int, bool]] | None: A very long description that should be wrapped properly while the type line remains unwrapped and short, and it should demonstrate wrapping.
     """
     pass
 
@@ -14,12 +12,11 @@ def example_function():
 
 def example_function():
     """
-    Returns
-    -------
-    list[dict[str, tuple[int, str]]] | tuple[str, str, str, int, float] | dict[str, Any | tuple[str, int, bool]] | None
-        A very long description that should be
-        wrapped properly while the type line
-        remains unwrapped and short, and it should
-        demonstrate wrapping.
+    Returns:
+        list[dict[str, tuple[int, str]]] | tuple[str, str, str, int, float] | dict[str, Any | tuple[str, int, bool]] | None:
+            A very long description that should be
+            wrapped properly while the type line
+            remains unwrapped and short, and it
+            should demonstrate wrapping.
     """
     pass
