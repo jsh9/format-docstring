@@ -1,0 +1,37 @@
+LINE_LENGTH: 79
+
+**********
+def func1():
+    def func2():
+        def func3():
+            def func4():
+                """
+                Parameters
+                -
+                arg1 : str
+                    This test demonstrates the effect when people do not formatter the docstring correctly, such as using only one dash. Then the whole docstring will be formatted like a mess.
+
+                Returns
+                -
+                int
+                    This test demonstrates the effect when people do not formatter the docstring correctly, such as using only one dash. Then the whole docstring will be formatted like a mess.
+                """
+                pass
+
+**********
+
+def func1():
+    def func2():
+        def func3():
+            def func4():
+                """
+                Parameters - arg1 : str This test demonstrates the effect when
+                people do not formatter the docstring correctly, such as using
+                only one dash. Then the whole docstring will be formatted like
+                a mess.
+
+                Returns - int This test demonstrates the effect when people do
+                not formatter the docstring correctly, such as using only one
+                dash. Then the whole docstring will be formatted like a mess.
+                """
+                pass

@@ -1,0 +1,65 @@
+LINE_LENGTH: 79
+
+**********
+Parameters
+----------
+alpha : list[tuple[int, str]] | None, optional
+    The alpha parameter controls the behavior in a very long and descriptive way that will certainly exceed the maximum line length and thus needs wrapping across multiple lines.
+beta : dict[str, list[int]]
+    The beta parameter is also described with many details that should cause the line to wrap according to the specified width to ensure readability and consistency.
+gamma : str
+    This gamma parameter requires wrapping because its description is intentionally verbose and includes multiple clauses that extend beyond the limit.
+
+Returns
+-------
+result1 : dict[str, int]
+    The first return value contains aggregated information computed from the inputs and needs to be explained thoroughly so it wraps properly.
+result2 : list[str]
+    The second return value is a list of messages; its description is long enough that it will wrap as well.
+
+Raises
+------
+ValueError
+    If alpha is invalid or contains values that cannot be processed, an error is raised; the description here is long and will wrap.
+TypeError
+    If the types of beta or gamma do not match the expected types, a suitable error is raised with an explanation which may wrap.
+RuntimeError
+    If an unexpected internal issue occurs during processing, a runtime error is raised with a long explanation that wraps too.
+
+**********
+
+Parameters
+----------
+alpha : list[tuple[int, str]] | None, optional
+    The alpha parameter controls the behavior in a very long and descriptive
+    way that will certainly exceed the maximum line length and thus needs
+    wrapping across multiple lines.
+beta : dict[str, list[int]]
+    The beta parameter is also described with many details that should cause
+    the line to wrap according to the specified width to ensure readability and
+    consistency.
+gamma : str
+    This gamma parameter requires wrapping because its description is
+    intentionally verbose and includes multiple clauses that extend beyond the
+    limit.
+
+Returns
+-------
+result1 : dict[str, int]
+    The first return value contains aggregated information computed from the
+    inputs and needs to be explained thoroughly so it wraps properly.
+result2 : list[str]
+    The second return value is a list of messages; its description is long
+    enough that it will wrap as well.
+
+Raises
+------
+ValueError
+    If alpha is invalid or contains values that cannot be processed, an error
+    is raised; the description here is long and will wrap.
+TypeError
+    If the types of beta or gamma do not match the expected types, a suitable
+    error is raised with an explanation which may wrap.
+RuntimeError
+    If an unexpected internal issue occurs during processing, a runtime error
+    is raised with a long explanation that wraps too.

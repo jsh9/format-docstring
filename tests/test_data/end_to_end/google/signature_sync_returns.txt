@@ -1,0 +1,226 @@
+LINE_LENGTH: 79
+
+**********
+from typing import List
+
+
+def build_mapping() -> dict[str, str]:
+    """
+    Build mapping.
+
+    Returns
+    -------
+    str
+        Should match the function annotation.
+    """
+    return {'example': 'value'}
+
+
+def compute_values() -> tuple[int, str, list[str]]:
+    """
+    Compute multiple outputs.
+
+    Returns
+    -------
+    float
+        First element.
+    str
+        Second element.
+    List[str]
+        Third element.
+    """
+    return 1, 'two', ['three']
+
+
+def annotate_values() -> tuple[int, str, list[str]]:
+    """
+    Annotated tuple returns.
+
+    Returns
+    -------
+    primary : float
+        First element.
+    secondary : bool
+        Second element.
+    items : tuple[str, ...]
+        Third element.
+    """
+    return 1, 'two', ['three']
+
+
+def summarize() -> tuple[int, str, list[str]]:
+    """
+    Summarize values.
+
+    Returns
+    -------
+    tuple[str, str, str]
+        Combined values.
+    """
+    return 1, 'two', ['three']
+
+
+def custom_return_type_1() -> tuple['MyType1', "MyType2"]:
+    """
+    Do something
+
+    Returns
+    -------
+    str
+    """
+    pass
+
+
+def custom_return_type_2() -> tuple['MyType1', "MyType2"]:
+    """
+    Do something
+
+    Returns
+    -------
+    str
+        String
+    int
+        Integer
+    """
+    pass
+
+
+def with_return_var_name_1() -> str:
+    """
+    Do something
+
+    Returns
+    -------
+    result:float
+        The result
+    """
+    pass
+
+
+def with_return_var_name_2() -> tuple[str, int, int]:
+    """
+    Do something
+
+    Returns
+    -------
+    name:
+        The name
+    index :bool
+        The index
+    status: str
+        The status
+    """
+    pass
+
+
+**********
+from typing import List
+
+
+def build_mapping() -> dict[str, str]:
+    """
+    Build mapping.
+
+    Returns
+    -------
+    dict[str, str]
+        Should match the function annotation.
+    """
+    return {'example': 'value'}
+
+
+def compute_values() -> tuple[int, str, list[str]]:
+    """
+    Compute multiple outputs.
+
+    Returns
+    -------
+    int
+        First element.
+    str
+        Second element.
+    list[str]
+        Third element.
+    """
+    return 1, 'two', ['three']
+
+
+def annotate_values() -> tuple[int, str, list[str]]:
+    """
+    Annotated tuple returns.
+
+    Returns
+    -------
+    primary : int
+        First element.
+    secondary : str
+        Second element.
+    items : list[str]
+        Third element.
+    """
+    return 1, 'two', ['three']
+
+
+def summarize() -> tuple[int, str, list[str]]:
+    """
+    Summarize values.
+
+    Returns
+    -------
+    tuple[int, str, list[str]]
+        Combined values.
+    """
+    return 1, 'two', ['three']
+
+
+def custom_return_type_1() -> tuple['MyType1', "MyType2"]:
+    """
+    Do something
+
+    Returns
+    -------
+    tuple['MyType1', "MyType2"]
+    """
+    pass
+
+
+def custom_return_type_2() -> tuple['MyType1', "MyType2"]:
+    """
+    Do something
+
+    Returns
+    -------
+    'MyType1'
+        String
+    "MyType2"
+        Integer
+    """
+    pass
+
+
+def with_return_var_name_1() -> str:
+    """
+    Do something
+
+    Returns
+    -------
+    result : str
+        The result
+    """
+    pass
+
+
+def with_return_var_name_2() -> tuple[str, int, int]:
+    """
+    Do something
+
+    Returns
+    -------
+    name : str
+        The name
+    index : int
+        The index
+    status : int
+        The status
+    """
+    pass

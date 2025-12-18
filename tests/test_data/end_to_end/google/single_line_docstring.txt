@@ -1,0 +1,77 @@
+LINE_LENGTH: 79
+
+**********
+def func1():
+    """The content itself does not exceed length limit but with quotes it would"""
+    pass
+
+
+def func2():
+    def func2a():
+        def func2b():
+            def func2c():
+                def func2d():
+                    """The content itself does not exceed length limit but with"""
+                    pass
+
+
+def func3():
+    def func2a():
+        def func2b():
+            def func2c():
+                def func2d():
+                    """
+                    This line is already formatted so we should not re-wrap it.
+                    """
+                    pass
+
+
+def func4():
+    """This line has the right number of chars that it does not exceed limit"""
+    pass
+
+
+def func5():
+    r"""This line has the right number of chars that it exceeds limit by 1..."""
+    pass
+
+**********
+def func1():
+    """
+    The content itself does not exceed length limit but with quotes it would
+    """
+    pass
+
+
+def func2():
+    def func2a():
+        def func2b():
+            def func2c():
+                def func2d():
+                    """
+                    The content itself does not exceed length limit but with
+                    """
+                    pass
+
+
+def func3():
+    def func2a():
+        def func2b():
+            def func2c():
+                def func2d():
+                    """
+                    This line is already formatted so we should not re-wrap it.
+                    """
+                    pass
+
+
+def func4():
+    """This line has the right number of chars that it does not exceed limit"""
+    pass
+
+
+def func5():
+    r"""
+    This line has the right number of chars that it exceeds limit by 1...
+    """
+    pass

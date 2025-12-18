@@ -1,0 +1,101 @@
+LINE_LENGTH: 79
+
+**********
+This function uses `foo` to process data. The `bar` parameter is optional.
+
+Parameters
+----------
+arg1 : str
+    Use `method_name` to access this value.
+arg2 : int
+    The value should be between `1` and `100`.
+config : `ConfigType`
+    A `Config` object for settings.
+
+Returns
+-------
+dict
+    A dictionary with keys `result` and `status`.
+`ResultDict`
+    An alternative return format with `data` field.
+
+See Also
+--------
+- `other_function` : Related function
+- `module.Class` : Related class
+
+Notes
+-----
+When using `special_value`, ensure that `config` is set properly. The
+`default_value` is `None` by default.
+
+This section also contains rST roles like :emphasis:`word` and :strong:`bold`
+that should remain unchanged. Cross-references like `Section`_ should not be
+modified, nor should anonymous refs like `Docs`__. External links like `Python
+<https://www.python.org>`_ must also stay as-is.
+
+Explicit targets like shown in the directive ``.. _`Special Target`:
+https://example.com/special`` should not be touched.
+
+Here's another example where long URLs extend to the next line `Here is perhaps
+the Link <https://www.this-is-a-url-that-is-long.com>`_ and `Another One
+<https://www.this-is-another-url-that-is-long.com>`_.
+
+Examples
+--------
+>>> data = [{'id': 1, 'value': 10}]
+>>> result = process_data(data, config={'mode': 'simple'})
+>>> print(result['status'])
+'success'
+>>> # Use `config` parameter to customize `mode`
+... # and set the `threshold` value
+
+**********
+This function uses ``foo`` to process data. The ``bar`` parameter is optional.
+
+Parameters
+----------
+arg1 : str
+    Use ``method_name`` to access this value.
+arg2 : int
+    The value should be between ``1`` and ``100``.
+config : ``ConfigType``
+    A ``Config`` object for settings.
+
+Returns
+-------
+dict
+    A dictionary with keys ``result`` and ``status``.
+``ResultDict``
+    An alternative return format with ``data`` field.
+
+See Also
+--------
+- ``other_function`` : Related function
+- ``module.Class`` : Related class
+
+Notes
+-----
+When using ``special_value``, ensure that ``config`` is set properly. The
+``default_value`` is ``None`` by default.
+
+This section also contains rST roles like :emphasis:`word` and :strong:`bold`
+that should remain unchanged. Cross-references like `Section`_ should not be
+modified, nor should anonymous refs like `Docs`__. External links like `Python
+<https://www.python.org>`_ must also stay as-is.
+
+Explicit targets like shown in the directive ``.. _`Special Target`:
+https://example.com/special`` should not be touched.
+
+Here's another example where long URLs extend to the next line `Here is perhaps
+the Link <https://www.this-is-a-url-that-is-long.com>`_ and `Another One
+<https://www.this-is-another-url-that-is-long.com>`_.
+
+Examples
+--------
+>>> data = [{'id': 1, 'value': 10}]
+>>> result = process_data(data, config={'mode': 'simple'})
+>>> print(result['status'])
+'success'
+>>> # Use `config` parameter to customize `mode`
+... # and set the `threshold` value

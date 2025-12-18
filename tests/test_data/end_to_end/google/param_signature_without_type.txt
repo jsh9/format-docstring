@@ -1,0 +1,35 @@
+LINE_LENGTH: 40
+
+**********
+def func():
+    """
+    Parameters
+    ----------
+    abc :
+        This is a long description that should be wrapped to confirm that a
+        signature with no type after the colon is still recognized.
+    def:
+        Another description that is long enough to wrap and should be handled just
+        like a typical parameter description.
+    """
+    pass
+
+**********
+
+def func():
+    """
+    Parameters
+    ----------
+    abc :
+        This is a long description that
+        should be wrapped to confirm
+        that a signature with no type
+        after the colon is still
+        recognized.
+    def :
+        Another description that is long
+        enough to wrap and should be
+        handled just like a typical
+        parameter description.
+    """
+    pass

@@ -1,0 +1,107 @@
+LINE_LENGTH: 79
+
+**********
+def func1():
+    """
+    Example
+    -----
+    >>> a = 2
+    >>> b = 3
+    """
+    pass
+
+def func2():
+    """
+    Examples
+    ----
+    >>> a = 2
+    >>> b = 3
+    """
+    pass
+
+
+
+
+
+
+def func3():
+    """
+    Examplesss
+    ----
+    >>> a = 2
+    >>> b = 3
+    """
+    pass
+
+class MyClass:
+    """
+    This is my class
+
+    Parameters
+    ----------
+    arg1 : int
+        Arg 1
+
+    Examples
+    -------------
+    Should not be wrapped, because of `>>> ` and `... `
+    >>> result = my_function(
+    ...     arg1=1,
+    ...     arg2=2,
+    ...     arg3=3,
+    ... )
+    """
+    pass
+
+**********
+
+def func1():
+    """
+    Examples
+    --------
+    >>> a = 2
+    >>> b = 3
+    """
+    pass
+
+def func2():
+    """
+    Examples
+    --------
+    >>> a = 2
+    >>> b = 3
+    """
+    pass
+
+
+
+
+
+
+def func3():
+    """
+    Examplesss
+    ----
+    >>> a = 2 >>> b = 3
+    """
+    pass
+
+class MyClass:
+    """
+    This is my class
+
+    Parameters
+    ----------
+    arg1 : int
+        Arg 1
+
+    Examples
+    --------
+    Should not be wrapped, because of ``>>> `` and ``... ``
+    >>> result = my_function(
+    ...     arg1=1,
+    ...     arg2=2,
+    ...     arg3=3,
+    ... )
+    """
+    pass

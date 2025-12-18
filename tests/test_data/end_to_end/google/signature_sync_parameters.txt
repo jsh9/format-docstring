@@ -1,0 +1,254 @@
+LINE_LENGTH: 79
+
+**********
+from typing import List, Optional
+
+
+def sample(
+        a: "MyCustomClass",
+        b: Optional[str] = None,
+        c: list[str] | None = None,
+        d: tuple[int, ...] = (),
+        e: str | float | int | None = None,
+        f: List[str] | None = None,
+        g: 'AnotherCustomClass' | None = None,
+        h: tuple = (
+            "1",
+            '2',
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+        ),
+        i: float=DEFAULT_VALUE_OF_I,
+        *args: "MyCustomClass",
+        **kwargs: 'ConfigDict',
+):
+    """
+    Synchronize docstring signature lines.
+
+    Parameters
+    ----------
+    a : MyCustomClass
+        Parameter a.
+    b : str, optional
+        Parameter b.
+    c : Sequence[str], optional
+        Parameter c.
+    d : tuple
+        Parameter d.
+    e : number
+        Parameter e.
+    f : list
+        Parameter f.
+    g : MyCustomClass, optional
+        Parameter g.
+    h:
+        Parameter h.
+    i:
+        Parameter i.
+    *args : tuple[Any, ...], optional
+        Additional positional args.
+    **kwargs : dict[str, Any], optional
+        Additional keyword args.
+
+    Returns
+    -------
+    None
+    """
+    return None
+
+
+class Example:
+    def method(
+            self,
+            flag: bool = False,
+            alias: 'MyCustomClass' | None = None,
+    ):
+        """
+        Method docstring.
+
+        Parameters
+        ----------
+        self : Example
+            Instance.
+        flag : str, optional
+            Flag value.
+        alias : str | None, optional
+            Optional alias.
+
+        Returns
+        -------
+        bool
+            Result.
+        """
+        return flag
+
+
+def docstring_has_inconsistent_args_than_signature(
+        a: int,
+        b: str,
+        c: bool,
+        d: float,
+) -> None:
+    """
+    This
+    docstring has
+    inconsistent arguments
+    than the function signature.
+    This tool will only format the "common
+    args" (args that are in both the docstring
+    and the function signature). Some docstring linters
+    will report an error, but it is out of scope for this tool to deal with this issue.
+
+    Parameters
+    ----------
+    b                   :
+        B
+    d  :
+        D
+    e:
+        E
+    f:
+        F
+    """
+    pass
+
+
+**********
+from typing import List, Optional
+
+
+def sample(
+        a: "MyCustomClass",
+        b: Optional[str] = None,
+        c: list[str] | None = None,
+        d: tuple[int, ...] = (),
+        e: str | float | int | None = None,
+        f: List[str] | None = None,
+        g: 'AnotherCustomClass' | None = None,
+        h: tuple = (
+            "1",
+            '2',
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+        ),
+        i: float=DEFAULT_VALUE_OF_I,
+        *args: "MyCustomClass",
+        **kwargs: 'ConfigDict',
+):
+    """
+    Synchronize docstring signature lines.
+
+    Parameters
+    ----------
+    a : "MyCustomClass"
+        Parameter a.
+    b : Optional[str], default=None
+        Parameter b.
+    c : list[str] | None, default=None
+        Parameter c.
+    d : tuple[int, ...], default=()
+        Parameter d.
+    e : str | float | int | None, default=None
+        Parameter e.
+    f : List[str] | None, default=None
+        Parameter f.
+    g : 'AnotherCustomClass' | None, default=None
+        Parameter g.
+    h : tuple, default=("1", '2', 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+        Parameter h.
+    i : float, default=DEFAULT_VALUE_OF_I
+        Parameter i.
+    *args : "MyCustomClass"
+        Additional positional args.
+    **kwargs : 'ConfigDict'
+        Additional keyword args.
+
+    Returns
+    -------
+    None
+    """
+    return None
+
+
+class Example:
+    def method(
+            self,
+            flag: bool = False,
+            alias: 'MyCustomClass' | None = None,
+    ):
+        """
+        Method docstring.
+
+        Parameters
+        ----------
+        self : Example
+            Instance.
+        flag : bool, default=False
+            Flag value.
+        alias : 'MyCustomClass' | None, default=None
+            Optional alias.
+
+        Returns
+        -------
+        bool
+            Result.
+        """
+        return flag
+
+
+def docstring_has_inconsistent_args_than_signature(
+        a: int,
+        b: str,
+        c: bool,
+        d: float,
+) -> None:
+    """
+    This docstring has inconsistent arguments than the function signature. This
+    tool will only format the "common args" (args that are in both the
+    docstring and the function signature). Some docstring linters will report
+    an error, but it is out of scope for this tool to deal with this issue.
+
+    Parameters
+    ----------
+    b : str
+        B
+    d : float
+        D
+    e :
+        E
+    f :
+        F
+    """
+    pass

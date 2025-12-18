@@ -1,0 +1,54 @@
+LINE_LENGTH: 79
+
+**********
+def format_me():
+    """This summary line is intentionally extremely long to trigger the formatter and should normally be wrapped into multiple lines by default behavior but should be reformatted because the opt-out comment is not on the closing line."""
+    # no-format-docstring
+    return 1
+
+
+def inline_comment():
+    """This docstring also exceeds the preferred line length but it includes multiple trailing directives and should be left alone by the formatter."""  # noqa: E501  # no-format-docstring
+    return 2
+
+
+def comment_mixture():
+    """Another docstring that would typically be wrapped by format-docstring but should stay as-is because the opt-out comment appears after a separate noqa directive on the following line."""  # noqa: E501
+    # no-format-docstring
+    return 3
+
+
+def inline_only_marker():
+    """Yet another docstring whose summary line exceeds the configured length but should remain untouched since the opt-out marker is on the same line as the closing quotes."""  # no-format-docstring
+    return 4
+
+**********
+def format_me():
+    """
+    This summary line is intentionally extremely long to trigger the formatter
+    and should normally be wrapped into multiple lines by default behavior but
+    should be reformatted because the opt-out comment is not on the closing
+    line.
+    """
+    # no-format-docstring
+    return 1
+
+
+def inline_comment():
+    """This docstring also exceeds the preferred line length but it includes multiple trailing directives and should be left alone by the formatter."""  # noqa: E501  # no-format-docstring
+    return 2
+
+
+def comment_mixture():
+    """
+    Another docstring that would typically be wrapped by format-docstring but
+    should stay as-is because the opt-out comment appears after a separate noqa
+    directive on the following line.
+    """  # noqa: E501
+    # no-format-docstring
+    return 3
+
+
+def inline_only_marker():
+    """Yet another docstring whose summary line exceeds the configured length but should remain untouched since the opt-out marker is on the same line as the closing quotes."""  # no-format-docstring
+    return 4

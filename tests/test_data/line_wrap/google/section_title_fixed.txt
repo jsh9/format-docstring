@@ -1,0 +1,60 @@
+LINE_LENGTH: 79
+
+**********
+ParaMEter
+---
+arg1 : str
+    This is a parameter
+
+Return
+-----------
+int
+    This is the return value
+
+Yield
+--
+str
+    This is the yielded value
+
+Raise
+-----
+ValueError
+    Some error
+
+example
+---
+Here are some examples
+
+NOTES
+---
+Here are some notes
+
+**********
+
+Parameters
+----------
+arg1 : str
+    This is a parameter
+
+Returns
+-------
+int
+    This is the return value
+
+Yields
+------
+str
+    This is the yielded value
+
+Raises
+------
+ValueError
+    Some error
+
+Examples
+--------
+Here are some examples
+
+Notes
+-----
+Here are some notes
