@@ -8,31 +8,20 @@ class Widget:
     """
     Widget docstring.
 
-    Parameters
-    ----------
-    foo : str
-        Primary value.
-    bar : int
-        Secondary value.
-    options : tuple
-        Additional options payload.
-    callback : Callable
-        Callback invoked after processing.
-    arg_not_in_init_signature    :"MyCustomClassThatHasVeryVeryVeryVeryVeryVeryVeryVeryLongName"
-        Arg
+    Args:
+        foo (str): Primary value.
+        bar (int): Secondary value.
+        options (tuple): Additional options payload.
+        callback (Callable): Callback invoked after processing.
+        arg_not_in_init_signature ("MyCustomClassThatHasVeryVeryVeryVeryVeryVeryVeryVeryLongName"):
+            Arg
 
-    Attributes
-    ----------
-    qux : dict
-        Class attribute.
-    count : tuple
-        Count attribute.
-    settings : Mapping
-        Settings payload.
-    threshold : float
-        Threshold attribute.
-    prefix : str | None, default='x'
-        Prefix attribute.
+    Attributes:
+        qux (dict): Class attribute.
+        count (tuple): Count attribute.
+        settings (Mapping): Settings payload.
+        threshold (float): Threshold attribute.
+        prefix (str | None, default='x'): Prefix attribute.
     """
 
     qux: dict[str, list[int]] = {'alpha': [1, 2]}
@@ -75,19 +64,13 @@ class Both:
     fix
     this.
 
-    Parameters
-    ----------
-    data:
-        The input data
-    metadata:
-        The metadata
+    Args:
+        data: The input data
+        metadata: The metadata
 
-    Attributes
-    ----------
-    something:
-        Something
-    important:
-        Important
+    Attributes:
+        something: Something
+        important: Important
     """
 
     something: tuple[str, ...] = ['a', 'b', "c", "d"]
@@ -97,14 +80,12 @@ class Both:
         """
         Initialize the class.
 
-        Parameters
-        ----------
-        data: np.ndarray
-            The input data
-        metadata:
-            The metadata
+        Args:
+            data (np.ndarray): The input data
+            metadata: The metadata
         """
         pass
+
 
 **********
 from typing import Callable, Mapping
@@ -114,31 +95,22 @@ class Widget:
     """
     Widget docstring.
 
-    Parameters
-    ----------
-    foo : dict[str, list[int]]
-        Primary value.
-    bar : 'PathLike[str]' | None, default=None
-        Secondary value.
-    options : tuple[list[int], dict[str, float]], default=([1, 2], {'scale': 0.5})
-        Additional options payload.
-    callback : Callable[[str, int], bool] | None, default=None
-        Callback invoked after processing.
-    arg_not_in_init_signature : "MyCustomClassThatHasVeryVeryVeryVeryVeryVeryVeryVeryLongName"
-        Arg
+    Args:
+        foo (dict[str, list[int]]): Primary value.
+        bar ('PathLike[str]' | None, default=None): Secondary value.
+        options (tuple[list[int], dict[str, float]], default=([1, 2], {'scale': 0.5})):
+            Additional options payload.
+        callback (Callable[[str, int], bool] | None, default=None): Callback
+            invoked after processing.
+        arg_not_in_init_signature ("MyCustomClassThatHasVeryVeryVeryVeryVeryVeryVeryVeryLongName"):
+            Arg
 
-    Attributes
-    ----------
-    qux : dict[str, list[int]], default={'alpha': [1, 2]}
-        Class attribute.
-    count : tuple[int, ...]
-        Count attribute.
-    settings : Mapping[str, tuple[int, ...]]
-        Settings payload.
-    threshold : float, default=0.75
-        Threshold attribute.
-    prefix :
-        Prefix attribute.
+    Attributes:
+        qux (dict[str, list[int]], default={'alpha': [1, 2]}): Class attribute.
+        count (tuple[int, ...]): Count attribute.
+        settings (Mapping[str, tuple[int, ...]]): Settings payload.
+        threshold (float, default=0.75): Threshold attribute.
+        prefix (str | None): Prefix attribute.
     """
 
     qux: dict[str, list[int]] = {'alpha': [1, 2]}
@@ -171,19 +143,13 @@ class Both:
     docstrings. Even though this is not best practice (and some linters will
     report an error), it is out of the scope of this formatter to fix this.
 
-    Parameters
-    ----------
-    data : np.ndarray
-        The input data
-    metadata : dict[str, Any]
-        The metadata
+    Args:
+        data (np.ndarray): The input data
+        metadata (dict[str, Any]): The metadata
 
-    Attributes
-    ----------
-    something : tuple[str, ...], default=['a', 'b', "c", "d"]
-        Something
-    important : bool, default=False
-        Important
+    Attributes:
+        something (tuple[str, ...], default=['a', 'b', "c", "d"]): Something
+        important (bool, default=False): Important
     """
 
     something: tuple[str, ...] = ['a', 'b', "c", "d"]
@@ -193,11 +159,8 @@ class Both:
         """
         Initialize the class.
 
-        Parameters
-        ----------
-        data : np.ndarray
-            The input data
-        metadata : dict[str, Any]
-            The metadata
+        Args:
+            data (np.ndarray): The input data
+            metadata (dict[str, Any]): The metadata
         """
         pass

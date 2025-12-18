@@ -6,10 +6,8 @@ def myfunc() -> MyClass:
     """
     Do something
 
-    Returns
-    -------
-    :class:`MyClass`
-        An instance of MyClass
+    Returns:
+        :class:`MyClass`: An instance of MyClass
     """
     pass
 
@@ -21,17 +19,12 @@ def uses_cross_refs(
     """
     Uses parameters and returns that reference rST roles.
 
-    Parameters
-    ----------
-    thing : :class:`MyClass`
-        Object to transform.
-    creator : :meth:`MyClass.build`
-        Callback that builds a new instance.
+    Args:
+        thing (:class:`MyClass`): Object to transform.
+        creator (:meth:`MyClass.build`): Callback that builds a new instance.
 
-    Returns
-    -------
-    :meth:`MyClass.build`
-        A created instance.
+    Returns:
+        :meth:`MyClass.build`: A created instance.
     """
     return creator(thing)
 
@@ -42,10 +35,8 @@ def myfunc() -> MyClass:
     """
     Do something
 
-    Returns
-    -------
-    MyClass
-        An instance of MyClass
+    Returns:
+        MyClass: An instance of MyClass
     """
     pass
 
@@ -57,16 +48,12 @@ def uses_cross_refs(
     """
     Uses parameters and returns that reference rST roles.
 
-    Parameters
-    ----------
-    thing : MyClass
-        Object to transform.
-    creator : Callable[[MyClass], MyClass]
-        Callback that builds a new instance.
+    Args:
+        thing (MyClass): Object to transform.
+        creator (Callable[[MyClass], MyClass]): Callback that builds a new
+            instance.
 
-    Returns
-    -------
-    MyClass
-        A created instance.
+    Returns:
+        MyClass: A created instance.
     """
     return creator(thing)

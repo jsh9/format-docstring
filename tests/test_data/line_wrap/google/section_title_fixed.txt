@@ -1,60 +1,40 @@
 LINE_LENGTH: 79
 
 **********
-ParaMEter
----
-arg1 : str
-    This is a parameter
+ParaMEter:
+    arg1 (str): This is a parameter
 
-Return
------------
-int
-    This is the return value
+Return:
+    int: This is the return value
 
-Yield
---
-str
-    This is the yielded value
+Yield:
+    str: This is the yielded value
 
-Raise
------
-ValueError
-    Some error
+Raise:
+    ValueError: Some error
 
-example
----
-Here are some examples
+example:
+    Here are some examples
 
-NOTES
----
-Here are some notes
+NOTES:
+    Here are some notes
 
 **********
 
-Parameters
-----------
-arg1 : str
-    This is a parameter
+Args:
+    arg1 (str): This is a parameter
 
-Returns
--------
-int
-    This is the return value
+Returns:
+    int: This is the return value
 
-Yields
-------
-str
-    This is the yielded value
+Yields:
+    str: This is the yielded value
 
-Raises
-------
-ValueError
-    Some error
+Raises:
+    ValueError: Some error
 
-Examples
---------
-Here are some examples
+Examples:
+    Here are some examples
 
-Notes
------
-Here are some notes
+Notes:
+    Here are some notes

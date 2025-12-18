@@ -8,16 +8,12 @@ def func1() -> Any:
     This test case is to make sure the raised exceptions are not modified by
     this formatter.
 
-    Returns
-    -------
-    Any
+    Returns:
+        Any
 
-    Raises
-    ------
-    ValueError
-        When value is wrong. This is a very very very very very very very very very very very very very very very very very very very very very very very very very very very long line.
-    IOError
-        When IO is wrong. This is a very very very very very very very very very very very very very very very very very very very very very very very very very very very long line.
+    Raises:
+        ValueError: When value is wrong. This is a very very very very very very very very very very very very very very very very very very very very very very very very very very very long line.
+        IOError: When IO is wrong. This is a very very very very very very very very very very very very very very very very very very very very very very very very very very very long line.
     """
     pass
 
@@ -30,19 +26,15 @@ def func1() -> Any:
     This test case is to make sure the raised exceptions are not modified by
     this formatter.
 
-    Returns
-    -------
-    Any
+    Returns:
+        Any
 
-    Raises
-    ------
-    ValueError
-        When value is wrong. This is a very very very very very very very very
-        very very very very very very very very very very very very very very
-        very very very very very long line.
-    IOError
-        When IO is wrong. This is a very very very very very very very very
-        very very very very very very very very very very very very very very
-        very very very very very long line.
+    Raises:
+        ValueError: When value is wrong. This is a very very very very very
+            very very very very very very very very very very very very very
+            very very very very very very very very long line.
+        IOError: When IO is wrong. This is a very very very very very very very
+            very very very very very very very very very very very very very
+            very very very very very very long line.
     """
     pass
