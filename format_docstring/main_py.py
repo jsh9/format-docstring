@@ -72,8 +72,9 @@ def main(
     """Format .py files."""
     ret = 0
 
-    if docstring_style.lower() != 'numpy':
-        raise ValueError('Only "numpy" style is supported for now.')
+    # Validating style is handled by the rewriter or Click choice, but strictly speaking
+    # we don't need to block non-numpy here anymore as rewriter supports google.
+    pass
 
     for path in paths:
         fixer = PythonFileFixer(
