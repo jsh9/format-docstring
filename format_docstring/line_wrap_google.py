@@ -1,3 +1,4 @@
+import textwrap
 import re
 from typing import Final
 
@@ -20,6 +21,32 @@ def wrap_docstring_google(
     parameter_metadata: ParameterMetadata | None = None,
     return_annotation: str | None = None,
     attribute_metadata: ParameterMetadata | None = None,
+) -> str:
+    """
+    Wrap Google-style docstrings.
+    
+    This operates in two passes:
+    1. Unwrap: Merge descriptions onto signature lines (for Args/Returns) and unwrap paragraphs.
+    2. Wrap: Re-wrap lines to the target line length, respecting indentation rules.
+    """
+    unwrapped = _pass1_unwrap_google_docstring(
+        docstring,
+        line_length=line_length,
+        leading_indent=leading_indent,
+    )
+    
+    return _pass2_wrap_google_docstring(
+        unwrapped,
+        line_length=line_length,
+        leading_indent=leading_indent,
+    )
+
+
+def _pass1_unwrap_google_docstring(
+    docstring: str,
+    *,
+    line_length: int, # Unused in pass 1, but kept for signature compatibility
+    leading_indent: int | None = None,
 ) -> str:
     """
     Wrap Google-style docstrings.
@@ -383,6 +410,312 @@ def wrap_docstring_google(
     return finalize_lines(final_lines, leading_indent)
 
 
+def _pass2_wrap_google_docstring(
+    docstring: str,
+    *,
+    line_length: int,
+    leading_indent: int | None = None,
+) -> str:
+    """
+    2nd pass: Wrap the "unwrapped" docstring content.
+    - Respects line_length.
+    - Handles Google style indentation for signatures and descriptions.
+    - Preserves non-wrappable content.
+    """
+    if not docstring.strip():
+        return docstring
+
+    # Split into lines
+    lines = docstring.splitlines()
+    
+    # Segment
+    segments = segment_lines_by_wrappability(lines)
+    
+    final_output: list[str] = []
+    
+    for seg_lines, is_wrappable in segments:
+        if not is_wrappable:
+            # Code blocks, tables, etc. Keep as is.
+            final_output.extend(seg_lines)
+            continue
+            
+        # Wrappable text
+        # It consists of lines that Pass 1 merged (e.g. signature + inline desc)
+        # or separate paragraphs.
+        
+        for line in seg_lines:
+            if not line.strip():
+                final_output.append(line)
+                continue
+                
+            stripped = line.lstrip()
+            indent_str = line[:len(line) - len(stripped)]
+            indent_level = len(indent_str)
+            if lines and line is lines[0]:
+                indent_level += (leading_indent or 0) + 5
+            
+            # Check if signature
+            # Exclude lines starting with quotes (Summary start)
+            if stripped.startswith(('"""', "'''")):
+                is_sig = False
+            else:
+                 # Check indentation: Signatures must be indented >= leading_indent
+                 # (unless leading_indent is None/0, but typically it is set).
+                 # Summary start (on first line) has 0 indent.
+                 # Sections/Signatures are at least at base indent.
+                 if leading_indent and indent_level < leading_indent:
+                     is_sig = False
+                 else:
+                     is_sig = _is_google_signature(stripped)
+
+            if is_sig:
+                # It is a signature line, possibly with merged description.
+                sig_part, desc_part = _split_google_signature(line) # Keeps indentation on sig_part
+                
+                # Check wrapping strategy
+                # If sig_part itself is too long for the FIRST line?
+                # We need to account for existing indent.
+                # sig_part includes the indent.
+                
+                # Strategy 1: "if the signature itself ... keys exceeded the line length limit"
+                if len(sig_part.rstrip()) > line_length:
+                    # Case A: Long signature.
+                    # Use them as 1st line.
+                    final_output.append(sig_part.rstrip())
+                    
+                    # Remaining description goes to next lines
+                    if desc_part and desc_part.strip():
+                        # Indent + 4
+                        subsequent_indent = indent_str + "    "
+                        # Wrap description
+                        wrapped_desc = textwrap.fill(
+                            desc_part,
+                            width=line_length,
+                            initial_indent=subsequent_indent,
+                            subsequent_indent=subsequent_indent,
+                            break_long_words=False,
+                            break_on_hyphens=False,
+                        )
+                        final_output.extend(wrapped_desc.splitlines())
+                        
+                else:
+                    # Case B: Signature fits.
+                    # We try to put description on the same line if possible.
+                    
+                    # But wait, Pass 1 merged them. So `line` IS "sig fit desc ...".
+                    # We can use textwrap.fill with `initial_indent` matching `sig_part`?
+                    # No, `sig_part` contains text.
+                    
+                    # We want:
+                    # Line 1: indent + sig + space + desc_chunk
+                    # Line 2+: indent + 4 + desc_chunk
+                    
+                    # We can achieve this by setting `initial_indent` to `indent_str` (Pass 1 signature already has indent),
+                    # and providing the *content* as `sig_stripped + " " + desc`.
+                    # But textwrap might break the signature?
+                    # "if the signature itself ... use them as 1st line EVEN if they exceed".
+                    # If we use textwrap, it might wrap a long signature if we treat it as words.
+                    
+                    # So proper way:
+                    # 1. Start with `sig_part`.
+                    # 2. Append description text.
+                    
+                    if not desc_part or not desc_part.strip():
+                        final_output.append(sig_part.rstrip())
+                        continue
+                        
+                    # We have description.
+                    # Calculate strict available space on first line.
+                    # This is tricky because we don't want to break the signature itself.
+                    
+                    # Let's try to verify if `sig_part` + first word of desc fits?
+                    # Actually, we can use `textwrap` on the DESCRIPTION only, with specific indentation logic.
+                    
+                    # Calculate remaining width on first line:
+                    sig_len = len(sig_part.rstrip()) # This includes indentation
+                    # Space after colon? `sig_part` from `_split` includes colon.
+                    # Pass 1 added a space if merging description.
+                    # But `_split` splits at colon.
+                    # The `line` from Pass 1 is `sig: desc`.
+                    # `sig_part` is `   sig:`. `desc_part` is ` desc`. (leading space preserved?)
+                    # `_split_google_signature` strips the description if separate return.
+                    # But here we are calling it on the full line.
+                    # Check `_split_google_signature` impl in file.
+                    # It returns `desc.strip()`. So logic above `desc_part` has NO leading space.
+                    
+                    # We need to insert a space.
+                    first_line_prefix = sig_part.rstrip() + " "
+                    subsequent_indent = indent_str + "    "
+                    
+                    # We want to wrap `desc_part`.
+                    # The first line of description should appear after `first_line_prefix`.
+                    # But `textwrap` doesn't support "prefix that assumes X chars already used".
+                    # It supports `initial_indent`.
+                    
+                    # Workaround:
+                    # Wrap the description with `initial_indent=""` (effectively) and `subsequent_indent=subsequent_indent`.
+                    # Then PREPEND `first_line_prefix` to the first line?
+                    # But that assumes the first line of wrapped description fits in the remaining space.
+                    # We need to tell textwrap the `width` of the first line is smaller.
+                    
+                    # `textwrap` doesn't check first line width vs others separately easily.
+                    
+                    # Alternative: Construct a long string `sig + " " + desc`.
+                    # Use `textwrap.fill` with `subsequent_indent=subsequent_indent`.
+                    # But we must ensure it doesn't break inside `sig`.
+                    # `sig` usually has spaces `arg (type):`.
+                    # If we treat it as one word (replace spaces with non-breaking?), textwrap will keep it together.
+                    # But that seems hacking.
+                    
+                    # Better approach:
+                    # Use `textwrap.TextWrapper`.
+                    # Manually handle first line.
+                    
+                    wrapper = textwrap.TextWrapper(
+                        width=line_length,
+                        initial_indent="", # We'll prepend sig manually
+                        subsequent_indent=subsequent_indent,
+                        break_long_words=False,
+                        break_on_hyphens=False
+                    )
+                    
+                    # Calculate available width for the first line
+                    # strict: `line_length` - `len(first_line_prefix)`
+                    remaining_first = line_length - len(first_line_prefix)
+                    
+                    if remaining_first < 10: # Heuristic: if very little space, force wrap?
+                        # Force wrap (same as Long Signature logic effectively)
+                        final_output.append(sig_part.rstrip())
+                        wrapped = textwrap.fill(
+                             desc_part,
+                             width=line_length,
+                             initial_indent=subsequent_indent,
+                             subsequent_indent=subsequent_indent,
+                             break_long_words=False,
+                             break_on_hyphens=False
+                        )
+                        final_output.extend(wrapped.splitlines())
+                    else:
+                        # Try to fit first chunk
+                        # We can construct the full text and define `initial_indent` as the signature?
+                        # But `textwrap` counts `initial_indent` length against `width`.
+                        # If `initial_indent` (signature) is long, it reduces separation.
+                        # This matches the requirement!
+                        # "Treat the whole description as the remaining contents" -> implies standard wrapping.
+                        
+                        # So:
+                        # filled = textwrap.fill(
+                        #    sig_part.strip() + " " + desc_part,
+                        #    width=line_length,
+                        #    initial_indent=indent_str,  <-- Wait, we want `sig_part` AS the indent?
+                        #    subsequent_indent=subsequent_indent
+                        # )
+                        # If we use `initial_indent=indent_str`, `textwrap` will put `sig...` after it.
+                        # It might break `sig...` if it has spaces.
+                        
+                        # We want `sig_part` to be treated as an atomic unit?
+                        # Not necessarily. Standard Google style:
+                        # arg (very long type): description
+                        # If type wraps? Usually types don't wrap in signature line.
+                        # They wrap indent+4.
+                        
+                        # The user requirement (1): "if the signature itself ... exceeded ... use them as 1st line".
+                        # This implies we DON'T want to wrap the signature itself.
+                        
+                        # So if we are in this `else` block (Case B), `sig_part` fits in `line_length`.
+                        # We want to keep it intact.
+                        
+                        # Let's try to construct a custom initial indent string: `sig_part + " "`.
+                        # But `sig_part` has `indent_str`.
+                        # So `full_sig = sig_part.rstrip() + " "`.
+                        # `textwrap.fill(desc_part, initial_indent=full_sig, subsequent_indent=subsequent_indent)`?
+                        # `textwrap` will treat `initial_indent` as literally indentation chars?
+                        # No, it just prepends it to the first line.
+                        # AND it counts its length.
+                        # This is EXACTLY what we want.
+                        
+                        full_sig = sig_part.rstrip() + " "
+                        
+                        # Note: `sig_part` already includes the leading indentation of the line (e.g. 4 spaces).
+                        # So `full_sig` is "    arg (type): ".
+                        # `subsequent_indent` is "        ".
+                        
+                        wrapped = textwrap.fill(
+                            desc_part,
+                            width=line_length,
+                            initial_indent=full_sig,
+                            subsequent_indent=subsequent_indent,
+                            break_long_words=False,
+                            break_on_hyphens=False
+                        )
+                        final_output.extend(wrapped.splitlines())
+
+            else:
+                # Normal text paragraph (Summary or Description continuation if failed detection)
+                # Just wrap it respecting current indent.
+                
+                # Pass 1 output paragraphs as single lines with indentation.
+                # e.g. "    Summary text..."
+                
+                # We want to re-wrap.
+                # initial_indent = indent_str
+                # subsequent_indent = indent_str
+                
+                # But wait, Pass 1 merged summary paragraphs.
+                # If it was the very first summary line, it might have `indent_str=""` (if we stripped it).
+                # `_pass1` logic:
+                # If first segment: `temp_out.append(merged)` (no indent explicitly added if first).
+                # If `merged` has no indent, `indent_str` is empty.
+                # `textwrap` will wrap with empty indent.
+                
+                # Correction: If indent_str is smaller than leading_indent (e.g. 0 for first line),
+                # subsequent lines MUST be indented to leading_indent.
+                
+                if lines and line is lines[0]:
+                    # User Request: For the very first line:
+                    # initial_indent should be indent_level (which has base+5 added).
+                    # subsequent_indent should be leading_indent.
+                    
+                    initial_indent_str = " " * indent_level
+                    subsequent_indent_str = " " * (leading_indent or 0)
+                    
+                    wrapped = textwrap.fill(
+                        line.strip(),
+                        width=line_length,
+                        initial_indent=initial_indent_str,
+                        subsequent_indent=subsequent_indent_str,
+                        break_long_words=False,
+                        break_on_hyphens=False
+                    )
+                    
+                    # Since we added artificial initial indentation to account for quotes,
+                    # we must strip it from the output string so it sits right after quotes.
+                    wrapped_lines = wrapped.splitlines()
+                    if wrapped_lines:
+                         wrapped_lines[0] = wrapped_lines[0].lstrip()
+                    final_output.extend(wrapped_lines)
+                
+                else:
+                    # Existing logic for other lines
+                    subsequent_indent = indent_str
+                    if leading_indent is not None and len(indent_str) < leading_indent:
+                        subsequent_indent = " " * leading_indent
+                    
+                    wrapped = textwrap.fill(
+                        line.strip(),
+                        width=line_length,
+                        initial_indent=indent_str,
+                        subsequent_indent=subsequent_indent,
+                        break_long_words=False,
+                        break_on_hyphens=False
+                    )
+                    final_output.extend(wrapped.splitlines())
+                
+    return "\n".join(final_output)
+
+
+
+
 def _is_google_signature(stripped_line: str) -> bool:
     """
     Check if a line looks like a Google style parameter signature.
@@ -427,13 +760,60 @@ def _is_google_signature(stripped_line: str) -> bool:
     if ":" not in stripped_line:
         return False
         
-    # Heuristic: split on first colon.
     sig, desc = _split_google_signature(stripped_line)
     
-    # If the part before colon contains invalid chars for a signature?
-    # Signatures can have spaces `name (type)`.
-    # They shouldn't be huge?
-    # Let's just trust the colon presence for now, assuming valid indentation context.
+    # Remove the trailing colon
+    sig_body = sig.rsplit(":", 1)[0].strip()
+    
+    if not sig_body:
+        return False
+
+    # Validation Logic:
+    # 1. Check for top-level commas (must be inside parens/brackets).
+    # 2. Check for number of top-level whitespace-separated tokens.
+    #    - Max 2 tokens.
+    #    - If 2 tokens, the second must start with '('.
+    
+    nesting = 0
+    tokens = []
+    current_token = []
+    
+    for char in sig_body:
+        if char in "([{":
+            nesting += 1
+            current_token.append(char)
+        elif char in ")]}":
+            nesting -= 1
+            current_token.append(char)
+        elif char == "," and nesting == 0:
+            # Top-level comma -> Not a signature (unless tuple in parens, covered above)
+            return False
+        elif char.isspace() and nesting == 0:
+            if current_token:
+                tokens.append("".join(current_token))
+                current_token = []
+        else:
+            current_token.append(char)
+            
+    if current_token:
+        tokens.append("".join(current_token))
+        
+    if nesting != 0:
+        return False # Unbalanced
+        
+    if len(tokens) > 2:
+        return False # Too many parts (likely a sentence)
+        
+    if len(tokens) == 2:
+        # Must be `name (type)` style
+        # First part: identifier
+        # Second part: starts with (
+        if not tokens[1].startswith("("):
+            return False
+            
+    # If 1 token, usually valid (arg or type).
+    # e.g. `arg` or `int` or `dict[str,int]`.
+    
     return True
 
 def _split_google_signature(line: str) -> tuple[str, str | None]:
