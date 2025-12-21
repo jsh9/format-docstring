@@ -326,7 +326,15 @@ def _pass1_unwrap_google_docstring(
                         else:
                             new_signature_line = signature_part
                         
+
+                        
                         # Add remaining segments
+                        
+                        # First, re-add trailing empty lines from the first segment (once)
+                        indent_str = " " * (current_item_indent + 4)
+                        for l in trailing_empty_lines:
+                             remaining_lines_to_append.append("")
+
                         for seg_lines, _ in segments[1:]:
                              # These need to be indented properly relative to the docstring base?
                              # Or relative to the item?
@@ -340,10 +348,8 @@ def _pass1_unwrap_google_docstring(
                              # Wait, segment_lines_by_wrappability returns lines as they were passed in.
                              # But we passed in dedented lines.
                              # So we need to re-add indentation.
-                             indent_str = " " * (current_item_indent + 4) # Heuristic: indent 4 spaces from item start
-                             for l in trailing_empty_lines:
-                                 remaining_lines_to_append.append("")
-
+                             
+                             # indent_str is already calculated above
                              for l in seg_lines:
                                  remaining_lines_to_append.append(indent_str + l if l.strip() else "")
 
@@ -432,11 +438,13 @@ def _pass2_wrap_google_docstring(
     segments = segment_lines_by_wrappability(lines)
     
     final_output: list[str] = []
+    is_first_line = True
     
     for seg_lines, is_wrappable in segments:
         if not is_wrappable:
             # Code blocks, tables, etc. Keep as is.
             final_output.extend(seg_lines)
+            is_first_line = False # Segments are non-empty
             continue
             
         # Wrappable text
@@ -451,7 +459,8 @@ def _pass2_wrap_google_docstring(
             stripped = line.lstrip()
             indent_str = line[:len(line) - len(stripped)]
             indent_level = len(indent_str)
-            if lines and line is lines[0]:
+            indent_level = len(indent_str)
+            if is_first_line:
                 indent_level += (leading_indent or 0) + 5
             
             # Check if signature
@@ -654,24 +663,7 @@ def _pass2_wrap_google_docstring(
                 # Normal text paragraph (Summary or Description continuation if failed detection)
                 # Just wrap it respecting current indent.
                 
-                # Pass 1 output paragraphs as single lines with indentation.
-                # e.g. "    Summary text..."
-                
-                # We want to re-wrap.
-                # initial_indent = indent_str
-                # subsequent_indent = indent_str
-                
-                # But wait, Pass 1 merged summary paragraphs.
-                # If it was the very first summary line, it might have `indent_str=""` (if we stripped it).
-                # `_pass1` logic:
-                # If first segment: `temp_out.append(merged)` (no indent explicitly added if first).
-                # If `merged` has no indent, `indent_str` is empty.
-                # `textwrap` will wrap with empty indent.
-                
-                # Correction: If indent_str is smaller than leading_indent (e.g. 0 for first line),
-                # subsequent lines MUST be indented to leading_indent.
-                
-                if lines and line is lines[0]:
+                if is_first_line:
                     # User Request: For the very first line:
                     # initial_indent should be indent_level (which has base+5 added).
                     # subsequent_indent should be leading_indent.
@@ -710,6 +702,8 @@ def _pass2_wrap_google_docstring(
                         break_on_hyphens=False
                     )
                     final_output.extend(wrapped.splitlines())
+            
+            is_first_line = False
                 
     return "\n".join(final_output)
 
