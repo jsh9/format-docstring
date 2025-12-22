@@ -1,42 +1,22 @@
 def func1():
-    """
+    """Examples:
+        >>> a = 2
+        >>> b = 3
 
+    Examples:
+        >>> c = 2
+        >>> d = 3
 
+    Examplesss:
+        >>> e = 2
+        >>> f = 3
 
-
-    Below is a formula that should not be wrapped. Here are some more contents that are arbitrary just to make the line length quite long so that we can test how it can be wrapped. This paragraph would end with two colons to signal that the contents below should not be wrapped::
-
-                        x^alpha * beta
-        y(x) = --------------------------------
-                      1       gamma^a * tau
-                    ------ + ---------------
-                     Dmax        Emin
-
-    where:
-        + x     = Something
-        + alpha = Something else
-        + beta  = Something beta
-        + a     = A thing
-        + gamma = The gamma
-
-    Args:
-        arg1 (int): Below is a formula that should not be wrapped. Here are
-            some more contents that are arbitrary just to make the line length
-            quite long so that we can test how it can be wrapped. This
-            paragraph would end with two colons to signal that the contents
-            below should not be wrapped::
-                            x^alpha * beta
-            y(x) = --------------------------------
-                        1       gamma^a * tau
-                        ------ + ---------------
-                        Dmax        Emin
-
-        arg2 (bool): Here is a table, and it should not be wrapped.
-
-            +------------+--------+------------+-------------+-------------+--------+-----+
-            | strain [%] | G/Gmax | strain [%] | damping [%] |  strain [%] | G/Gmax | ... |
-            +============+========+============+=============+=============+========+=====+
-            |    ...     |  ...   |    ...     |    ...      |    ...      |  ...   | ... |
-            +------------+--------+------------+-------------+-------------+--------+-----+
+    Examples:
+        Should not be wrapped, because of `>>> ` and `... `
+        >>> result = my_function(
+        ...     arg1=1,
+        ...     arg2=2,
+        ...     arg3=3,
+        ... )
     """
     pass

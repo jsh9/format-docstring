@@ -6,12 +6,12 @@ Example:
     >>> b = 3
 
 Examples:
-    >>> a = 2
-    >>> b = 3
+    >>> c = 2
+    >>> d = 3
 
 Examplesss:
-    >>> a = 2
-    >>> b = 3
+    >>> e = 2
+    >>> f = 3
 
 Examples:
     Should not be wrapped, because of `>>> ` and `... `
@@ -23,16 +23,17 @@ Examples:
 
 **********
 
-Examples:
+Example:
     >>> a = 2
     >>> b = 3
 
 Examples:
-    >>> a = 2
-    >>> b = 3
+    >>> c = 2
+    >>> d = 3
 
 Examplesss:
-    >>> a = 2 >>> b = 3
+    >>> e = 2
+    >>> f = 3
 
 Examples:
     Should not be wrapped, because of ``>>> `` and ``... ``

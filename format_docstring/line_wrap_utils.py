@@ -488,6 +488,15 @@ def segment_lines_by_wrappability(
             current_idx = literal_end_idx
             continue
 
+        # Check for doctest block
+        is_doctest, doctest_end_idx = is_doctest_block(lines, current_idx)
+        if is_doctest:
+            # Add doctest segment (not wrappable)
+            doctest_lines = lines[current_idx:doctest_end_idx]
+            segments.append((doctest_lines, False))
+            current_idx = doctest_end_idx
+            continue
+
         # Neither table, list, nor literal block - collect wrappable content
         start_idx = current_idx
         current_idx += 1
@@ -498,8 +507,9 @@ def segment_lines_by_wrappability(
             is_table, _ = is_rST_table(lines, current_idx)
             is_list, _ = is_bulleted_list(lines, current_idx)
             is_literal, _ = _is_literal_block_paragraph(lines, current_idx)
+            is_doctest, _ = is_doctest_block(lines, current_idx)
 
-            if is_table or is_list or is_literal:
+            if is_table or is_list or is_literal or is_doctest:
                 break
 
             current_idx += 1
@@ -849,6 +859,63 @@ def _is_continuation_line(line: str, list_item_indent: int) -> bool:
 
     # Must be indented more than the list item marker to be a continuation
     return line_indent > list_item_indent
+
+
+def is_doctest_block(
+    lines: list[str], start_idx: int
+) -> tuple[bool, int]:
+    """
+    Check if lines starting at start_idx form a Python doctest block.
+
+    A doctest block starts with '>>>' and includes subsequent lines
+    that also start with '>>>' or '...'.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The list of lines to check.
+    start_idx : int
+        The starting index to check from.
+
+    Returns
+    -------
+    tuple[bool, int]
+        (is_doctest, end_idx)
+    """
+    if start_idx >= len(lines):
+        return False, start_idx
+
+    line = lines[start_idx].strip()
+    if not line.startswith(">>>"):
+        return False, start_idx
+
+    # Found start of doctest block
+    current_idx = start_idx + 1
+    while current_idx < len(lines):
+        next_line = lines[current_idx].strip()
+        # Continue if it's a prompt '>>>', continuation '...', or empty?
+        # Standard doctest: '>>>' or '...'.
+        # Sometimes results don't have perfix, but that's hard to distinguish from normal text.
+        # Ideally we only capture the interactive session parts.
+        # But commonly examples include output without prefix.
+        # For wrapping purposes, catching the '>>>' and '...' sequence is the most critical/safe part.
+        # If we include output lines, we risk capturing normal text.
+        # However, usually output lines shouldn't be wrapped either?
+        # Let's stick to explicit '>>>' and '...' for now to be safe, 
+        # or maybe indentation-based continuation?
+        # If the next line is indentedSAME as the start line?
+        
+        # Simple heuristic: consecutive lines starting with `>>>` or `...`
+        if next_line.startswith(">>>") or next_line.startswith("..."):
+            current_idx += 1
+            continue
+            
+        # If line is empty, it breaks the block? 
+        # Or if it's output?
+        # Let's stop at non-matching line.
+        break
+
+    return True, current_idx
 
 
 def _is_literal_block_paragraph(
