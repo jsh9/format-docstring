@@ -322,7 +322,27 @@ def _pass1_unwrap_google_docstring(
                         # If signature line ended with space? It usually ends with colon.
                         # We want "Sig: Description".
                         if merged_text:
-                            new_signature_line = f"{signature_part} {merged_text}"
+                            # If merged text has paragraphs (newlines), we must re-indent valid paragraphs
+                            # to the item's continuation indent level so Pass 2 treats them as indented.
+                            merged_lines = merged_text.splitlines()
+                            
+                            # First line is inline, no indent needed (joined with signature)
+                            sig_combined = f"{signature_part} {merged_lines[0]}"
+                            
+                            if len(merged_lines) > 1:
+                                # Start with inline line
+                                parts = [sig_combined]
+                                indent_pad = " " * (current_item_indent + 4)
+                                
+                                for ml in merged_lines[1:]:
+                                    if ml.strip():
+                                        parts.append(indent_pad + ml)
+                                    else:
+                                        parts.append("")
+                                        
+                                new_signature_line = "\n".join(parts)
+                            else:
+                                new_signature_line = sig_combined
                         else:
                             new_signature_line = signature_part
 
