@@ -605,6 +605,25 @@ def _pass2_wrap_google_docstring(
                         )
                         final_output.extend(wrapped.splitlines())
                     else:
+                        
+                        # Heuristic: If the first word doesn't fit in the remaining space on the first line,
+                        # force wrap to the next line.
+                        # This prevents "Sig: VeryLongWord..." from overflowing the first line.
+                        first_word = desc_part.split()[0] if desc_part else ""
+                        if remaining_first < 10 or len(first_word) > remaining_first:
+                            # Force wrap
+                             final_output.append(sig_part.rstrip())
+                             wrapped = textwrap.fill(
+                                 desc_part,
+                                 width=line_length,
+                                 initial_indent=subsequent_indent,
+                                 subsequent_indent=subsequent_indent,
+                                 break_long_words=False,
+                                 break_on_hyphens=False
+                             )
+                             final_output.extend(wrapped.splitlines())
+                             continue
+
                         # Try to fit first chunk
                         # We can construct the full text and define `initial_indent` as the signature?
                         # But `textwrap` counts `initial_indent` length against `width`.
