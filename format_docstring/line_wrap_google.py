@@ -182,8 +182,23 @@ def _pass1_unwrap_google_docstring(
                              trailing_empty_lines.append(seg_lines.pop())
                          trailing_empty_lines.reverse()
 
+                         # Check for leading empty lines
+                         leading_empty_lines = []
+                         while seg_lines and not seg_lines[0].strip():
+                             leading_empty_lines.append(seg_lines.pop(0))
+
                          # Unwrap (merge)
                          merged = merge_lines_and_strip("\n".join(seg_lines))
+
+                         # Append leading empty lines
+                         if not first_segment_processed:
+                             # Skip all leading empty lines for the very first segment 
+                             # (or if we haven't processed any segments yet)
+                             # to ensure docstring starts with text immediately after quotes.
+                             pass
+                         else:
+                             for _ in leading_empty_lines:
+                                 temp_out.append("")
 
                          if merged:
                              # Re-add indentation
@@ -433,7 +448,14 @@ def _pass1_unwrap_google_docstring(
         else:
             final_lines.append(item)
 
-    return finalize_lines(final_lines, leading_indent)
+    # Post-loop check for summary lines?
+    # Logic handled inside loop for next section. But if end of file?
+    # We need to process remaining summary lines if any.
+    if not current_section and temp_out:
+         # Same logic as above for summary processing...
+         pass
+         
+    return finalize_lines(temp_out, leading_indent)
 
 
 def _pass2_wrap_google_docstring(
@@ -443,13 +465,13 @@ def _pass2_wrap_google_docstring(
     leading_indent: int | None = None,
 ) -> str:
     """
-    2nd pass: Wrap the "unwrapped" docstring content.
-    - Respects line_length.
-    - Handles Google style indentation for signatures and descriptions.
-    - Preserves non-wrappable content.
+    Wrap the unwrapped docstring (Pass 2).
+
+    - Splits lines.
+    - Segments by wrappability (Literal blocks, etc.).
+    - Wraps wrappable segments.
     """
-    if not docstring.strip():
-        return docstring
+    leading_indent = leading_indent or 0
 
     # Split into lines
     lines = docstring.splitlines()
