@@ -1,0 +1,38 @@
+LINE_LENGTH: 79
+
+**********
+Args:
+    arg1 (int): This is a normal parameter description.
+    arg2 (list[str]): This is a parameter with a very long description that needs to be wrapped because it exceeds the line length limit significantly and we want to ensure it looks good.
+    arg3 (Optional[Dict[str, Any]]): This parameter has a long type signature as well as a long description which makes it a good candidate for testing wrapping capabilities of the tool.
+
+Returns:
+    int: This is a return value description.
+    tuple[int, str]: This is a return value with a very long description that needs to be wrapped because it exceeds the line length limit significantly and we want to ensure it looks good.
+
+Raises:
+    ValueError: This is a raises description.
+    TypeError: This is a raises description with a very long text that needs to be wrapped because it exceeds the line length limit significantly and we want to ensure it looks good.
+
+**********
+
+Args:
+    arg1 (int): This is a normal parameter description.
+    arg2 (list[str]): This is a parameter with a very long description that
+        needs to be wrapped because it exceeds the line length limit
+        significantly and we want to ensure it looks good.
+    arg3 (Optional[Dict[str, Any]]): This parameter has a long type signature
+        as well as a long description which makes it a good candidate for
+        testing wrapping capabilities of the tool.
+
+Returns:
+    int: This is a return value description.
+    tuple[int, str]: This is a return value with a very long description that
+        needs to be wrapped because it exceeds the line length limit
+        significantly and we want to ensure it looks good.
+
+Raises:
+    ValueError: This is a raises description.
+    TypeError: This is a raises description with a very long text that needs to
+        be wrapped because it exceeds the line length limit significantly and
+        we want to ensure it looks good.

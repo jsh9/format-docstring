@@ -1,0 +1,101 @@
+LINE_LENGTH: 79
+
+**********
+class OuterClass:
+    """
+    This is the outermost class that contains other nested classes. It serves as a container for organizing related functionality and demonstrating how docstring formatting works across multiple levels of nesting.
+    """
+
+    class MiddleClass:
+        """
+        This is a middle-level class nested within OuterClass. It provides intermediate functionality and contains further nested classes with their own specific purposes and behaviors.
+        """
+
+        class InnerClass:
+            """
+            This is an inner class that is nested two levels deep. It handles specific operations that require this level of encapsulation and provides specialized methods for particular use cases.
+            """
+
+            class DeepestClass:
+                """
+                This is the deepest nested class in the hierarchy, four levels deep. It represents the most specialized functionality and demonstrates how docstring wrapping works at maximum nesting levels with proper indentation preservation.
+                """
+
+                def method(self):
+                    """
+                    A method within the deepest nested class that performs specific operations. This method docstring should also be properly wrapped while maintaining the deep indentation level of sixteen spaces.
+                    """
+
+                    def nested_method(self):
+                        """Yet another nested moethod within the deepest nested class that performs specific operations. This method docstring should also be properly wrapped while maintaining the deep indentation level of twenty spaces."""
+
+                        def another_nested_method(self):
+                            """Yet another nested moethod within the deepest nested class that performs specific operations. This method docstring should also be properly wrapped while maintaining the deep indentation level of twenty-four spaces.
+                            """
+                            pass
+
+                        pass
+
+                    pass
+
+**********
+
+class OuterClass:
+    """
+    This is the outermost class that contains other nested classes. It serves
+    as a container for organizing related functionality and demonstrating how
+    docstring formatting works across multiple levels of nesting.
+    """
+
+    class MiddleClass:
+        """
+        This is a middle-level class nested within OuterClass. It provides
+        intermediate functionality and contains further nested classes with
+        their own specific purposes and behaviors.
+        """
+
+        class InnerClass:
+            """
+            This is an inner class that is nested two levels deep. It handles
+            specific operations that require this level of encapsulation and
+            provides specialized methods for particular use cases.
+            """
+
+            class DeepestClass:
+                """
+                This is the deepest nested class in the hierarchy, four levels
+                deep. It represents the most specialized functionality and
+                demonstrates how docstring wrapping works at maximum nesting
+                levels with proper indentation preservation.
+                """
+
+                def method(self):
+                    """
+                    A method within the deepest nested class that performs
+                    specific operations. This method docstring should also be
+                    properly wrapped while maintaining the deep indentation
+                    level of sixteen spaces.
+                    """
+
+                    def nested_method(self):
+                        """
+                        Yet another nested moethod within the deepest nested
+                        class that performs specific operations. This method
+                        docstring should also be properly wrapped while
+                        maintaining the deep indentation level of twenty
+                        spaces.
+                        """
+
+                        def another_nested_method(self):
+                            """
+                            Yet another nested moethod within the deepest
+                            nested class that performs specific operations.
+                            This method docstring should also be properly
+                            wrapped while maintaining the deep indentation
+                            level of twenty-four spaces.
+                            """
+                            pass
+
+                        pass
+
+                    pass

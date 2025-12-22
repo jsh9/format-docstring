@@ -1,0 +1,40 @@
+LINE_LENGTH: 79
+
+**********
+args:
+    arg1 (int): This is a parameter
+
+returns:
+    int: This is the return value
+
+yields:
+    str: This is the yielded value
+
+raises:
+    ValueError: Some error
+
+examples:
+    Here are some examples
+
+notes:
+    Here are some notes
+
+**********
+
+Args:
+    arg1 (int): This is a parameter
+
+Returns:
+    int: This is the return value
+
+Yields:
+    str: This is the yielded value
+
+Raises:
+    ValueError: Some error
+
+Examples:
+    Here are some examples
+
+Notes:
+    Here are some notes

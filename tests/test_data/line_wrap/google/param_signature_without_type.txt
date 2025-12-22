@@ -1,0 +1,13 @@
+LINE_LENGTH: 79
+
+**********
+Args:
+    arg1: This is a parameter without a type signature. It should be wrapped normally.
+    arg2: This is another parameter without type.
+
+**********
+
+Args:
+    arg1: This is a parameter without a type signature. It should be wrapped
+        normally.
+    arg2: This is another parameter without type.

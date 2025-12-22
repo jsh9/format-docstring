@@ -322,13 +322,17 @@ Examples
     )
 
 
-DATA_DIR: Path = Path(__file__).parent / 'test_data/end_to_end/numpy'
+
+DATA_DIR_NUMPY: Path = Path(__file__).parent / 'test_data/end_to_end/numpy'
+DATA_DIR_GOOGLE: Path = Path(__file__).parent / 'test_data/end_to_end/google'
 
 
-def _load_end_to_end_test_cases() -> list[tuple[str, str, str, int]]:
+def _load_end_to_end_test_cases(
+    data_dir: Path,
+) -> list[tuple[str, str, str, int]]:
     """Load end-to-end test cases from test data files."""
     test_cases: list[tuple[str, str, str, int]] = []
-    for filepath in DATA_DIR.glob('*.txt'):
+    for filepath in data_dir.glob('*.txt'):
         loaded: tuple[str, str, str, int] | None = _load_test_case(filepath)
         if loaded is not None:
             test_cases.append(loaded)
@@ -390,7 +394,7 @@ def _load_test_case(filepath: Path) -> tuple[str, str, str, int] | None:
 
 @pytest.mark.parametrize(
     ('test_name', 'input_src', 'expected_src', 'line_length'),
-    _load_end_to_end_test_cases(),
+    _load_end_to_end_test_cases(DATA_DIR_NUMPY),
     ids=lambda case: case[0] if isinstance(case, tuple) else str(case),
 )
 def test_fix_src_end_to_end(
@@ -404,13 +408,31 @@ def test_fix_src_end_to_end(
     assert result == expected_src
 
 
+@pytest.mark.parametrize(
+    ('test_name', 'input_src', 'expected_src', 'line_length'),
+    _load_end_to_end_test_cases(DATA_DIR_GOOGLE),
+    ids=lambda case: case[0] if isinstance(case, tuple) else str(case),
+)
+def test_fix_src_end_to_end_google(
+    test_name: str,  # noqa: ARG001
+    input_src: str,
+    expected_src: str,
+    line_length: int,
+) -> None:
+    """Test end-to-end docstring rewriting with fix_src() function (Google)."""
+    result = docstring_rewriter.fix_src(
+        input_src, line_length=line_length, docstring_style='google'
+    )
+    assert result == expected_src
+
+
 def test_fix_src_single_case() -> None:
     """
     A placeholder test for easy debugging. You can replace the file name with
     the test case file that's producing errors.
     """
     _, before_src, after_src, line_length = _load_test_case(
-        DATA_DIR / 'single_line_docstring.txt'
+        DATA_DIR_NUMPY / 'single_line_docstring.txt'
     )
     out: str = docstring_rewriter.fix_src(before_src, line_length=line_length)
     assert out == after_src
