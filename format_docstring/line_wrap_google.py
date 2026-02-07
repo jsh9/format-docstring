@@ -731,22 +731,48 @@ def _pass2_wrap_google_docstring(
 
                     initial_indent_str = " " * indent_level
                     subsequent_indent_str = " " * (leading_indent or 0)
+                    
+                    # Check if fitting on the first line is feasible
+                    first_word = line.strip().split()[0] if line.strip() else ""
+                    # Heuristic: line_length vs indent_level + first_word
+                    if (indent_level + len(first_word)) > line_length:
+                         # Force start on next line
+                         # We append an empty string which `finalize_lines` will treat as a newline?
+                         # Or `final_output` is lines. `['', 'Text']`.
+                         
+                         # User Feedback: Avoid unnecessary blank lines.
+                         # Only append empty line if we aren't already at a "blank" state?
+                         # If final_output is empty, appending "" makes `\n`.
+                         # If final_output ends in "", appending "" makes `\n\n`.
+                         if not final_output or final_output[-1].strip() != "":
+                             final_output.append("")
+                         
+                         # Now wrap the content starting on a fresh line with LEAD_INDENT
+                         wrapped = textwrap.fill(
+                             line.strip(),
+                             width=line_length,
+                             initial_indent=subsequent_indent_str,
+                             subsequent_indent=subsequent_indent_str,
+                             break_long_words=False,
+                             break_on_hyphens=False
+                         )
+                         final_output.extend(wrapped.splitlines())
+                    else:
+                        wrapped = textwrap.fill(
+                            line.strip(),
+                            width=line_length,
+                            initial_indent=initial_indent_str,
+                            subsequent_indent=subsequent_indent_str,
+                            break_long_words=False,
+                            break_on_hyphens=False
+                        )
 
-                    wrapped = textwrap.fill(
-                        line.strip(),
-                        width=line_length,
-                        initial_indent=initial_indent_str,
-                        subsequent_indent=subsequent_indent_str,
-                        break_long_words=False,
-                        break_on_hyphens=False
-                    )
-
-                    # Since we added artificial initial indentation to account for quotes,
-                    # we must strip it from the output string so it sits right after quotes.
-                    wrapped_lines = wrapped.splitlines()
-                    if wrapped_lines:
-                         wrapped_lines[0] = wrapped_lines[0].lstrip()
-                    final_output.extend(wrapped_lines)
+                        # Since we added artificial initial indentation to account for quotes,
+                        # we must strip it from the output string so it sits right after quotes.
+                        wrapped_lines = wrapped.splitlines()
+                        if wrapped_lines:
+                             wrapped_lines[0] = wrapped_lines[0].lstrip()
+                        final_output.extend(wrapped_lines)
 
                 else:
                     # Existing logic for other lines
