@@ -306,7 +306,12 @@ def _pass1_unwrap_google_docstring(
             # And it must NOT be a continuation line (though strict differentiation is hard without lookbehind).
             # We'll use a heuristic: It looks like a signature if it starts with a word, optionally has parens, end with colon.
 
-            if _is_google_signature(stripped):
+            # Standardize default value format BEFORE signature detection
+            # This ensures "default: 3.14" becomes "default=3.14" so the colon doesn't confuse the signature parser
+            standardized_line = _standardize_default_value(line)
+            standardized_stripped = standardized_line.lstrip()
+
+            if _is_google_signature(standardized_stripped):
                 # Detected a signature line.
                 # Now we need to gobble up the description lines that follow.
                 # The description block consists of subsequent lines that are indented MORE than the current line,
@@ -322,7 +327,7 @@ def _pass1_unwrap_google_docstring(
                 # 4. If the first segment is wrappable text, merge it and append to signature.
                 # 5. Keep others as is.
 
-                signature_part, inline_desc = _split_google_signature(line)
+                signature_part, inline_desc = _split_google_signature(standardized_line)
 
                 current_item_indent = indent_length
                 description_lines: list[str] = []
@@ -1067,6 +1072,72 @@ def _is_google_signature(stripped_line: str) -> bool:
     # e.g. `arg` or `int` or `MyCustomType`.
 
     return True
+
+
+# Regex pattern to match various default value formats within parentheses
+# Matches: default 10, default is True, default: 3.14, default  :  {}, default=42
+_DEFAULT_VALUE_PATTERN = re.compile(
+    r'\bdefault\s*(?:is\s*|:\s*|=\s*)?\s*',
+    re.IGNORECASE
+)
+
+
+def _standardize_default_value(signature: str) -> str:
+    """
+    Standardize default value format to 'default=xxx'.
+    
+    Converts various formats:
+    - 'default 10' -> 'default=10'
+    - 'default is True' -> 'default=True'
+    - 'default: 3.14' -> 'default=3.14'
+    - 'default  :  {}' -> 'default={}'
+    - 'default=42' -> 'default=42' (already correct)
+    
+    Parameters
+    ----------
+    signature : str
+        A signature line like 'arg1 (int, default 10):'
+    
+    Returns
+    -------
+    str
+        The signature with standardized default value format.
+    """
+    # Find the parentheses content in the signature
+    # Pattern: name (type, default xxx):
+    paren_match = re.search(r'\(([^)]*)\)', signature)
+    if not paren_match:
+        return signature
+    
+    paren_content = paren_match.group(1)
+    
+    # Check if 'default' is in the parentheses
+    if 'default' not in paren_content.lower():
+        return signature
+    
+    # Find 'default' followed by various delimiters and value
+    # Pattern handles: default 10, default is value, default: value, default=value
+    # Also handles irregular spacing like 'default  :   {}'
+    # The pattern captures:
+    # - 'default' keyword
+    # - optional separator (is, :, =) with optional whitespace around it
+    # - the value (non-whitespace sequence)
+    default_pattern = re.compile(
+        r'\bdefault\s*(?:is\s+|:\s*|=)?(\S+)',
+        re.IGNORECASE
+    )
+    
+    def normalize_default(match: re.Match) -> str:
+        value = match.group(1)
+        return f'default={value}'
+    
+    new_paren_content = default_pattern.sub(normalize_default, paren_content)
+    
+    # Replace the old parentheses content with the new one
+    new_signature = signature[:paren_match.start(1)] + new_paren_content + signature[paren_match.end(1):]
+    
+    return new_signature
+
 
 def _split_google_signature(line: str) -> tuple[str, str | None]:
     """
