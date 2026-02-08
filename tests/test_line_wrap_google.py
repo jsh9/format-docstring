@@ -5,7 +5,7 @@ import pytest
 from format_docstring.docstring_rewriter import wrap_docstring
 from tests.helpers import load_case_from_file, load_cases_from_dir
 
-DATA_DIR: Path = Path(__file__).parent / 'test_data/line_wrap/haha'
+DATA_DIR: Path = Path(__file__).parent / 'test_data/line_wrap/google'
 
 
 @pytest.mark.parametrize(
