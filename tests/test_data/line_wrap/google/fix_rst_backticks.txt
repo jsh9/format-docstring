@@ -62,9 +62,9 @@ Notes:
 
     This section also contains rST roles like :emphasis:`word` and
     :strong:`bold` that should remain unchanged. Cross-references like
-    `Section`_ should not be modified, nor should anonymous refs like
-    `Docs`__. External links like `Python <https://www.python.org>`_ must also
-    stay as-is.
+    `Section`_ should not be modified, nor should anonymous refs like `Docs`__.
+    External links like `Python <https://www.python.org>`_ must also stay
+    as-is.
 
     Explicit targets like shown in the directive ``.. _`Special Target`:
     https://example.com/special`` should not be touched.
