@@ -63,21 +63,61 @@ def _pass1_unwrap_google_docstring(
     if not lines:
         return docstring_
 
-    # Constants and State
-    section_headers: Final[set[str]] = {
-        "args:",
-        "arguments:",
-        "parameters:",
-        "returns:",
-        "yields:",
-        "raises:",
-        "attributes:",
-        "examples:",
-        "note:",
-        "notes:",
-        "warning:",
-        "warnings:",
+    # Section header mappings: map variant spellings to canonical Google-style headers
+    # Google style uses "Args:" while NumPy style uses "Parameters:"
+    section_args: Final[set[str]] = {
+        "args:", "arg:",  # standard Google style
+        "arguments:", "argument:",
+        "parameters:", "parameter:",  # NumPy style variants
     }
+    section_returns: Final[set[str]] = {
+        "returns:", "return:",
+    }
+    section_yields: Final[set[str]] = {
+        "yields:", "yield:",
+    }
+    section_raises: Final[set[str]] = {
+        "raises:", "raise:",
+    }
+    section_attributes: Final[set[str]] = {
+        "attributes:", "attribute:",
+    }
+    section_examples: Final[set[str]] = {
+        "examples:", "example:",
+    }
+    section_notes: Final[set[str]] = {
+        "notes:", "note:",
+    }
+    section_warnings: Final[set[str]] = {
+        "warnings:", "warning:",
+    }
+    
+    # Mapping from any variant to canonical Google-style header
+    def get_canonical_header(header_lower: str) -> str | None:
+        """Return the canonical header for a variant, or None if not recognized."""
+        if header_lower in section_args:
+            return "Args:"
+        if header_lower in section_returns:
+            return "Returns:"
+        if header_lower in section_yields:
+            return "Yields:"
+        if header_lower in section_raises:
+            return "Raises:"
+        if header_lower in section_attributes:
+            return "Attributes:"
+        if header_lower in section_examples:
+            return "Examples:"
+        if header_lower in section_notes:
+            return "Notes:"
+        if header_lower in section_warnings:
+            return "Warnings:"
+        return None
+    
+    # All recognized section headers (for detection)
+    section_headers: Final[set[str]] = (
+        section_args | section_returns | section_yields | section_raises |
+        section_attributes | section_examples | section_notes | section_warnings
+    )
 
     temp_out: list[str | list[str]] = []
     i: int = 0
@@ -232,25 +272,26 @@ def _pass1_unwrap_google_docstring(
                         first_segment_processed = True # We have emitted content
 
             current_section = stripped.lower()
-            # Normalize section header to title case (e.g., "args:" -> "Args:")
-            # Preserve the original indentation
+            # Normalize section header to canonical Google-style form
+            # e.g., "parameter:" -> "Args:", "return:" -> "Returns:"
             indent = line[:len(line) - len(stripped)]
-            normalized_header = stripped.title()
-            temp_out.append(indent + normalized_header)
+            canonical = get_canonical_header(stripped.lower())
+            if canonical:
+                temp_out.append(indent + canonical)
+            else:
+                # Fallback: use title case if not recognized
+                temp_out.append(indent + stripped.title())
             i += 1
             continue
 
         # 2. Signature detection & Unwrapping
         # We only apply this logic inside specific sections
-        if current_section in {
-            "args:",
-            "arguments:",
-            "parameters:",
-            "returns:",
-            "yields:",
-            "raises:",
-            "attributes:",
-        }:
+        # Use section sets to support variant spellings (e.g., "parameter:", "return:")
+        sections_with_signatures = (
+            section_args | section_returns | section_yields |
+            section_raises | section_attributes
+        )
+        if current_section in sections_with_signatures:
             # Check if this line is a signature line.
             # Google style items are like: "  name (type): description" or "  name: description"
             # They must be indented relative to the section header.
