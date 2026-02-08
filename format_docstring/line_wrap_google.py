@@ -35,11 +35,17 @@ def wrap_docstring_google(
         leading_indent=leading_indent,
     )
 
-    return _pass2_wrap_google_docstring(
+    wrapped = _pass2_wrap_google_docstring(
         unwrapped,
         line_length=line_length,
         leading_indent=leading_indent,
     )
+    
+    if fix_rst_backticks:
+        from format_docstring.line_wrap_numpy import _fix_rst_backticks
+        wrapped = _fix_rst_backticks(wrapped)
+    
+    return wrapped
 
 
 def _pass1_unwrap_google_docstring(
@@ -502,6 +508,88 @@ def _pass1_unwrap_google_docstring(
          
     return finalize_lines(temp_out, leading_indent)
 
+def _join_paragraph_lines(
+    lines: list[str],
+    leading_indent: int | None,
+) -> list[str]:
+    """
+    Group consecutive non-signature lines into joined paragraphs.
+    
+    This prevents URLs and inline elements from being broken across lines
+    when individual lines are wrapped. Signatures (lines matching Google-style
+    parameter patterns) are kept separate.
+    
+    Parameters
+    ----------
+    lines : list[str]
+        The lines from a wrappable segment.
+    leading_indent : int | None
+        The leading indentation level.
+    
+    Returns
+    -------
+    list[str]
+        Lines with consecutive non-signature prose joined into single lines.
+    """
+    if not lines:
+        return lines
+    
+    result: list[str] = []
+    paragraph_lines: list[str] = []
+    paragraph_indent: str = ""
+    
+    def flush_paragraph() -> None:
+        """Join accumulated paragraph lines and add to result."""
+        nonlocal paragraph_lines, paragraph_indent
+        if paragraph_lines:
+            # Join stripped content with spaces
+            joined_content = " ".join(
+                line.lstrip() for line in paragraph_lines
+            )
+            # Re-apply the original paragraph indent
+            result.append(paragraph_indent + joined_content)
+            paragraph_lines = []
+            paragraph_indent = ""
+    
+    for line in lines:
+        if not line.strip():
+            # Empty line - flush current paragraph and preserve empty line
+            flush_paragraph()
+            result.append(line)
+            continue
+        
+        stripped = line.lstrip()
+        indent_str = line[:len(line) - len(stripped)]
+        
+        # Check if this is a signature line
+        is_sig = False
+        if not stripped.startswith(('"""', "'''")):
+            if leading_indent and len(indent_str) < (leading_indent or 0):
+                is_sig = False
+            else:
+                is_sig = _is_google_signature(stripped)
+        
+        if is_sig:
+            # Signature line - flush any accumulated paragraph and add signature
+            flush_paragraph()
+            result.append(line)
+        else:
+            # Non-signature line - accumulate for paragraph joining
+            if not paragraph_lines:
+                # First line of new paragraph - capture indent
+                paragraph_indent = indent_str
+            elif indent_str != paragraph_indent:
+                # Indent changed - flush previous paragraph and start new one
+                flush_paragraph()
+                paragraph_indent = indent_str
+            paragraph_lines.append(line)
+    
+    # Flush any remaining paragraph
+    flush_paragraph()
+    
+    return result
+
+
 
 def _pass2_wrap_google_docstring(
     docstring: str,
@@ -537,8 +625,12 @@ def _pass2_wrap_google_docstring(
         # Wrappable text
         # It consists of lines that Pass 1 merged (e.g. signature + inline desc)
         # or separate paragraphs.
+        
+        # Pre-process segment: Group consecutive non-signature lines into 
+        # joined paragraphs to prevent breaking URLs and inline elements.
+        processed_lines = _join_paragraph_lines(seg_lines, leading_indent)
 
-        for line in seg_lines:
+        for line in processed_lines:
             if not line.strip():
                 final_output.append(line)
                 continue
@@ -883,6 +975,14 @@ def _is_google_signature(stripped_line: str) -> bool:
     # But we want to ensure it's not JUST a colon.
 
     if ":" not in stripped_line:
+        return False
+    
+    # Reject lines that look like URLs or inline links
+    # - Starting with < (likely an inline URL like <https://...)
+    # - Starting with http: or https:
+    if (stripped_line.startswith("<") or 
+        stripped_line.startswith("http:") or
+        stripped_line.startswith("https:")):
         return False
 
     sig, desc = _split_google_signature(stripped_line)
