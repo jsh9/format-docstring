@@ -1,22 +1,12 @@
 def func1():
-    """Examples:
-        >>> a = 2
-        >>> b = 3
-
-    Examples:
-        >>> c = 2
-        >>> d = 3
-
-    Examplesss:
-        >>> e = 2
-        >>> f = 3
-
-    Examples:
-        Should not be wrapped, because of `>>> ` and `... `
-        >>> result = my_function(
-        ...     arg1=1,
-        ...     arg2=2,
-        ...     arg3=3,
-        ... )
-    """
-    pass
+    def func2():
+        def func3():
+            def func4():
+                """
+                This paragraph is indented by sixteen spaces. With a
+                small line-length, the available width after indentation
+                is tiny, so wrapping becomes very aggressive. The indent
+                is always preserved; words wrap as needed without mid-word
+                splitting.
+                """
+                pass
