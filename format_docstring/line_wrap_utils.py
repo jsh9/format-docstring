@@ -16,11 +16,25 @@ def add_leading_indent(docstring: str, leading_indent: int | None) -> str:
     If ``leading_indent`` is a positive integer and the docstring body doesn't
     already begin with ``"\n" + ' ' * leading_indent``, prepend it. Otherwise,
     return the docstring unchanged.
+    
+    If the first non-empty line already has at least ``leading_indent`` spaces,
+    the docstring is returned unchanged (content already has proper indentation).
     """
-    if leading_indent is not None:
+    if leading_indent is not None and leading_indent > 0:
         needed_prefix: str = '\n' + (' ' * leading_indent)
-        if not docstring.startswith(needed_prefix):
-            return needed_prefix + docstring
+        if docstring.startswith(needed_prefix):
+            return docstring
+        
+        # Check if first non-empty line already has sufficient indentation
+        for line in docstring.splitlines():
+            if line.strip():  # First non-empty line
+                existing_indent = len(line) - len(line.lstrip())
+                if existing_indent >= leading_indent:
+                    # Content already has proper indentation, don't add more
+                    return docstring
+                break
+        
+        return needed_prefix + docstring
 
     return docstring
 

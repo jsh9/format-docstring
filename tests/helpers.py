@@ -27,6 +27,7 @@ def load_cases_from_dir(data_dir: Path) -> list[tuple[str, int, str, str]]:
 
 
 def load_case_from_file(filename: Path) -> tuple[str, int, str, str]:
+    """Load a single test case from a file."""
     raw = filename.read_text(encoding='utf-8')
     first_nl = raw.find('\n')
     if first_nl == -1:

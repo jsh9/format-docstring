@@ -501,9 +501,17 @@ def _pass2_wrap_google_docstring(
             stripped = line.lstrip()
             indent_str = line[:len(line) - len(stripped)]
             indent_level = len(indent_str)
-            indent_level = len(indent_str)
             if is_first_line:
-                indent_level += (leading_indent or 0) + 5
+                # For first line, calculate total width for textwrap accounting for:
+                # - The line's own indentation (already in indent_level)
+                # - Additional leading_indent only if line indent < leading_indent
+                # - +5 for the opening """ and its quote
+                base_indent = leading_indent or 0
+                if indent_level < base_indent:
+                    # Line has less indent than expected, add the difference
+                    indent_level += (base_indent - indent_level)
+                # Add 5 for the opening """ position (3 quotes + space + 1)
+                indent_level += 5
 
             # Check if signature
             # Exclude lines starting with quotes (Summary start)
@@ -726,24 +734,20 @@ def _pass2_wrap_google_docstring(
 
                 if is_first_line:
                     # User Request: For the very first line:
-                    # initial_indent should be indent_level (which has base+5 added).
+                    # Use the line's actual indentation for wrapping (not the inflated indent_level).
+                    # The indent_level (with +5) is only used for the force-wrap check.
                     # subsequent_indent should be leading_indent.
 
-                    initial_indent_str = " " * indent_level
+                    # Use actual indent for wrapping - this is what the line will have
+                    actual_indent_str = indent_str
                     subsequent_indent_str = " " * (leading_indent or 0)
                     
                     # Check if fitting on the first line is feasible
+                    # Use indent_level (includes +5 for quotes) for this check
                     first_word = line.strip().split()[0] if line.strip() else ""
-                    # Heuristic: line_length vs indent_level + first_word
                     if (indent_level + len(first_word)) > line_length:
                          # Force start on next line
-                         # We append an empty string which `finalize_lines` will treat as a newline?
-                         # Or `final_output` is lines. `['', 'Text']`.
-                         
                          # User Feedback: Avoid unnecessary blank lines.
-                         # Only append empty line if we aren't already at a "blank" state?
-                         # If final_output is empty, appending "" makes `\n`.
-                         # If final_output ends in "", appending "" makes `\n\n`.
                          if not final_output or final_output[-1].strip() != "":
                              final_output.append("")
                          
@@ -758,21 +762,16 @@ def _pass2_wrap_google_docstring(
                          )
                          final_output.extend(wrapped.splitlines())
                     else:
+                        # Use actual indent for wrapping - produces correct line breaks
                         wrapped = textwrap.fill(
                             line.strip(),
                             width=line_length,
-                            initial_indent=initial_indent_str,
+                            initial_indent=actual_indent_str,
                             subsequent_indent=subsequent_indent_str,
                             break_long_words=False,
                             break_on_hyphens=False
                         )
-
-                        # Since we added artificial initial indentation to account for quotes,
-                        # we must strip it from the output string so it sits right after quotes.
-                        wrapped_lines = wrapped.splitlines()
-                        if wrapped_lines:
-                             wrapped_lines[0] = wrapped_lines[0].lstrip()
-                        final_output.extend(wrapped_lines)
+                        final_output.extend(wrapped.splitlines())
 
                 else:
                     # Existing logic for other lines
