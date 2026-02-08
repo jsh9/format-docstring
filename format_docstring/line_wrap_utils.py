@@ -511,19 +511,29 @@ def segment_lines_by_wrappability(
             current_idx = doctest_end_idx
             continue
 
+        # Check for fenced code block (```)
+        is_fence, fence_end_idx = is_code_fence(lines, current_idx)
+        if is_fence:
+            # Add code fence segment (not wrappable)
+            fence_lines = lines[current_idx:fence_end_idx]
+            segments.append((fence_lines, False))
+            current_idx = fence_end_idx
+            continue
+
         # Neither table, list, nor literal block - collect wrappable content
         start_idx = current_idx
         current_idx += 1
 
-        # Continue collecting wrappable lines until we hit a table/list/literal
+        # Continue collecting wrappable lines until we hit a table/list/literal/fence
         # or end
         while current_idx < len(lines):
             is_table, _ = is_rST_table(lines, current_idx)
             is_list, _ = is_bulleted_list(lines, current_idx)
             is_literal, _ = _is_literal_block_paragraph(lines, current_idx)
             is_doctest, _ = is_doctest_block(lines, current_idx)
+            is_fence, _ = is_code_fence(lines, current_idx)
 
-            if is_table or is_list or is_literal or is_doctest:
+            if is_table or is_list or is_literal or is_doctest or is_fence:
                 break
 
             current_idx += 1
@@ -533,6 +543,59 @@ def segment_lines_by_wrappability(
         segments.append((wrappable_lines, True))
 
     return segments
+
+
+def is_code_fence(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
+    """
+    Check if lines starting at start_idx form a fenced code block.
+
+    Fenced code blocks are delimited by triple backticks (```) or tildes (~~~).
+    The opening fence can optionally include a language identifier.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The list of lines to check.
+    start_idx : int, default=0
+        The starting index to check from.
+
+    Returns
+    -------
+    tuple[bool, int]
+        A tuple of (is_code_fence, end_idx) where is_code_fence indicates if a
+        code fence was found starting at start_idx, and end_idx is the index
+        after the closing fence line (or start_idx if no code fence found).
+
+    Examples
+    --------
+    >>> lines = ['```python', 'def foo():', '    pass', '```', 'more text']
+    >>> is_code_fence(lines, 0)
+    (True, 4)
+    >>> is_code_fence(lines, 4)
+    (False, 4)
+    """
+    if start_idx >= len(lines):
+        return False, start_idx
+
+    line = lines[start_idx]
+    stripped = line.lstrip()
+
+    # Check for opening fence (``` or ~~~)
+    if not (stripped.startswith("```") or stripped.startswith("~~~")):
+        return False, start_idx
+
+    # Determine the fence character used
+    fence_char = stripped[0]  # Either ` or ~
+    
+    # Find the closing fence
+    for i in range(start_idx + 1, len(lines)):
+        line_i = lines[i].lstrip()
+        if line_i.startswith(fence_char * 3) and line_i.rstrip() == fence_char * 3:
+            # Found closing fence
+            return True, i + 1
+
+    # No closing fence found - treat the rest as code block
+    return True, len(lines)
 
 
 def is_rST_table(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:  # noqa: N802

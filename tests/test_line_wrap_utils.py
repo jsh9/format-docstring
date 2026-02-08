@@ -7,6 +7,7 @@ from format_docstring.line_wrap_utils import (
     finalize_lines,
     fix_typos_in_section_headings,
     is_bulleted_list,
+    is_code_fence,
     is_rST_table,
     merge_lines_and_strip,
     process_temp_output,
@@ -1574,3 +1575,190 @@ def test_segment_lines_by_wrappability(
 ) -> None:
     result = segment_lines_by_wrappability(lines)
     assert result == expected_segments
+
+
+@pytest.mark.parametrize(
+    ('lines', 'start_idx', 'expected_is_fence', 'expected_end_idx'),
+    [
+        # Basic triple backtick code fence
+        (
+            [
+                '```',
+                'def foo():',
+                '    pass',
+                '```',
+            ],
+            0,
+            True,
+            4,
+        ),
+        # Code fence with language identifier
+        (
+            [
+                '```python',
+                'def foo():',
+                '    pass',
+                '```',
+            ],
+            0,
+            True,
+            4,
+        ),
+        # Triple tilde code fence
+        (
+            [
+                '~~~',
+                'code here',
+                '~~~',
+            ],
+            0,
+            True,
+            3,
+        ),
+        # Tilde fence with language identifier
+        (
+            [
+                '~~~bash',
+                'echo "hello"',
+                '~~~',
+            ],
+            0,
+            True,
+            3,
+        ),
+        # Code fence with indentation
+        (
+            [
+                '    ```',
+                '    def bar():',
+                '        return 1',
+                '    ```',
+            ],
+            0,
+            True,
+            4,
+        ),
+        # Not a code fence - doesn't start with ```
+        (
+            [
+                'regular text',
+                'more text',
+            ],
+            0,
+            False,
+            0,
+        ),
+        # Empty lines list
+        (
+            [],
+            0,
+            False,
+            0,
+        ),
+        # Invalid start index
+        (
+            ['```', 'code', '```'],
+            5,
+            False,
+            5,
+        ),
+        # Code fence starting at different index
+        (
+            [
+                'Some text before',
+                '```',
+                'code inside fence',
+                '```',
+                'text after',
+            ],
+            1,
+            True,
+            4,
+        ),
+        # Unclosed code fence - should treat rest as code block
+        (
+            [
+                '```',
+                'code without closing',
+                'more code',
+            ],
+            0,
+            True,
+            3,
+        ),
+        # Empty code fence
+        (
+            [
+                '```',
+                '```',
+            ],
+            0,
+            True,
+            2,
+        ),
+        # Code fence with multiple language specifiers (common in markdown)
+        (
+            [
+                '```python3',
+                'print("hello")',
+                '```',
+            ],
+            0,
+            True,
+            3,
+        ),
+        # Code fence with spaces after backticks
+        (
+            [
+                '```   ',
+                'content',
+                '```',
+            ],
+            0,
+            True,
+            3,
+        ),
+        # Line starting with `` (two backticks, not three)
+        (
+            [
+                '``not a fence``',
+                'regular text',
+            ],
+            0,
+            False,
+            0,
+        ),
+        # Single backtick - not a fence
+        (
+            [
+                '`inline code`',
+                'more text',
+            ],
+            0,
+            False,
+            0,
+        ),
+        # Code fence followed by more content
+        (
+            [
+                '```',
+                'code',
+                '```',
+                '',
+                'Normal paragraph',
+            ],
+            0,
+            True,
+            3,
+        ),
+    ],
+)
+def test_is_code_fence(
+        lines: list[str],
+        start_idx: int,
+        expected_is_fence: bool,
+        expected_end_idx: int,
+) -> None:
+    is_fence, end_idx = is_code_fence(lines, start_idx)
+    assert is_fence == expected_is_fence
+    assert end_idx == expected_end_idx
