@@ -881,18 +881,45 @@ def _is_google_signature(stripped_line: str) -> bool:
     if nesting != 0:
         return False # Unbalanced
 
-    if len(tokens) > 2:
+    # Filter out pipe operators (|) which are used for type unions
+    # e.g., "list[int] | None" -> tokens = ["list[int]", "|", "None"]
+    # We want meaningful tokens only for validation
+    meaningful_tokens = [t for t in tokens if t != "|"]
+    
+    if not meaningful_tokens:
+        return False
+
+    # Type hint detection: recognize type hints by their structural patterns
+    # Type hints typically:
+    # 1. Contain brackets [] (e.g., list[int], dict[str, Any])
+    # 2. Contain pipe operators | (e.g., str | None)
+    # 3. Are single identifiers (e.g., int, str, MyType)
+    # 4. Follow the pattern "name (type)" for Args
+    #
+    # In contrast, prose text is multiple plain words without brackets.
+    
+    has_brackets = "[" in sig_body
+    has_pipe = "|" in tokens
+    
+    if has_brackets or has_pipe:
+        # Contains type hint patterns - this is a valid signature
+        # Don't validate further since type annotations can be arbitrarily complex
+        return True
+    
+    # No brackets or pipes - use original logic for simple patterns
+    # like "arg_name" or "arg_name (type)"
+    if len(meaningful_tokens) > 2:
         return False # Too many parts (likely a sentence)
 
-    if len(tokens) == 2:
+    if len(meaningful_tokens) == 2:
         # Must be `name (type)` style
         # First part: identifier
         # Second part: starts with (
-        if not tokens[1].startswith("("):
+        if not meaningful_tokens[1].startswith("("):
             return False
 
     # If 1 token, usually valid (arg or type).
-    # e.g. `arg` or `int` or `dict[str,int]`.
+    # e.g. `arg` or `int` or `MyCustomType`.
 
     return True
 
