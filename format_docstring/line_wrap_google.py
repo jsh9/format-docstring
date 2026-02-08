@@ -232,7 +232,11 @@ def _pass1_unwrap_google_docstring(
                         first_segment_processed = True # We have emitted content
 
             current_section = stripped.lower()
-            temp_out.append(line)
+            # Normalize section header to title case (e.g., "args:" -> "Args:")
+            # Preserve the original indentation
+            indent = line[:len(line) - len(stripped)]
+            normalized_header = stripped.title()
+            temp_out.append(indent + normalized_header)
             i += 1
             continue
 
