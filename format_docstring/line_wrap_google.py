@@ -64,7 +64,26 @@ def _pass1_unwrap_google_docstring(
     - Unwraps descriptions onto the signature line, respecting preservation rules.
     """
     # 1. Base indentation
-    docstring_ = add_leading_indent(docstring, leading_indent)
+    # For Google style, check if content already has proper indentation
+    # before adding a leading indent prefix
+    if leading_indent is not None and leading_indent > 0:
+        # Check if first non-empty line already has sufficient indentation
+        needs_leading_indent = True
+        for line in docstring.splitlines():
+            if line.strip():  # First non-empty line
+                existing_indent = len(line) - len(line.lstrip())
+                if existing_indent >= leading_indent:
+                    # Content already has proper indentation
+                    needs_leading_indent = False
+                break
+        
+        if needs_leading_indent:
+            docstring_ = add_leading_indent(docstring, leading_indent)
+        else:
+            docstring_ = docstring
+    else:
+        docstring_ = add_leading_indent(docstring, leading_indent)
+    
     lines: list[str] = docstring_.splitlines()
     if not lines:
         return docstring_
@@ -215,7 +234,7 @@ def _pass1_unwrap_google_docstring(
                 # Dedent slightly for processing?
                 # Actually, `segment_lines_by_wrappability` looks for `::`
 
-                segments = segment_lines_by_wrappability(summary_lines_flat)
+                segments = segment_lines_by_wrappability(summary_lines_flat, style='google')
 
                 temp_out.clear()
                 first_segment_processed = False
@@ -371,7 +390,7 @@ def _pass1_unwrap_google_docstring(
                 processed_desc_lines = _dedent_lines(description_lines, current_item_indent)
 
                 # Segment
-                segments = segment_lines_by_wrappability(processed_desc_lines)
+                segments = segment_lines_by_wrappability(processed_desc_lines, style='google')
 
                 new_signature_line = signature_part
                 remaining_lines_to_append: list[str] = []
@@ -615,7 +634,7 @@ def _pass2_wrap_google_docstring(
     lines = docstring.splitlines()
 
     # Segment
-    segments = segment_lines_by_wrappability(lines)
+    segments = segment_lines_by_wrappability(lines, style='google')
 
     final_output: list[str] = []
     is_first_line = True

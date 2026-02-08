@@ -16,25 +16,11 @@ def add_leading_indent(docstring: str, leading_indent: int | None) -> str:
     If ``leading_indent`` is a positive integer and the docstring body doesn't
     already begin with ``"\n" + ' ' * leading_indent``, prepend it. Otherwise,
     return the docstring unchanged.
-    
-    If the first non-empty line already has at least ``leading_indent`` spaces,
-    the docstring is returned unchanged (content already has proper indentation).
     """
-    if leading_indent is not None and leading_indent > 0:
+    if leading_indent is not None:
         needed_prefix: str = '\n' + (' ' * leading_indent)
-        if docstring.startswith(needed_prefix):
-            return docstring
-        
-        # Check if first non-empty line already has sufficient indentation
-        for line in docstring.splitlines():
-            if line.strip():  # First non-empty line
-                existing_indent = len(line) - len(line.lstrip())
-                if existing_indent >= leading_indent:
-                    # Content already has proper indentation, don't add more
-                    return docstring
-                break
-        
-        return needed_prefix + docstring
+        if not docstring.startswith(needed_prefix):
+            return needed_prefix + docstring
 
     return docstring
 
@@ -424,6 +410,8 @@ def fix_typos_in_section_headings(lines: list[str]) -> list[str]:
 
 def segment_lines_by_wrappability(
         lines: list[str],
+        *,
+        style: str = 'numpy',
 ) -> list[tuple[list[str], bool]]:
     """
     Segment lines into chunks that can or cannot be wrapped.
@@ -431,11 +419,18 @@ def segment_lines_by_wrappability(
     Scans through the lines to detect rST tables, bulleted lists, and literal
     blocks (paragraphs following ::), which should not be wrapped. Other
     content can be wrapped.
+    
+    For Google-style docstrings, also detects doctest blocks (>>>) and fenced
+    code blocks (```), which are common in that style.
 
     Parameters
     ----------
     lines : list[str]
         The list of lines to segment.
+    style : str, default='numpy'
+        The docstring style being processed. Supported values:
+        - 'numpy': Detect tables, lists, and literal blocks only
+        - 'google': Additionally detect doctest blocks and fenced code blocks
 
     Returns
     -------
@@ -502,39 +497,45 @@ def segment_lines_by_wrappability(
             current_idx = literal_end_idx
             continue
 
-        # Check for doctest block
-        is_doctest, doctest_end_idx = is_doctest_block(lines, current_idx)
-        if is_doctest:
-            # Add doctest segment (not wrappable)
-            doctest_lines = lines[current_idx:doctest_end_idx]
-            segments.append((doctest_lines, False))
-            current_idx = doctest_end_idx
-            continue
+        # Check for doctest block (Google style only)
+        if style == 'google':
+            is_doctest, doctest_end_idx = is_doctest_block(lines, current_idx)
+            if is_doctest:
+                # Add doctest segment (not wrappable)
+                doctest_lines = lines[current_idx:doctest_end_idx]
+                segments.append((doctest_lines, False))
+                current_idx = doctest_end_idx
+                continue
 
-        # Check for fenced code block (```)
-        is_fence, fence_end_idx = is_code_fence(lines, current_idx)
-        if is_fence:
-            # Add code fence segment (not wrappable)
-            fence_lines = lines[current_idx:fence_end_idx]
-            segments.append((fence_lines, False))
-            current_idx = fence_end_idx
-            continue
+        # Check for fenced code block (``` - Google style only)
+        if style == 'google':
+            is_fence, fence_end_idx = is_code_fence(lines, current_idx)
+            if is_fence:
+                # Add code fence segment (not wrappable)
+                fence_lines = lines[current_idx:fence_end_idx]
+                segments.append((fence_lines, False))
+                current_idx = fence_end_idx
+                continue
 
         # Neither table, list, nor literal block - collect wrappable content
         start_idx = current_idx
         current_idx += 1
 
-        # Continue collecting wrappable lines until we hit a table/list/literal/fence
-        # or end
+        # Continue collecting wrappable lines until we hit a table/list/literal
+        # (or doctest/fence for Google style)
         while current_idx < len(lines):
             is_table, _ = is_rST_table(lines, current_idx)
             is_list, _ = is_bulleted_list(lines, current_idx)
             is_literal, _ = _is_literal_block_paragraph(lines, current_idx)
-            is_doctest, _ = is_doctest_block(lines, current_idx)
-            is_fence, _ = is_code_fence(lines, current_idx)
-
-            if is_table or is_list or is_literal or is_doctest or is_fence:
+            
+            if is_table or is_list or is_literal:
                 break
+            
+            if style == 'google':
+                is_doctest, _ = is_doctest_block(lines, current_idx)
+                is_fence, _ = is_code_fence(lines, current_idx)
+                if is_doctest or is_fence:
+                    break
 
             current_idx += 1
 

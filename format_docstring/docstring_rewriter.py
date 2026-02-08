@@ -680,19 +680,19 @@ def wrap_docstring(
     - 'numpy'  -> wrap_docstring_numpy
     - 'google' -> wrap_docstring_google
     """
-    # Infer leading_indent from the first non-empty line if not explicitly set
-    if leading_indent == 0:
-        for line in docstring.splitlines():
-            if line.strip():
-                leading_indent = len(line) - len(line.lstrip())
-                break
-
     style = (docstring_style or '').strip().lower()
     if style == 'google':
+        # For Google style, infer leading_indent from first non-empty line if not set
+        effective_leading_indent = leading_indent
+        if effective_leading_indent == 0:
+            for line in docstring.splitlines():
+                if line.strip():
+                    effective_leading_indent = len(line) - len(line.lstrip())
+                    break
         return wrap_docstring_google(
             docstring,
             line_length=line_length,
-            leading_indent=leading_indent,
+            leading_indent=effective_leading_indent,
             fix_rst_backticks=fix_rst_backticks,
             parameter_metadata=function_param_metadata,
             return_annotation=function_return_annotation,
