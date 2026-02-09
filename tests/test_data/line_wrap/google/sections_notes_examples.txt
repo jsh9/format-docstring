@@ -25,8 +25,8 @@ Examples:
 
 **********
 
-This summary is a very long sentence intended to exceed the line limit so that
-we can see how summary wrapping behaves outside of sections.
+This summary is a very long sentence intended to exceed the line limit so
+that we can see how summary wrapping behaves outside of sections.
 
 Args:
     arg1 (list[str] | None | int, default=3): Description for arg1 that is
@@ -52,3 +52,4 @@ Examples:
     ```
     very very very very very very very very very very very very very very long code that should stay as is
     ```
+

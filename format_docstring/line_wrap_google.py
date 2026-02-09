@@ -11,6 +11,10 @@ from format_docstring.line_wrap_utils import (
     segment_lines_by_wrappability,
 )
 
+# Width reserved for the opening triple quotes on the first line.
+# This accounts for: 3 chars for """ + up to 2 prefix chars (e.g., rf""" or ur""").
+GOOGLE_OPENING_QUOTES_WIDTH: Final[int] = 5
+
 
 def wrap_docstring_google(
     docstring: str,
@@ -913,26 +917,28 @@ def _pass2_wrap_google_docstring(
                              final_output.append("")
                          
                          # Now wrap the content starting on a fresh line with LEAD_INDENT
-                         wrapped = textwrap.fill(
+                         # Google style two-pass wrap: first line uses reduced width for """
+                         first_line_width = line_length - GOOGLE_OPENING_QUOTES_WIDTH
+                         wrapped_lines = _wrap_first_line_shorter(
                              line.strip(),
-                             width=line_length,
+                             first_line_width=first_line_width,
+                             subsequent_width=line_length,
                              initial_indent=subsequent_indent_str,
                              subsequent_indent=subsequent_indent_str,
-                             break_long_words=False,
-                             break_on_hyphens=False
                          )
-                         final_output.extend(wrapped.splitlines())
+                         final_output.extend(wrapped_lines)
                     else:
                         # Use actual indent for wrapping - produces correct line breaks
-                        wrapped = textwrap.fill(
+                        # Google style two-pass wrap: first line uses reduced width for """
+                        first_line_width = line_length - GOOGLE_OPENING_QUOTES_WIDTH
+                        wrapped_lines = _wrap_first_line_shorter(
                             line.strip(),
-                            width=line_length,
+                            first_line_width=first_line_width,
+                            subsequent_width=line_length,
                             initial_indent=actual_indent_str,
                             subsequent_indent=subsequent_indent_str,
-                            break_long_words=False,
-                            break_on_hyphens=False
                         )
-                        final_output.extend(wrapped.splitlines())
+                        final_output.extend(wrapped_lines)
 
                 else:
                     # Existing logic for other lines
@@ -955,6 +961,69 @@ def _pass2_wrap_google_docstring(
     return "\n".join(final_output)
 
 
+def _wrap_first_line_shorter(
+    text: str,
+    *,
+    first_line_width: int,
+    subsequent_width: int,
+    initial_indent: str,
+    subsequent_indent: str,
+) -> list[str]:
+    """
+    Wrap text with a shorter first line width (for Google-style opening quotes).
+    
+    The first physical line is wrapped to `first_line_width`, while all subsequent
+    lines are wrapped to `subsequent_width`. This accounts for the opening triple
+    quotes that appear on the same line as the first content.
+    
+    Parameters:
+        text: The text to wrap (should not include leading whitespace).
+        first_line_width: Maximum width for the first line.
+        subsequent_width: Maximum width for subsequent lines.
+        initial_indent: Indent string for the first line.
+        subsequent_indent: Indent string for subsequent lines.
+        
+    Returns:
+        A list of wrapped lines.
+    """
+    if not text.strip():
+        return [initial_indent + text] if text else []
+    
+    words = text.split()
+    if not words:
+        return []
+    
+    lines = []
+    current_line = initial_indent
+    current_width = first_line_width
+    is_first_line = True
+    
+    for word in words:
+        # Check if adding this word would exceed the line width
+        if current_line == initial_indent or current_line == subsequent_indent:
+            # Line is empty (just indent), add word directly
+            test_line = current_line + word
+        else:
+            test_line = current_line + ' ' + word
+        
+        if len(test_line) <= current_width:
+            current_line = test_line
+        else:
+            # Word doesn't fit, start a new line
+            if current_line.strip():  # Only add non-empty lines
+                lines.append(current_line)
+            
+            if is_first_line:
+                is_first_line = False
+                current_width = subsequent_width
+            
+            current_line = subsequent_indent + word
+    
+    # Add the last line if it has content
+    if current_line.strip():
+        lines.append(current_line)
+    
+    return lines
 
 
 def _is_google_signature(stripped_line: str) -> bool:
