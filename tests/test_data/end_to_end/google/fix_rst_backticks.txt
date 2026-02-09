@@ -132,8 +132,7 @@ def process_data(data, config=None):
 
 
 class DataProcessor:
-    """
-    Process and transform data using configurable ``pipelines``.
+    """Process and transform data using configurable ``pipelines``.
 
     This class provides methods for data processing using ``transform``,
     ``filter``, and ``aggregate`` operations.

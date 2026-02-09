@@ -92,8 +92,7 @@ from typing import Callable, Mapping
 
 
 class Widget:
-    """
-    Widget docstring.
+    """Widget docstring.
 
     Args:
         foo (dict[str, list[int]]): Primary value.
@@ -137,11 +136,11 @@ class Widget:
 
 
 class Both:
-    """
-    Both class docstring and __init__ docstring will have a Parameters section,
-    and this tool will format the type hints and default values in both
-    docstrings. Even though this is not best practice (and some linters will
-    report an error), it is out of the scope of this formatter to fix this.
+    """Both class docstring and __init__ docstring will have a Parameters
+    section, and this tool will format the type hints and default values in
+    both docstrings. Even though this is not best practice (and some linters
+    will report an error), it is out of the scope of this formatter to fix
+    this.
 
     Args:
         data (np.ndarray): The input data
@@ -156,8 +155,7 @@ class Both:
     important: bool = False
 
     def __init__(self, data: np.ndarray, metadata: dict[str, Any]) -> None:
-        """
-        Initialize the class.
+        """Initialize the class.
 
         Args:
             data (np.ndarray): The input data

@@ -70,8 +70,7 @@ from collections.abc import Generator, Iterator
 
 
 def yield_numbers() -> Iterator[int]:
-    """
-    Yield numbers.
+    """Yield numbers.
 
     Yields:
         Iterator[int]: Should match annotation.
@@ -80,8 +79,7 @@ def yield_numbers() -> Iterator[int]:
 
 
 def yield_named() -> Generator[int, None, None]:
-    """
-    Yield named.
+    """Yield named.
 
     Yields:
         result (int): Should match annotation.
@@ -90,8 +88,7 @@ def yield_named() -> Generator[int, None, None]:
 
 
 def yield_custom_type_1() -> Iterator['MyType1']:
-    """
-    Yield custom type.
+    """Yield custom type.
 
     Yields:
         Iterator['MyType1']
@@ -100,8 +97,7 @@ def yield_custom_type_1() -> Iterator['MyType1']:
 
 
 def yield_custom_type_2() -> Iterator[tuple['MyType1', "MyType2"]]:
-    """
-    Yield another custom type.
+    """Yield another custom type.
 
     Yields:
         Iterator[tuple['MyType1', "MyType2"]]: Combined values.
@@ -111,8 +107,7 @@ def yield_custom_type_2() -> Iterator[tuple['MyType1', "MyType2"]]:
 
 
 def yield_middle_non_none() -> Generator[int, str, None]:
-    """
-    Yield with send type.
+    """Yield with send type.
 
     Yields:
         int: Should match first annotation element, not send type.
@@ -121,8 +116,7 @@ def yield_middle_non_none() -> Generator[int, str, None]:
 
 
 def yield_last_non_none() -> Generator[int, None, str]:
-    """
-    Yield with return type.
+    """Yield with return type.
 
     Yields:
         int: Should match first annotation element, not return type.

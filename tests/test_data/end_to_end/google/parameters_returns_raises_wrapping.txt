@@ -24,8 +24,7 @@ def complex_function():
 **********
 
 def complex_function():
-    """
-    This is a function that does something.
+    """This is a function that does something.
 
     Args:
         alpha (list[tuple[int, str]] | None, optional): The alpha parameter

@@ -18,8 +18,7 @@ def func1(arg1: str, default: int = 2, _default: str = "value", default_: list[i
 
 **********
 def func1(arg1: str, default: int = 2, _default: str = "value", default_: list[int] | None = None) -> None:
-    """
-    Do something
+    """Do something
 
     Args:
         arg1 (str): Very very very very very very very very very very very very

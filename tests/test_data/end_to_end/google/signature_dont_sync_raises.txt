@@ -20,8 +20,7 @@ def func1() -> Any:
 **********
 
 def func1() -> Any:
-    """
-    Do something.
+    """Do something.
 
     This test case is to make sure the raised exceptions are not modified by
     this formatter.

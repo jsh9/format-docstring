@@ -34,8 +34,7 @@ def func1():
 def func1():
     def func2():
         def func3():
-            """
-            This summary is a very long sentence intended to exceed the line
+            """This summary is a very long sentence intended to exceed the line
             limit so that we can see how summary wrapping behaves outside of
             sections.
 

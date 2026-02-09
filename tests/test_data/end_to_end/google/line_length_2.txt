@@ -13,8 +13,7 @@ def example_function():
 **********
 
 def example_function():
-    """
-    This
+    """This
     line
     contains
     several

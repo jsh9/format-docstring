@@ -96,8 +96,7 @@ from typing import List
 
 
 def build_mapping() -> dict[str, str]:
-    """
-    Build mapping.
+    """Build mapping.
 
     Returns:
         dict[str, str]: Should match the function annotation.
@@ -106,8 +105,7 @@ def build_mapping() -> dict[str, str]:
 
 
 def compute_values() -> tuple[int, str, list[str]]:
-    """
-    Compute multiple outputs.
+    """Compute multiple outputs.
 
     Returns:
         int: First element.
@@ -118,8 +116,7 @@ def compute_values() -> tuple[int, str, list[str]]:
 
 
 def annotate_values() -> tuple[int, str, list[str]]:
-    """
-    Annotated tuple returns.
+    """Annotated tuple returns.
 
     Returns:
         primary (int): First element.
@@ -130,8 +127,7 @@ def annotate_values() -> tuple[int, str, list[str]]:
 
 
 def summarize() -> tuple[int, str, list[str]]:
-    """
-    Summarize values.
+    """Summarize values.
 
     Returns:
         tuple[int, str, list[str]]: Combined values.
@@ -140,8 +136,7 @@ def summarize() -> tuple[int, str, list[str]]:
 
 
 def custom_return_type_1() -> tuple['MyType1', "MyType2"]:
-    """
-    Do something
+    """Do something
 
     Returns:
         tuple['MyType1', "MyType2"]
@@ -150,8 +145,7 @@ def custom_return_type_1() -> tuple['MyType1', "MyType2"]:
 
 
 def custom_return_type_2() -> tuple['MyType1', "MyType2"]:
-    """
-    Do something
+    """Do something
 
     Returns:
         'MyType1': String
@@ -161,8 +155,7 @@ def custom_return_type_2() -> tuple['MyType1', "MyType2"]:
 
 
 def with_return_var_name_1() -> str:
-    """
-    Do something
+    """Do something
 
     Returns:
         result (str): The result
@@ -171,8 +164,7 @@ def with_return_var_name_1() -> str:
 
 
 def with_return_var_name_2() -> tuple[str, int, int]:
-    """
-    Do something
+    """Do something
 
     Returns:
         name (str): The name

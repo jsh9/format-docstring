@@ -32,8 +32,7 @@ def uses_cross_refs(
 **********
 
 def myfunc() -> MyClass:
-    """
-    Do something
+    """Do something
 
     Returns:
         MyClass: An instance of MyClass
@@ -45,8 +44,7 @@ def uses_cross_refs(
         thing: MyClass,
         creator: Callable[[MyClass], MyClass],
 ) -> MyClass:
-    """
-    Uses parameters and returns that reference rST roles.
+    """Uses parameters and returns that reference rST roles.
 
     Args:
         thing (MyClass): Object to transform.

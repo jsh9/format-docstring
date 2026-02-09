@@ -39,8 +39,7 @@ class ExampleClass:
 
 **********
 def example_function(arg1, arg2, arg3, arg4, arg5):
-    """
-    Example function demonstrating default value standardization.
+    """Example function demonstrating default value standardization.
 
     Args:
         arg1 (int, default=10): First argument with space-separated default.

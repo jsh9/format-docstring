@@ -16,8 +16,7 @@ class OuterClass:
 class OuterClass:
     class InnerClass:
         def deeply_nested_method(self):
-            """
-            This
+            """This
             paragraph
             is
             indented

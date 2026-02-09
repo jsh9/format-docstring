@@ -85,8 +85,7 @@ def func1():
 
 def func1():
     def func2():
-        """
-        Pre-wrapped texts are re-wrapped, and paragraphs are preserved.
+        """Pre-wrapped texts are re-wrapped, and paragraphs are preserved.
 
         Args:
             arg1 (str): It was the best of times, it was the worst of times, it

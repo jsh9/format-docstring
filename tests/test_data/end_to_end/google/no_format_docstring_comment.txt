@@ -40,10 +40,9 @@ def inline_comment():
 
 
 def comment_mixture():
-    """
-    Another docstring that would typically be wrapped by format-docstring but
-    should stay as-is because the opt-out comment appears after a separate noqa
-    directive on the following line.
+    """Another docstring that would typically be wrapped by format-docstring
+    but should stay as-is because the opt-out comment appears after a separate
+    noqa directive on the following line.
     """  # noqa: E501
     # no-format-docstring
     return 3
