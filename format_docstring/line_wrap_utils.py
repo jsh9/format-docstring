@@ -419,7 +419,7 @@ def segment_lines_by_wrappability(
     Scans through the lines to detect rST tables, bulleted lists, and literal
     blocks (paragraphs following ::), which should not be wrapped. Other
     content can be wrapped.
-    
+
     For Google-style docstrings, also detects doctest blocks (>>>) and fenced
     code blocks (```), which are common in that style.
 
@@ -527,10 +527,10 @@ def segment_lines_by_wrappability(
             is_table, _ = is_rST_table(lines, current_idx)
             is_list, _ = is_bulleted_list(lines, current_idx)
             is_literal, _ = _is_literal_block_paragraph(lines, current_idx)
-            
+
             if is_table or is_list or is_literal:
                 break
-            
+
             if style == 'google':
                 is_doctest, _ = is_doctest_block(lines, current_idx)
                 is_fence, _ = is_code_fence(lines, current_idx)
@@ -582,16 +582,19 @@ def is_code_fence(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
     stripped = line.lstrip()
 
     # Check for opening fence (``` or ~~~)
-    if not (stripped.startswith("```") or stripped.startswith("~~~")):
+    if not (stripped.startswith('```') or stripped.startswith('~~~')):
         return False, start_idx
 
     # Determine the fence character used
     fence_char = stripped[0]  # Either ` or ~
-    
+
     # Find the closing fence
     for i in range(start_idx + 1, len(lines)):
         line_i = lines[i].lstrip()
-        if line_i.startswith(fence_char * 3) and line_i.rstrip() == fence_char * 3:
+        if (
+            line_i.startswith(fence_char * 3)
+            and line_i.rstrip() == fence_char * 3
+        ):
             # Found closing fence
             return True, i + 1
 
@@ -939,14 +942,12 @@ def _is_continuation_line(line: str, list_item_indent: int) -> bool:
     return line_indent > list_item_indent
 
 
-def is_doctest_block(
-    lines: list[str], start_idx: int
-) -> tuple[bool, int]:
+def is_doctest_block(lines: list[str], start_idx: int) -> tuple[bool, int]:
     """
     Check if lines starting at start_idx form a Python doctest block.
 
-    A doctest block starts with '>>>' and includes subsequent lines
-    that also start with '>>>' or '...'.
+    A doctest block starts with '>>>' and includes subsequent lines that also
+    start with '>>>' or '...'.
 
     Parameters
     ----------
@@ -964,7 +965,7 @@ def is_doctest_block(
         return False, start_idx
 
     line = lines[start_idx].strip()
-    if not line.startswith(">>>"):
+    if not line.startswith('>>>'):
         return False, start_idx
 
     # Found start of doctest block
@@ -979,16 +980,16 @@ def is_doctest_block(
         # For wrapping purposes, catching the '>>>' and '...' sequence is the most critical/safe part.
         # If we include output lines, we risk capturing normal text.
         # However, usually output lines shouldn't be wrapped either?
-        # Let's stick to explicit '>>>' and '...' for now to be safe, 
+        # Let's stick to explicit '>>>' and '...' for now to be safe,
         # or maybe indentation-based continuation?
         # If the next line is indentedSAME as the start line?
-        
+
         # Simple heuristic: consecutive lines starting with `>>>` or `...`
-        if next_line.startswith(">>>") or next_line.startswith("..."):
+        if next_line.startswith('>>>') or next_line.startswith('...'):
             current_idx += 1
             continue
-            
-        # If line is empty, it breaks the block? 
+
+        # If line is empty, it breaks the block?
         # Or if it's output?
         # Let's stop at non-matching line.
         break

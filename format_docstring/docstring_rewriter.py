@@ -716,6 +716,7 @@ def wrap_docstring(
                 if line.strip():
                     effective_leading_indent = len(line) - len(line.lstrip())
                     break
+
         return wrap_docstring_google(
             docstring,
             line_length=line_length,

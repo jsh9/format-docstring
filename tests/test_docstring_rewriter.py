@@ -322,13 +322,12 @@ Examples
     )
 
 
-
 DATA_DIR_NUMPY: Path = Path(__file__).parent / 'test_data/end_to_end/numpy'
 DATA_DIR_GOOGLE: Path = Path(__file__).parent / 'test_data/end_to_end/google'
 
 
 def _load_end_to_end_test_cases(
-    data_dir: Path,
+        data_dir: Path,
 ) -> list[tuple[str, str, str, int]]:
     """Load end-to-end test cases from test data files."""
     test_cases: list[tuple[str, str, str, int]] = []
@@ -414,10 +413,10 @@ def test_fix_src_end_to_end(
     ids=lambda case: case[0] if isinstance(case, tuple) else str(case),
 )
 def test_fix_src_end_to_end_google(
-    test_name: str,  # noqa: ARG001
-    input_src: str,
-    expected_src: str,
-    line_length: int,
+        test_name: str,  # noqa: ARG001
+        input_src: str,
+        expected_src: str,
+        line_length: int,
 ) -> None:
     """
     Verify Google full-source rewrites use the real end-to-end fixtures.

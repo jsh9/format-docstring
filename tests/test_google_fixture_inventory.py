@@ -26,7 +26,9 @@ def _fixture_names(path: Path) -> set[str]:
 
 
 def test_google_fixture_inventory_matches_numpy_gold_standard() -> None:
-    """Google fixtures should track NumPy coverage except NumPy syntax cases."""
+    """
+    Google fixtures should track NumPy coverage except NumPy syntax cases.
+    """
     for fixture_group in ('line_wrap', 'end_to_end'):
         numpy_names = _fixture_names(TEST_DATA_DIR / fixture_group / 'numpy')
         google_names = _fixture_names(TEST_DATA_DIR / fixture_group / 'google')

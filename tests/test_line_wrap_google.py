@@ -47,8 +47,8 @@ def test_wrap_docstring_google(
 
 def test_wrap_docstring_google_single_case() -> None:
     """
-    A placeholder test for easy debugging. Replaces the file name with
-    the test case file that's producing errors if needed.
+    A placeholder test for easy debugging. Replaces the file name with the test
+    case file that's producing errors if needed.
     """
     # Example usage (uncomment if debugging specific file):
     # _, length, before, after = load_case_from_file(
@@ -130,8 +130,8 @@ def test_find_google_signature_colon(line: str, expected: int) -> None:
     ],
 )
 def test_normalize_google_signature_spacing(
-    line: str,
-    expected: str,
+        line: str,
+        expected: str,
 ) -> None:
     """
     Verify malformed Google signature spacing is canonicalized before wrapping.
@@ -144,7 +144,14 @@ def test_normalize_google_signature_spacing(
 
 
 @pytest.mark.parametrize(
-    ('text', 'first_line_width', 'subsequent_width', 'initial_indent', 'subsequent_indent', 'expected'),
+    (
+        'text',
+        'first_line_width',
+        'subsequent_width',
+        'initial_indent',
+        'subsequent_indent',
+        'expected',
+    ),
     [
         # Empty text returns empty list
         ('', 40, 50, '', '', []),
@@ -153,7 +160,14 @@ def test_normalize_google_signature_spacing(
         # Whitespace-only text returns indent + whitespace
         ('   ', 40, 50, '>>', '', ['>>   ']),
         # Single long word - no break
-        ('VeryLongUnbreakableWord', 10, 50, '', '', ['VeryLongUnbreakableWord']),
+        (
+            'VeryLongUnbreakableWord',
+            10,
+            50,
+            '',
+            '',
+            ['VeryLongUnbreakableWord'],
+        ),
         # Basic two-pass wrapping (first line shorter)
         (
             'one two three four five six',
@@ -188,7 +202,10 @@ def test_normalize_google_signature_spacing(
             40,
             '        ',
             '        ',
-            ['        This is an indented', '        paragraph that should wrap'],
+            [
+                '        This is an indented',
+                '        paragraph that should wrap',
+            ],
         ),
     ],
     ids=[
@@ -203,12 +220,12 @@ def test_normalize_google_signature_spacing(
     ],
 )
 def test_wrap_first_line_shorter(
-    text: str,
-    first_line_width: int,
-    subsequent_width: int,
-    initial_indent: str,
-    subsequent_indent: str,
-    expected: list[str],
+        text: str,
+        first_line_width: int,
+        subsequent_width: int,
+        initial_indent: str,
+        subsequent_indent: str,
+        expected: list[str],
 ) -> None:
     """Test _wrap_first_line_shorter with various inputs."""
     result = _wrap_first_line_shorter(
