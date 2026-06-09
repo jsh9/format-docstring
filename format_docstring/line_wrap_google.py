@@ -329,9 +329,13 @@ def _pass1_unwrap_google_docstring(
             # And it must NOT be a continuation line (though strict differentiation is hard without lookbehind).
             # We'll use a heuristic: It looks like a signature if it starts with a word, optionally has parens, end with colon.
 
-            # Standardize default value format BEFORE signature detection
-            # This ensures "default: 3.14" becomes "default=3.14" so the colon doesn't confuse the signature parser
-            standardized_line = _standardize_default_value(line)
+            # Normalize loose Google signatures before detection so forms like
+            # `arg(type):text` are parsed like well-formed `arg (type): text`.
+            # Without this, malformed spacing is preserved as part of the
+            # signature and the wrapping pass cannot repair it later.
+            standardized_line = _normalize_google_signature_spacing(
+                _standardize_default_value(line)
+            )
             standardized_stripped = standardized_line.lstrip()
 
             if _is_google_signature(standardized_stripped):
@@ -1024,6 +1028,68 @@ def _wrap_first_line_shorter(
         lines.append(current_line)
     
     return lines
+
+
+# Matches the signature prefix before the description delimiter, e.g.
+# `arg(type)` or `**kwargs(dict[str, Any])`. We capture the name and
+# parenthesized type separately so malformed spacing can be canonicalized
+# before the broader signature parser decides whether the line is an entry.
+_GOOGLE_TYPED_SIGNATURE_PATTERN = re.compile(
+    r'^(?P<indent>\s*)(?P<name>\*{0,2}[A-Za-z_]\w*)\s*'
+    r'(?P<type>\(.+\))$'
+)
+
+
+def _find_google_signature_colon(line: str) -> int:
+    """
+    Return the delimiter colon outside brackets and parentheses.
+
+    Google signatures use that colon to separate the signature from the
+    description. Skipping nested colons prevents rare type expressions from
+    being split in the middle before signature spacing is normalized for
+    malformed Google signature fixtures.
+    """
+    nesting = 0
+    for idx, char in enumerate(line):
+        if char in '([{':
+            nesting += 1
+        elif char in ')]}':
+            nesting -= 1
+        elif char == ':' and nesting == 0:
+            return idx
+    return -1
+
+
+def _normalize_google_signature_spacing(line: str) -> str:
+    """
+    Canonicalize spacing in a Google signature line before parsing.
+
+    This fixes loose forms such as ``arg(type):text`` and
+    ``arg (type) : text`` so the later signature splitter sees the same
+    shape as a well-formed Google entry. This is needed for the strengthened
+    ``colon_spacing_fix`` fixture, which now feeds malformed Google syntax
+    instead of only wrapping already-valid signatures. Lines without a
+    delimiter colon are left untouched because they are continuation text or
+    non-Google entries.
+    """
+    colon_index = _find_google_signature_colon(line)
+    if colon_index == -1:
+        return line
+
+    signature = line[:colon_index].rstrip()
+    description = line[colon_index + 1:].strip()
+
+    match = _GOOGLE_TYPED_SIGNATURE_PATTERN.fullmatch(signature)
+    if match:
+        signature = (
+            f"{match.group('indent')}{match.group('name')} "
+            f"{match.group('type')}"
+        )
+
+    if not description:
+        return f'{signature}:'
+
+    return f'{signature}: {description}'
 
 
 def _is_google_signature(stripped_line: str) -> bool:
