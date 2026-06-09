@@ -74,7 +74,6 @@ def main(
 
     # Validating style is handled by the rewriter or Click choice, but strictly speaking
     # we don't need to block non-numpy here anymore as rewriter supports google.
-    pass
 
     for path in paths:
         fixer = PythonFileFixer(

@@ -8,7 +8,7 @@ from format_docstring.line_wrap_google import (
     _normalize_google_signature_spacing,
     _wrap_first_line_shorter,
 )
-from tests.helpers import load_case_from_file, load_cases_from_dir
+from tests.helpers import load_cases_from_dir
 
 DATA_DIR: Path = Path(__file__).parent / 'test_data/line_wrap/google'
 
@@ -18,7 +18,7 @@ DATA_DIR: Path = Path(__file__).parent / 'test_data/line_wrap/google'
     load_cases_from_dir(DATA_DIR),
 )
 def test_wrap_docstring_google(
-        name: str,  # noqa: ARG001
+        name: str,
         line_length: int,
         before: str,
         after: str,
@@ -60,7 +60,6 @@ def test_wrap_docstring_google_single_case() -> None:
     #     docstring_style='google',
     # )
     # assert out.strip('\n') == after.strip('\n')
-    pass
 
 
 @pytest.mark.parametrize(

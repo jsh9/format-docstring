@@ -1,5 +1,5 @@
-import textwrap
 import re
+import textwrap
 from typing import Final
 
 from format_docstring.line_wrap_numpy import (
@@ -11,7 +11,6 @@ from format_docstring.line_wrap_utils import (
     add_leading_indent,
     finalize_lines,
     merge_lines_and_strip,
-    process_temp_output,
     segment_lines_by_wrappability,
 )
 
@@ -947,17 +946,10 @@ def _pass2_wrap_google_docstring(
 
             # Check if signature
             # Exclude lines starting with quotes (Summary start)
-            if stripped.startswith(('"""', "'''")):
+            if stripped.startswith(('"""', "'''")) or (leading_indent and indent_level < leading_indent):
                 is_sig = False
             else:
-                # Check indentation: Signatures must be indented >= leading_indent
-                # (unless leading_indent is None/0, but typically it is set).
-                # Summary start (on first line) has 0 indent.
-                # Sections/Signatures are at least at base indent.
-                if leading_indent and indent_level < leading_indent:
-                    is_sig = False
-                else:
-                    is_sig = _is_google_signature(stripped)
+                is_sig = _is_google_signature(stripped)
 
             if is_sig:
                 # It is a signature line, possibly with merged description.
@@ -1168,50 +1160,49 @@ def _pass2_wrap_google_docstring(
                         )
                         final_output.extend(wrapped.splitlines())
 
+            # Normal text paragraph (Summary or Description continuation if failed detection)
+            # Just wrap it respecting current indent.
+
+            elif is_first_line:
+                actual_indent_str = indent_str
+                subsequent_indent_str = ' ' * (leading_indent or 0)
+                opening_width = (
+                    GOOGLE_COMPACT_OPENING_QUOTES_WIDTH
+                    if compact_first_line
+                    else GOOGLE_OPENING_QUOTES_WIDTH
+                )
+                first_line_width = max(
+                    1,
+                    line_length - (leading_indent or 0) - opening_width,
+                )
+                wrapped_lines = _wrap_first_line_shorter(
+                    line.strip(),
+                    first_line_width=first_line_width,
+                    subsequent_width=line_length,
+                    initial_indent=actual_indent_str,
+                    subsequent_indent=subsequent_indent_str,
+                )
+                final_output.extend(wrapped_lines)
+
             else:
-                # Normal text paragraph (Summary or Description continuation if failed detection)
-                # Just wrap it respecting current indent.
+                # Existing logic for other lines
+                subsequent_indent = indent_str
+                if (
+                    not opening_quotes_on_own_line
+                    and leading_indent is not None
+                    and len(indent_str) < leading_indent
+                ):
+                    subsequent_indent = ' ' * leading_indent
 
-                if is_first_line:
-                    actual_indent_str = indent_str
-                    subsequent_indent_str = ' ' * (leading_indent or 0)
-                    opening_width = (
-                        GOOGLE_COMPACT_OPENING_QUOTES_WIDTH
-                        if compact_first_line
-                        else GOOGLE_OPENING_QUOTES_WIDTH
-                    )
-                    first_line_width = max(
-                        1,
-                        line_length - (leading_indent or 0) - opening_width,
-                    )
-                    wrapped_lines = _wrap_first_line_shorter(
-                        line.strip(),
-                        first_line_width=first_line_width,
-                        subsequent_width=line_length,
-                        initial_indent=actual_indent_str,
-                        subsequent_indent=subsequent_indent_str,
-                    )
-                    final_output.extend(wrapped_lines)
-
-                else:
-                    # Existing logic for other lines
-                    subsequent_indent = indent_str
-                    if (
-                        not opening_quotes_on_own_line
-                        and leading_indent is not None
-                        and len(indent_str) < leading_indent
-                    ):
-                        subsequent_indent = ' ' * leading_indent
-
-                    wrapped = textwrap.fill(
-                        line.strip(),
-                        width=line_length,
-                        initial_indent=indent_str,
-                        subsequent_indent=subsequent_indent,
-                        break_long_words=False,
-                        break_on_hyphens=False,
-                    )
-                    final_output.extend(wrapped.splitlines())
+                wrapped = textwrap.fill(
+                    line.strip(),
+                    width=line_length,
+                    initial_indent=indent_str,
+                    subsequent_indent=subsequent_indent,
+                    break_long_words=False,
+                    break_on_hyphens=False,
+                )
+                final_output.extend(wrapped.splitlines())
 
             is_first_line = False
 
