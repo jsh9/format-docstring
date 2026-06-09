@@ -48,9 +48,6 @@ def test_wrap_docstring_google_single_case() -> None:
     pass
 
 
-
-
-
 @pytest.mark.parametrize(
     ('text', 'first_line_width', 'subsequent_width', 'initial_indent', 'subsequent_indent', 'expected'),
     [

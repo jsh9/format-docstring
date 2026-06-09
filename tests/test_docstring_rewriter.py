@@ -325,6 +325,7 @@ Examples
 
 DATA_DIR_NUMPY: Path = Path(__file__).parent / 'test_data/end_to_end/numpy'
 DATA_DIR_GOOGLE: Path = Path(__file__).parent / 'test_data/end_to_end/google'
+DATA_DIR_HAHA: Path = Path(__file__).parent / 'test_data/end_to_end/haha'
 
 
 def _load_end_to_end_test_cases(
@@ -410,7 +411,7 @@ def test_fix_src_end_to_end(
 
 @pytest.mark.parametrize(
     ('test_name', 'input_src', 'expected_src', 'line_length'),
-    _load_end_to_end_test_cases(DATA_DIR_GOOGLE),
+    _load_end_to_end_test_cases(DATA_DIR_HAHA),
     ids=lambda case: case[0] if isinstance(case, tuple) else str(case),
 )
 def test_fix_src_end_to_end_google(
