@@ -946,7 +946,9 @@ def _pass2_wrap_google_docstring(
 
             # Check if signature
             # Exclude lines starting with quotes (Summary start)
-            if stripped.startswith(('"""', "'''")) or (leading_indent and indent_level < leading_indent):
+            if stripped.startswith(('"""', "'''")) or (
+                leading_indent and indent_level < leading_indent
+            ):
                 is_sig = False
             else:
                 is_sig = _is_google_signature(stripped)
