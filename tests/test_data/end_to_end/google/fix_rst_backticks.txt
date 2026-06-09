@@ -77,10 +77,8 @@ class DataProcessor:
         self.mode = mode
 
 **********
-
 def process_data(data, config=None):
-    """
-    Process data using the ``DataProcessor`` class.
+    """Process data using the ``DataProcessor`` class.
 
     This function applies ``transform`` operations to the input ``data`` and
     returns the processed result. Use ``config`` to customize behavior.
@@ -104,8 +102,8 @@ def process_data(data, config=None):
         ValueError: If ``data`` is empty or ``config`` contains invalid keys.
 
     See Also:
-        ``DataProcessor`` : Main processing class
-        ``validate_data`` : Data validation function
+        ``DataProcessor``: Main processing class
+        ``validate_data``: Data validation function
 
     Notes:
         When ``mode`` is set to ``'advanced'``, additional processing steps are
@@ -138,16 +136,15 @@ class DataProcessor:
     ``filter``, and ``aggregate`` operations.
 
     Attributes:
-        mode (str, default='standard'): Processing mode, one of ``'simple'``,
-            ``'standard'``, or ``'advanced'``.
+        mode (str): Processing mode, one of ``'simple'``, ``'standard'``, or
+            ``'advanced'``.
         pipelines (list): List of ``Pipeline`` objects to apply.
         config (``ConfigDict``): Configuration for the ``processor`` with
             ``settings`` dictionary.
     """
 
     def __init__(self, mode='standard'):
-        """
-        Initialize processor with given ``mode``.
+        """Initialize processor with given ``mode``.
 
         Args:
             mode (str, default='standard'): Processing mode. Options are

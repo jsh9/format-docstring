@@ -325,7 +325,6 @@ Examples
 
 DATA_DIR_NUMPY: Path = Path(__file__).parent / 'test_data/end_to_end/numpy'
 DATA_DIR_GOOGLE: Path = Path(__file__).parent / 'test_data/end_to_end/google'
-DATA_DIR_HAHA: Path = Path(__file__).parent / 'test_data/end_to_end/haha'
 
 
 def _load_end_to_end_test_cases(
@@ -411,7 +410,7 @@ def test_fix_src_end_to_end(
 
 @pytest.mark.parametrize(
     ('test_name', 'input_src', 'expected_src', 'line_length'),
-    _load_end_to_end_test_cases(DATA_DIR_HAHA),
+    _load_end_to_end_test_cases(DATA_DIR_GOOGLE),
     ids=lambda case: case[0] if isinstance(case, tuple) else str(case),
 )
 def test_fix_src_end_to_end_google(
@@ -420,7 +419,12 @@ def test_fix_src_end_to_end_google(
     expected_src: str,
     line_length: int,
 ) -> None:
-    """Test end-to-end docstring rewriting with fix_src() function (Google)."""
+    """
+    Verify Google full-source rewrites use the real end-to-end fixtures.
+
+    These fixtures cover behavior that line-wrap-only cases cannot exercise,
+    including quote placement, metadata sync, and literal width accounting.
+    """
     result = docstring_rewriter.fix_src(
         input_src, line_length=line_length, docstring_style='google'
     )

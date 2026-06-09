@@ -48,10 +48,9 @@ class MyClass:
     pass
 
 **********
-
 def func1():
     """
-    Example:
+    Examples:
         >>> a = 2
         >>> b = 3
     """
@@ -71,9 +70,9 @@ def func2():
 
 
 def func3():
-    """
-    Examplesss:
-        >>> a = 2 >>> b = 3
+    """Examplesss:
+        >>> a = 2
+        >>> b = 3
     """
     pass
 

@@ -56,13 +56,12 @@ def example_function(arg1, arg2, arg3, arg4, arg5):
 
 
 class ExampleClass:
-    """
-    Example class demonstrating default value standardization in class methods.
+    """Example class demonstrating default value standardization in class
+    methods.
     """
 
     def method_with_defaults(self, opt1, opt2, opt3):
-        """
-        Method with various default value formats.
+        """Method with various default value formats.
 
         Args:
             opt1 (dict[str, int], default={}): Option with irregular spacing

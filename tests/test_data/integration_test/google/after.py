@@ -1,6 +1,5 @@
 class Alpha:
-    """
-    Class Alpha performs an operation with a very long explanation meant
+    """Class Alpha performs an operation with a very long explanation meant
     to exceed the configured line length so that we can verify wrapping and
     indentation handling even when the docstring does not begin with a newline
     before the first word.
@@ -9,8 +8,7 @@ class Alpha:
     CONSTANT_WITH_LONG_VALUE = 'THIS_IS_A_LONG_CONSTANT_VALUE_THAT_SHOULD_NOT_BE_TOUCHED_BY_THE_FORMATTER_EVEN_IF_IT_IS_VERY_LONG'
 
     def method(self, x, y):
-        """
-        This method processes the inputs x and y and returns a computed
+        """This method processes the inputs x and y and returns a computed
         result while demonstrating that long lines in docstrings wrap correctly
         and that the closing quotes align on their own line.
         """
@@ -20,8 +18,7 @@ class Alpha:
 
 
 def beta(a, b):
-    """
-    This is a function with a long one-line docstring that intentionally
+    """This is a function with a long one-line docstring that intentionally
     exceeds the maximum line length to ensure wrapping occurs and that a
     leading newline is inserted when needed.
     """
@@ -30,8 +27,7 @@ def beta(a, b):
 
 
 def gamma():
-    """
-    This function starts with a newline and contains a very long line
+    """This function starts with a newline and contains a very long line
     intended to be wrapped across multiple lines while preserving indentation
     and moving the closing quotes to their own properly indented line.
     """

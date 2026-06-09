@@ -41,7 +41,8 @@ Examples:
     ... # and set the `threshold` value
 
 **********
-This function uses ``foo`` to process data. The ``bar`` parameter is optional.
+This function uses ``foo`` to process data. The ``bar`` parameter is
+optional.
 
 Args:
     arg1 (str): Use ``method_name`` to access this value.

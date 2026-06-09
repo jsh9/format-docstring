@@ -238,6 +238,8 @@ def _collect_param_metadata(
 def _collect_class_metadata(
         node: ast.ClassDef,
         source_code: str,
+        *,
+        include_type_comments: bool = False,
 ) -> tuple[ParameterMetadata, ParameterMetadata]:
     """
     Build metadata for class docstrings using ``__init__`` and class attrs.
@@ -276,8 +278,17 @@ def _collect_class_metadata(
             if not isinstance(assign_target, ast.Name):
                 continue
 
-            # Record that this attribute explicitly has no annotation/default.
-            attribute_metadata[assign_target.id] = ('', None)
+            type_comment = (
+                getattr(stmt, 'type_comment', None)
+                if include_type_comments
+                else None
+            )
+            if type_comment:
+                attribute_metadata[assign_target.id] = (type_comment, None)
+            else:
+                # Record that this attribute explicitly has no annotation or
+                # default that should be projected into the docstring.
+                attribute_metadata[assign_target.id] = ('', None)
 
     return init_metadata, attribute_metadata
 
@@ -459,10 +470,20 @@ def build_replacement_docstring(
     # indentation.
     leading_indent: int = getattr(val, 'col_offset', 0)
 
+    literal_exceeds_line = (
+        docstring_style.strip().lower() == 'google'
+        and val.lineno == end_lineno
+        and end_col_offset > line_length
+    )
     # Only enforce leading/trailing newline+indent for multi-line docstrings
-    # or when wrapping will occur. Keep short single-line docstrings unchanged.
+    # or when wrapping will occur. For Google style, also account for cases
+    # where only the quotes and source indentation push a one-liner over the
+    # limit, because the Google wrapper keeps content beside the opening
+    # quotes and aligns the closing quotes itself.
     leading_indent_: int | None = (
-        leading_indent if ('\n' in doc or len(doc) > line_length) else None
+        leading_indent
+        if ('\n' in doc or len(doc) > line_length or literal_exceeds_line)
+        else None
     )
 
     param_metadata: ParameterMetadata | None = None
@@ -473,7 +494,11 @@ def build_replacement_docstring(
         return_annotation = _render_signature_piece(node.returns, source_code)
     elif isinstance(node, ast.ClassDef):
         init_metadata, class_attr_metadata = _collect_class_metadata(
-            node, source_code
+            node,
+            source_code,
+            include_type_comments=(
+                docstring_style.strip().lower() == 'google'
+            ),
         )
         if init_metadata:
             param_metadata = init_metadata
@@ -490,6 +515,7 @@ def build_replacement_docstring(
         function_param_metadata=param_metadata,
         function_return_annotation=return_annotation,
         class_attribute_metadata=attribute_metadata,
+        compact_google_docstring=True,
     )
 
     new_literal: str | None = rebuild_literal(original_literal, wrapped)
@@ -642,6 +668,7 @@ def wrap_docstring(
         function_param_metadata: ParameterMetadata | None = None,
         function_return_annotation: str | None = None,
         class_attribute_metadata: ParameterMetadata | None = None,
+        compact_google_docstring: bool = False,
 ) -> str:
     """
     Wrap a docstring to the given line length (stub).
@@ -697,6 +724,7 @@ def wrap_docstring(
             parameter_metadata=function_param_metadata,
             return_annotation=function_return_annotation,
             attribute_metadata=class_attribute_metadata,
+            compact_first_line=compact_google_docstring,
         )
     # Default to NumPy-style for unknown/unspecified styles to be permissive.
     return wrap_docstring_numpy(

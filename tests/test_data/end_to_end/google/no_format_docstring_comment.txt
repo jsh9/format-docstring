@@ -24,11 +24,10 @@ def inline_only_marker():
 
 **********
 def format_me():
-    """
-    This summary line is intentionally extremely long to trigger the formatter
-    and should normally be wrapped into multiple lines by default behavior but
-    should be reformatted because the opt-out comment is not on the closing
-    line.
+    """This summary line is intentionally extremely long to trigger the
+    formatter and should normally be wrapped into multiple lines by default
+    behavior but should be reformatted because the opt-out comment is not on
+    the closing line.
     """
     # no-format-docstring
     return 1

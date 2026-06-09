@@ -13,11 +13,11 @@ def func1():
                                     def func10():
                                         """
                                         Args:
-                                            arg1 (dict[str, list[str]]): First argument with missing space before colon.
-                                            arg2 (dict[str, list[str]]): Second argument with extra space after colon.
-                                            arg3 (Optional[int]): Third argument with no spaces around colon.
-                                            *args (Any): Variable positional arguments.
-                                            **kwargs (dict[str, Any]): Variable keyword arguments.
+                                            arg1(dict[str, list[str]]):First argument with missing space before type parentheses and after colon.
+                                            arg2 (dict[str, list[str]]) :  Second argument with extra space before and after colon.
+                                            arg3(Optional[int]):Third argument with no spaces around type parentheses or colon.
+                                            *args(Any):Variable positional arguments.
+                                            **kwargs(dict[str, Any]):Variable keyword arguments.
                                         """
                                         return None
 
@@ -34,18 +34,19 @@ def func1():
                                     def func10():
                                         """
                                         Args:
-                                            arg1 (dict[str, list[str]]): First
-                                                argument with missing space
-                                                before colon.
-                                            arg2 (dict[str, list[str]]): Second
-                                                argument with extra space after
-                                                colon.
+                                            arg1 (dict[str, list[str]]):
+                                                First argument with missing
+                                                space before type parentheses
+                                                and after colon.
+                                            arg2 (dict[str, list[str]]):
+                                                Second argument with extra
+                                                space before and after colon.
                                             arg3 (Optional[int]): Third
                                                 argument with no spaces around
-                                                colon.
+                                                type parentheses or colon.
                                             *args (Any): Variable positional
                                                 arguments.
-                                            **kwargs (dict[str, Any]): Variable
-                                                keyword arguments.
+                                            **kwargs (dict[str, Any]):
+                                                Variable keyword arguments.
                                         """
                                         return None

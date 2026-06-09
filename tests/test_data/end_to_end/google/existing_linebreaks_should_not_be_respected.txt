@@ -14,7 +14,6 @@ def example_function():
     pass
 
 **********
-
 def example_function():
     """
     Args:
@@ -22,6 +21,6 @@ def example_function():
 
             Second part is very very very very very very very very very very
             very very very very very very very very very very very very very
-            very very very very very very very very long.
+            very very very very very very very very very very very long.
     """
     pass

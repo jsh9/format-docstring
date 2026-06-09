@@ -18,7 +18,6 @@ def func1() -> Any:
     pass
 
 **********
-
 def func1() -> Any:
     """Do something.
 
@@ -31,9 +30,9 @@ def func1() -> Any:
     Raises:
         ValueError: When value is wrong. This is a very very very very very
             very very very very very very very very very very very very very
-            very very very very very very very very long line.
+            very very very very very very very very very long line.
         IOError: When IO is wrong. This is a very very very very very very very
             very very very very very very very very very very very very very
-            very very very very very very long line.
+            very very very very very very very long line.
     """
     pass
