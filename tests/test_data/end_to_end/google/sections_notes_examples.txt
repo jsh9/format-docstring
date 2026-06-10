@@ -54,8 +54,7 @@ def func1():
                 very very very very long
 
                 >>> very_long_call_name(with_many, arguments, making, the_line, waaaaaaaaaaaaaaaaaaaay, too, long)
-                Here is an example that is very very very very very very very
-                very very very very long
+                Here is an example that is very very very very very very very very very very very long
 
                 Here is another example:
                 ```

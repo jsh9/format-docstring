@@ -45,11 +45,9 @@ Examples:
     very very long
 
     >>> very_long_call_name(with_many, arguments, making, the_line, waaaaaaaaaaaaaaaaaaaay, too, long)
-    Here is an example that is very very very very very very very very very
-    very very long
+    Here is an example that is very very very very very very very very very very very long
 
     Here is another example:
     ```
     very very very very very very very very very very very very very very long code that should stay as is
     ```
-

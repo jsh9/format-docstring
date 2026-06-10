@@ -952,9 +952,9 @@ def is_doctest_block(lines: list[str], start_idx: int) -> tuple[bool, int]:
     Check if lines starting at start_idx form a Python doctest block.
 
     A doctest block starts with '>>>' and includes subsequent prompts,
-    continuation prompts, and common doctest output lines. Output detection is
-    intentionally conservative so ordinary prose following an example can still
-    be wrapped.
+    continuation prompts, and their output. Once a prompt starts a doctest,
+    preserve following non-empty output lines until a blank line or another
+    docstring section boundary.
 
     Parameters
     ----------
@@ -978,54 +978,71 @@ def is_doctest_block(lines: list[str], start_idx: int) -> tuple[bool, int]:
     current_idx = start_idx + 1
     while current_idx < len(lines):
         next_line = lines[current_idx].strip()
-        if next_line.startswith('>>>') or next_line.startswith('...'):
-            current_idx += 1
-            continue
+        if not next_line:
+            break
 
-        if _is_doctest_output_line(next_line):
-            current_idx += 1
-            continue
+        # Doctest output can be arbitrary prose, not just repr-like values.
+        # Stop only at section boundaries so prose output stays byte-for-byte
+        # while the next docstring section can still be wrapped normally.
+        if _is_docstring_section_boundary(lines, current_idx):
+            break
 
-        break
+        current_idx += 1
 
     return True, current_idx
 
 
-def _is_doctest_output_line(stripped_line: str) -> bool:
+def _is_docstring_section_boundary(lines: list[str], idx: int) -> bool:
     """
-    Return True for common doctest output lines.
+    Return True when ``idx`` starts a known docstring section.
 
-    The accepted shapes are deliberately narrow: they cover repr-like output
-    that must not be reflowed while letting ordinary prose after a prompt stay
-    wrappable.
+    Doctest preservation uses this as its only non-blank stopping point. That
+    keeps plain text output intact without swallowing the rest of the
+    docstring after an example block.
     """
-    if not stripped_line:
+    stripped = lines[idx].strip()
+    if not stripped:
         return False
 
-    if stripped_line in {'True', 'False', 'None', 'Ellipsis'}:
+    normalized = stripped.rstrip(':').lower()
+    known_sections = {
+        'args',
+        'arg',
+        'arguments',
+        'argument',
+        'attributes',
+        'attribute',
+        'examples',
+        'example',
+        'notes',
+        'note',
+        'other parameters',
+        'other parameter',
+        'parameters',
+        'parameter',
+        'raises',
+        'raise',
+        'returns',
+        'return',
+        'warnings',
+        'warning',
+        'yields',
+        'yield',
+    }
+
+    if stripped.endswith(':') and normalized in known_sections:
         return True
 
-    if stripped_line.startswith(
-            (
-                '{',
-                '[',
-                '(',
-                "'",
-                '"',
-                '<',
-                'Traceback (most recent call last):',
-            )
-    ):
-        return True
+    next_idx = idx + 1
+    if next_idx >= len(lines):
+        return False
 
-    numeric_pattern = r'[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?'
-    if re.fullmatch(numeric_pattern, stripped_line):
-        return True
-
-    if re.fullmatch(r'[A-Za-z_][\w.]*Error:.*', stripped_line):
-        return True
-
-    return False
+    underline = lines[next_idx].strip()
+    return (
+        normalized in known_sections
+        and len(underline) >= 2
+        and set(underline) <= {'-'}
+    )
 
 
 def _is_literal_block_paragraph(

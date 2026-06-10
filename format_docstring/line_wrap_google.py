@@ -578,6 +578,21 @@ def _pass1_unwrap_google_docstring(
                     )  # We might need to dedent this for processing?
                     j += 1
 
+                if (
+                    is_return_section
+                    and inline_desc is None
+                    and any(
+                        desc_line.strip()
+                        for desc_line in description_lines
+                    )
+                    and not signature_part.rstrip().endswith(':')
+                ):
+                    # Bare return types need a delimiter once pass one pulls
+                    # their indented description inline; otherwise pass two
+                    # would emit words as ``type description`` instead of
+                    # preserving the Google ``type: description`` shape.
+                    signature_part = f'{signature_part.rstrip()}:'
+
                 # Process the collected description
                 # We need to compute the "common indent" of the description lines to treat them as text blocks.
                 # But wait, we want to unwrap onto the signature line.
@@ -937,6 +952,10 @@ def _pass2_wrap_google_docstring(
 
     final_output: list[str] = []
     is_first_line = True
+    # ``_is_google_signature`` is intentionally broad. Track section state so
+    # labels in Notes/Examples/custom sections wrap as prose instead of taking
+    # Args-style continuation indentation.
+    in_signature_section = False
     # Track custom bare sections only for wrapping width. Pass one already
     # stopped signature parsing; pass two still needs to wrap custom-section
     # prose without treating the source indentation as part of the text budget.
@@ -970,11 +989,15 @@ def _pass2_wrap_google_docstring(
             indent_level = len(indent_str)
             if _is_google_section_header(stripped):
                 custom_section_indent = None
+                in_signature_section = _is_google_signature_section_header(
+                    stripped
+                )
             elif (
                 _is_google_unknown_section_header(stripped)
                 and indent_level <= leading_indent
             ):
                 custom_section_indent = indent_level
+                in_signature_section = False
             elif (
                 custom_section_indent is not None
                 and indent_level <= custom_section_indent
@@ -995,8 +1018,10 @@ def _pass2_wrap_google_docstring(
 
             # Check if signature
             # Exclude lines starting with quotes (Summary start)
-            if stripped.startswith(('"""', "'''")) or (
-                leading_indent and indent_level < leading_indent
+            if (
+                not in_signature_section
+                or stripped.startswith(('"""', "'''"))
+                or (leading_indent and indent_level < leading_indent)
             ):
                 is_sig = False
             else:
@@ -1219,7 +1244,21 @@ def _pass2_wrap_google_docstring(
             # Normal text paragraph (Summary or Description continuation if failed detection)
             # Just wrap it respecting current indent.
 
-            elif is_first_line:
+            else:
+                if (
+                    not in_signature_section
+                    and not _is_google_section_header(stripped)
+                    and _is_google_signature(stripped)
+                ):
+                    # Preserve existing colon-spacing cleanup for label-like
+                    # prose, but keep it on the normal prose wrapping path so
+                    # sections such as Notes do not gain signature indents.
+                    line = _normalize_google_signature_spacing(line)
+                    stripped = line.lstrip()
+                    indent_str = line[: len(line) - len(stripped)]
+                    indent_level = len(indent_str)
+
+            if not is_sig and is_first_line:
                 actual_indent_str = indent_str
                 subsequent_indent_str = ' ' * (leading_indent or 0)
                 opening_width = (
@@ -1240,7 +1279,7 @@ def _pass2_wrap_google_docstring(
                 )
                 final_output.extend(wrapped_lines)
 
-            else:
+            elif not is_sig:
                 # Existing logic for other lines
                 subsequent_indent = indent_str
                 wrap_width = line_length
@@ -1407,6 +1446,31 @@ _GOOGLE_KNOWN_TYPE_NAMES: Final[set[str]] = {
 def _is_google_section_header(line: str) -> bool:
     """Return True when ``line`` is a recognized Google section header."""
     return line.strip().lower() in _GOOGLE_SECTION_HEADERS
+
+
+def _is_google_signature_section_header(line: str) -> bool:
+    """
+    Return True for sections whose entries use Google signatures.
+
+    Pass two uses this to distinguish real signature rows from label-like
+    prose such as ``Warning:`` in ``Notes:``.
+    """
+    return line.strip().lower() in {
+        'args:',
+        'arg:',
+        'arguments:',
+        'argument:',
+        'parameters:',
+        'parameter:',
+        'returns:',
+        'return:',
+        'yields:',
+        'yield:',
+        'raises:',
+        'raise:',
+        'attributes:',
+        'attribute:',
+    }
 
 
 def _is_google_unknown_section_header(stripped_line: str) -> bool:

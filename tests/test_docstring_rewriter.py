@@ -406,8 +406,9 @@ def test_fix_src_end_to_end(
     Verify NumPy full-source rewrites use the real end-to-end fixtures.
 
     These fixtures cover behavior that line-wrap-only cases cannot exercise,
-    including AST metadata sync, quote placement, and non-ASCII literal width
-    accounting during source replacement.
+    including AST metadata sync, return signature/description sync, quote
+    placement, and non-ASCII literal width accounting during source
+    replacement.
     """
     result = docstring_rewriter.fix_src(input_src, line_length=line_length)
     assert result == expected_src
@@ -428,8 +429,8 @@ def test_fix_src_end_to_end_google(
     Verify Google full-source rewrites use the real end-to-end fixtures.
 
     These fixtures cover behavior that line-wrap-only cases cannot exercise,
-    including quote placement, metadata sync, literal width accounting, and
-    custom section boundaries after signature sections.
+    including quote placement, metadata sync, bare return descriptions, literal
+    width accounting, and custom section boundaries after signature sections.
     """
     result = docstring_rewriter.fix_src(
         input_src, line_length=line_length, docstring_style='google'
