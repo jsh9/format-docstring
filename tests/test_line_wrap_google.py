@@ -31,12 +31,6 @@ def test_wrap_docstring_google(
     this assertion fixture-driven lets those subtle syntax differences be
     documented in the input/output examples without duplicating test bodies.
     """
-    if name == 'texts_are_rewrapped.txt':
-        pytest.xfail(
-            'Fails in pytest environment but works in mini_repro '
-            '(line length issue)'
-        )
-
     out = wrap_docstring(
         before, line_length=line_length, docstring_style='google'
     )

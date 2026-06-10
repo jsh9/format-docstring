@@ -3,22 +3,22 @@ LINE_LENGTH: 79
 **********
 def func():
     """
-    Args:
+    ParaMEter:
         arg1 (str): This is a parameter
 
-    Returns:
+    Return:
         int: This is the return value
 
-    Yields:
+    Yield:
         str: This is the yielded value
 
-    Raises:
+    Raise:
         ValueError: Some error
 
-    Examples:
+    example:
         Here are some examples
 
-    Notes:
+    NOTES:
         Here are some notes
     """
     pass
