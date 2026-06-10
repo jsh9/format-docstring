@@ -1,0 +1,11 @@
+LINE_LENGTH: 40
+
+**********
+        This indented paragraph should wrap cleanly and must not leave a whitespace-only line at the end.
+
+**********
+
+        This indented
+        paragraph should wrap cleanly
+        and must not leave a
+        whitespace-only line at the end.

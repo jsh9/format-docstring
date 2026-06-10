@@ -36,7 +36,7 @@ def test_wrap_docstring_google(
     )
     # We ignore the leading and trailing newlines here, because we'll check
     # those newlines in test_fix_src_end_to_end() in test_docstring_rewriter.py
-    assert out.strip('\n').rstrip() == after.strip('\n').rstrip()
+    assert out.strip('\n') == after.strip('\n')
 
 
 def test_wrap_docstring_google_single_case() -> None:

@@ -516,6 +516,7 @@ def build_replacement_docstring(
         function_return_annotation=return_annotation,
         class_attribute_metadata=attribute_metadata,
         compact_google_docstring=True,
+        append_google_closing_indent=True,
     )
 
     new_literal: str | None = rebuild_literal(original_literal, wrapped)
@@ -669,6 +670,7 @@ def wrap_docstring(
         function_return_annotation: str | None = None,
         class_attribute_metadata: ParameterMetadata | None = None,
         compact_google_docstring: bool = False,
+        append_google_closing_indent: bool = False,
 ) -> str:
     """
     Wrap a docstring to the given line length (stub).
@@ -695,6 +697,9 @@ def wrap_docstring(
     class_attribute_metadata : ParameterMetadata | None, default=None
         Attribute metadata for class docstrings (names mapped to annotations
         and default values) collected from class-level assignments.
+    append_google_closing_indent : bool, default=False
+        If True, Google-style wrapping appends the indentation needed before
+        closing quotes in rebuilt docstring literals.
 
     Returns
     -------
@@ -721,6 +726,7 @@ def wrap_docstring(
             docstring,
             line_length=line_length,
             leading_indent=effective_leading_indent,
+            append_closing_indent=append_google_closing_indent,
             fix_rst_backticks=fix_rst_backticks,
             parameter_metadata=function_param_metadata,
             return_annotation=function_return_annotation,

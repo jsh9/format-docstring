@@ -1,0 +1,19 @@
+LINE_LENGTH: 40
+
+**********
+class Example:
+    def method(self):
+        """
+        This indented paragraph should wrap cleanly and must not leave a whitespace-only line at the end.
+        """
+        pass
+
+**********
+class Example:
+    def method(self):
+        """This indented paragraph
+        should wrap cleanly and must not
+        leave a whitespace-only line at
+        the end.
+        """
+        pass

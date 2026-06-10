@@ -25,6 +25,7 @@ def wrap_docstring_google(
         *,
         line_length: int,
         leading_indent: int | None = None,
+        append_closing_indent: bool = True,
         fix_rst_backticks: bool = True,
         parameter_metadata: ParameterMetadata | None = None,
         return_annotation: str | None = None,
@@ -52,10 +53,12 @@ def wrap_docstring_google(
     opening_quotes_on_own_line = compact_first_line and (
         not should_compact_first_line
     )
+    closing_indent = leading_indent if append_closing_indent else None
     unwrapped = _pass1_unwrap_google_docstring(
         docstring_,
         line_length=line_length,
         leading_indent=leading_indent,
+        closing_indent=closing_indent,
         parameter_metadata=parameter_metadata,
         return_annotation=return_annotation,
         attribute_metadata=attribute_metadata,
@@ -66,6 +69,7 @@ def wrap_docstring_google(
         unwrapped,
         line_length=line_length,
         leading_indent=leading_indent,
+        closing_indent=closing_indent,
         compact_first_line=should_compact_first_line,
         opening_quotes_on_own_line=opening_quotes_on_own_line,
     )
@@ -101,6 +105,7 @@ def _pass1_unwrap_google_docstring(
         *,
         line_length: int,  # Unused in pass 1, but kept for signature compatibility
         leading_indent: int | None = None,
+        closing_indent: int | None = None,
         parameter_metadata: ParameterMetadata | None = None,
         return_annotation: str | None = None,
         attribute_metadata: ParameterMetadata | None = None,
@@ -759,7 +764,7 @@ def _pass1_unwrap_google_docstring(
 
             temp_out.extend('' for _ in trailing_empty_lines)
 
-    return finalize_lines(temp_out, leading_indent)
+    return finalize_lines(temp_out, closing_indent)
 
 
 def _join_paragraph_lines(
@@ -884,6 +889,7 @@ def _pass2_wrap_google_docstring(
         *,
         line_length: int,
         leading_indent: int | None = None,
+        closing_indent: int | None = None,
         compact_first_line: bool = False,
         opening_quotes_on_own_line: bool = False,
 ) -> str:
@@ -894,7 +900,6 @@ def _pass2_wrap_google_docstring(
     - Segments by wrappability (Literal blocks, etc.).
     - Wraps wrappable segments.
     """
-    closing_indent = leading_indent
     leading_indent = leading_indent or 0
 
     # Split into lines
