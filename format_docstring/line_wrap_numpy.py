@@ -9,6 +9,8 @@ from format_docstring.line_wrap_utils import (
     add_leading_indent,
     collect_to_temp_output,
     finalize_lines,
+    is_code_fence,
+    is_doctest_block,
     process_temp_output,
 )
 
@@ -33,8 +35,10 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
     - In "Returns"/"Yields" sections, treat the first-level lines (either
       ``name : type`` or just ``type``) as signatures and do not wrap them;
       wrap their indented descriptions.
-    - In the "Examples" section, do not wrap lines starting with ``>>> ``.
-    - Do not wrap any lines inside fenced code blocks (``` ... ```).
+    - In the "Examples" section, do not wrap doctest prompts or common
+      doctest output lines.
+    - Do not wrap any lines inside fenced code blocks (``` ... ``` or
+      ~~~ ... ~~~).
     - Outside these special cases, wrap only lines that exceed ``line_length``
       (keep existing intentional line breaks).
     """
@@ -98,7 +102,6 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
     }
 
     temp_out: list[str | list[str]] = []
-    in_code_fence: bool = False
     current_section: str = ''
     in_examples: bool = False
     return_annotation_str: str | None = (
@@ -125,34 +128,37 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
         stripped: str = line.lstrip(' ')
         indent_length: int = len(line) - len(stripped)
 
-        # Detect code fence start/end first; always preserve fence lines
-        if stripped.startswith('```'):
-            in_code_fence = not in_code_fence
-            temp_out.append(line)
-            i += 1
+        # Detect code fences before section parsing so their contents are not
+        # interpreted as docstring syntax or merged as prose later.
+        is_fence, fence_end_idx = is_code_fence(lines, i)
+        if is_fence:
+            temp_out.extend(lines[i:fence_end_idx])
+            i = fence_end_idx
             continue
 
         # Detect and pass-through section headings with underline
-        if not in_code_fence:
-            heading: str | None = _get_section_heading_title(lines, i)
-            if heading:
-                current_section = heading
-                in_examples = heading in section_examples
-                temp_out.extend((line, lines[i + 1]))
-                i += 2
+        heading: str | None = _get_section_heading_title(lines, i)
+        if heading:
+            current_section = heading
+            in_examples = heading in section_examples
+            temp_out.extend((line, lines[i + 1]))
+            i += 2
+            continue
+
+        if in_examples:
+            # Consume the whole doctest block, including repr output, because
+            # output lines often look like prose but must stay byte-for-byte.
+            is_doctest, doctest_end_idx = is_doctest_block(lines, i)
+            if is_doctest:
+                temp_out.extend(lines[i:doctest_end_idx])
+                i = doctest_end_idx
                 continue
 
-        # Inside fenced code blocks: pass through unchanged
-        if in_code_fence:
-            temp_out.append(line)
-            i += 1
-            continue
-
-        # In Examples, skip wrapping and backtick fixing for REPL lines
-        if in_examples and stripped.startswith(('>>> ', '... ')):
-            temp_out.append(line)
-            i += 1
-            continue
+            # Fallback for continuation prompts without a preceding prompt.
+            if stripped.startswith(('>>> ', '... ')):
+                temp_out.append(line)
+                i += 1
+                continue
 
         # Parameters-like sections
         section_lower_case: str = current_section.lower()
@@ -243,7 +249,9 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
                     line,
                     desired_annotation,
                 )
-                temp_out.append(rewritten)
+                # Prose-only return entries expand to a synced signature plus
+                # an indented description, so preserve both generated lines.
+                temp_out.extend(rewritten.splitlines())
                 i += 1
                 continue
 
@@ -761,6 +769,11 @@ def _detect_multiple_return_signatures(
 def _rewrite_return_signature(line: str, annotation: str) -> str:
     """
     Rewrite a return signature line to use the supplied annotation text.
+
+    If the existing line is prose rather than a type signature, keep that prose
+    as the return description and insert the real annotation above it. This
+    preserves author-written text while still syncing the signature section to
+    the function annotation.
     """
     indent_length = len(line) - len(line.lstrip(' '))
     indent = line[:indent_length]
@@ -777,7 +790,27 @@ def _rewrite_return_signature(line: str, annotation: str) -> str:
 
         return f'{indent}{name} : {annotation}'
 
+    if not _looks_like_return_annotation(stripped):
+        return f'{indent}{annotation}\n{indent}    {stripped}'
+
     return f'{indent}{annotation}'
+
+
+def _looks_like_return_annotation(text: str) -> bool:
+    """
+    Return True when a NumPy return line looks like a type signature.
+
+    Multi-word plain text is treated as prose so return sync does not replace a
+    description like ``The mapping from keys to values.`` with only the type.
+    """
+    stripped = text.strip()
+    if not stripped:
+        return False
+
+    if any(token in stripped for token in ('[', ']', '|', ',', '"', "'")):
+        return True
+
+    return not any(char.isspace() for char in stripped)
 
 
 def handle_single_line_docstring(

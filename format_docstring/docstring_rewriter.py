@@ -464,16 +464,22 @@ def build_replacement_docstring(
     if doc is None:
         return None
 
+    # ``calc_abs_pos`` converts AST byte columns to character offsets for
+    # slicing. Derive the visible columns from those positions so single-line
+    # width checks treat non-ASCII text the same way as ``len(str)``.
+    start_col_offset = start - line_starts[val.lineno - 1]
+    end_col_offset_chars = end - line_starts[end_lineno - 1]
+
     # Use the docstring literal's column offset as the indentation level for
     # formatting. This lets the wrapper ensure leading/trailing newlines plus
     # matching spaces are present so closing quotes align with the parent's
     # indentation.
-    leading_indent: int = getattr(val, 'col_offset', 0)
+    leading_indent: int = start_col_offset
 
     literal_exceeds_line = (
         docstring_style.strip().lower() == 'google'
         and val.lineno == end_lineno
-        and end_col_offset > line_length
+        and end_col_offset_chars > line_length
     )
     # Only enforce leading/trailing newline+indent for multi-line docstrings
     # or when wrapping will occur. For Google style, also account for cases
@@ -524,8 +530,8 @@ def build_replacement_docstring(
     new_literal = handle_single_line_docstring(
         whole_docstring_literal=new_literal,
         docstring_content=wrapped,
-        docstring_starting_col=val.col_offset,
-        docstring_ending_col=val.end_col_offset,  # type: ignore[arg-type]
+        docstring_starting_col=start_col_offset,
+        docstring_ending_col=end_col_offset_chars,
         line_length=line_length,
     )
 

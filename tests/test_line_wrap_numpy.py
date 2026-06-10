@@ -26,6 +26,14 @@ def test_wrap_docstring(
         before: str,
         after: str,
 ) -> None:
+    """
+    Verify each NumPy line-wrap fixture rewrites BEFORE text to AFTER text.
+
+    The fixture inventory carries focused regressions for protected literal
+    content, doctest output, custom sections, return-description sync, and
+    Unicode width boundaries. Keeping these as data files makes the formatter
+    diff visible without duplicating near-identical test bodies.
+    """
     out = wrap_docstring(
         before, line_length=line_length, docstring_style='numpy'
     )

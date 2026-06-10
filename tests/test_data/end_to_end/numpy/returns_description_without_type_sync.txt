@@ -1,0 +1,24 @@
+LINE_LENGTH: 79
+
+**********
+def build_mapping() -> dict[str, str]:
+    """
+    Build mapping.
+
+    Returns
+    -------
+    The mapping from keys to values.
+    """
+    return {}
+
+**********
+def build_mapping() -> dict[str, str]:
+    """
+    Build mapping.
+
+    Returns
+    -------
+    dict[str, str]
+        The mapping from keys to values.
+    """
+    return {}

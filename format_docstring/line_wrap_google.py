@@ -10,6 +10,7 @@ from format_docstring.line_wrap_utils import (
     ParameterMetadata,
     add_leading_indent,
     finalize_lines,
+    is_code_fence,
     merge_lines_and_strip,
     segment_lines_by_wrappability,
 )
@@ -117,6 +118,7 @@ def _pass1_unwrap_google_docstring(
     Phase 1 implementation:
     - Calculates base indentation.
     - Identifies sections (Args, Returns, etc.).
+    - Preserves fenced code blocks before section parsing.
     - Identifies signature lines.
     - Unwraps descriptions onto the signature line, respecting preservation rules.
     """
@@ -230,7 +232,7 @@ def _pass1_unwrap_google_docstring(
     temp_out: list[str | list[str]] = []
     i: int = 0
     current_section: str = ''
-    in_code_fence: bool = False
+    current_section_indent = 0
     return_annotation_str: str | None = (
         return_annotation.strip() if return_annotation else None
     )
@@ -242,6 +244,13 @@ def _pass1_unwrap_google_docstring(
     return_component_index = 0
     return_signature_style_determined = False
     return_use_multiple_signatures = False
+    sections_with_signatures = (
+        section_args
+        | section_returns
+        | section_yields
+        | section_raises
+        | section_attributes
+    )
 
     while i < len(lines):
         line = lines[i]
@@ -259,16 +268,12 @@ def _pass1_unwrap_google_docstring(
             i += 1
             continue
 
-        # Code fence detection
-        if stripped.startswith('```'):
-            in_code_fence = not in_code_fence
-            temp_out.append(line)
-            i += 1
-            continue
-
-        if in_code_fence:
-            temp_out.append(line)
-            i += 1
+        # Preserve fenced code blocks before section/signature parsing. This
+        # avoids treating sample code inside a fence as Google docstring syntax.
+        is_fence, fence_end_idx = is_code_fence(lines, i)
+        if is_fence:
+            temp_out.extend(lines[i:fence_end_idx])
+            i = fence_end_idx
             continue
 
         # Section detection
@@ -395,6 +400,7 @@ def _pass1_unwrap_google_docstring(
                         )
 
             current_section = stripped.lower()
+            current_section_indent = indent_length
             # Normalize section header to canonical Google-style form
             # e.g., "parameter:" -> "Args:", "return:" -> "Returns:"
             indent = line[: len(line) - len(stripped)]
@@ -408,16 +414,23 @@ def _pass1_unwrap_google_docstring(
             i += 1
             continue
 
+        if (
+            current_section in sections_with_signatures
+            and indent_length <= current_section_indent
+            and _is_google_unknown_section_header(stripped)
+        ):
+            # Unknown bare headers end signature parsing without becoming
+            # canonical Google sections. This preserves custom sections such as
+            # ``Todo:`` while keeping following prose out of ``Args:`` parsing.
+            current_section = stripped.lower()
+            current_section_indent = indent_length
+            temp_out.append(line)
+            i += 1
+            continue
+
         # 2. Signature detection & Unwrapping
         # We only apply this logic inside specific sections
         # Use section sets to support variant spellings (e.g., "parameter:", "return:")
-        sections_with_signatures = (
-            section_args
-            | section_returns
-            | section_yields
-            | section_raises
-            | section_attributes
-        )
         if current_section in sections_with_signatures:
             section_lower = current_section.lower()
             is_return_section = (
@@ -483,6 +496,20 @@ def _pass1_unwrap_google_docstring(
                     standardized_line = _rewrite_google_return_signature(
                         standardized_line,
                         desired_annotation,
+                    )
+                    standardized_stripped = standardized_line.lstrip()
+                elif _is_google_return_description(standardized_stripped):
+                    # A prose-only Returns entry still needs the real
+                    # annotation. Merge them now so pass two can wrap it like a
+                    # normal Google return signature with an inline
+                    # description.
+                    indent = standardized_line[
+                        : len(standardized_line)
+                        - len(standardized_stripped)
+                    ]
+                    standardized_line = (
+                        f'{indent}{desired_annotation}: '
+                        f'{standardized_stripped.strip()}'
                     )
                     standardized_stripped = standardized_line.lstrip()
 
@@ -910,6 +937,10 @@ def _pass2_wrap_google_docstring(
 
     final_output: list[str] = []
     is_first_line = True
+    # Track custom bare sections only for wrapping width. Pass one already
+    # stopped signature parsing; pass two still needs to wrap custom-section
+    # prose without treating the source indentation as part of the text budget.
+    custom_section_indent: int | None = None
 
     for seg_lines, is_wrappable in segments:
         if not is_wrappable:
@@ -937,6 +968,19 @@ def _pass2_wrap_google_docstring(
             stripped = line.lstrip()
             indent_str = line[: len(line) - len(stripped)]
             indent_level = len(indent_str)
+            if _is_google_section_header(stripped):
+                custom_section_indent = None
+            elif (
+                _is_google_unknown_section_header(stripped)
+                and indent_level <= leading_indent
+            ):
+                custom_section_indent = indent_level
+            elif (
+                custom_section_indent is not None
+                and indent_level <= custom_section_indent
+            ):
+                custom_section_indent = None
+
             if is_first_line:
                 # For first line, calculate total width for textwrap accounting for:
                 # - The line's own indentation (already in indent_level)
@@ -960,6 +1004,11 @@ def _pass2_wrap_google_docstring(
 
             if is_sig:
                 # It is a signature line, possibly with merged description.
+                # Pass one skips signature parsing in unknown sections, but
+                # pass two may still see signature-shaped prose such as
+                # ``See Also`` entries. Normalize here so colon spacing remains
+                # stable without reclassifying the surrounding section.
+                line = _normalize_google_signature_spacing(line)
                 sig_part, desc_part = _split_google_signature(
                     line
                 )  # Keeps indentation on sig_part
@@ -1194,16 +1243,22 @@ def _pass2_wrap_google_docstring(
             else:
                 # Existing logic for other lines
                 subsequent_indent = indent_str
+                wrap_width = line_length
                 if (
                     not opening_quotes_on_own_line
                     and leading_indent is not None
                     and len(indent_str) < leading_indent
                 ):
                     subsequent_indent = ' ' * leading_indent
+                elif (
+                    custom_section_indent is not None
+                    and indent_level > custom_section_indent
+                ):
+                    wrap_width += leading_indent
 
                 wrapped = textwrap.fill(
                     line.strip(),
-                    width=line_length,
+                    width=wrap_width,
                     initial_indent=indent_str,
                     subsequent_indent=subsequent_indent,
                     break_long_words=False,
@@ -1354,6 +1409,24 @@ def _is_google_section_header(line: str) -> bool:
     return line.strip().lower() in _GOOGLE_SECTION_HEADERS
 
 
+def _is_google_unknown_section_header(stripped_line: str) -> bool:
+    """
+    Return True for bare, unrecognized Google-style section headers.
+
+    These headers are boundaries, not semantic sections. Recognizing them
+    prevents a custom block after ``Args:`` from being parsed as another
+    argument while preserving the author's header text.
+    """
+    if _is_google_section_header(stripped_line):
+        return False
+
+    if not stripped_line.endswith(':'):
+        return False
+
+    title = stripped_line[:-1].strip()
+    return bool(re.fullmatch(r'[A-Za-z][A-Za-z0-9 _-]*', title))
+
+
 def _lookup_google_metadata(
         name: str,
         metadata: ParameterMetadata | None,
@@ -1478,15 +1551,39 @@ def _rewrite_google_parameter_signature(
 
 
 def _looks_like_google_type(text: str) -> bool:
-    """Return True when a return signature body looks like a type."""
+    """
+    Return True when a return signature body looks like a type.
+
+    Multi-word strings are only considered type-like when they contain type
+    syntax. This keeps prose-only return descriptions from being mistaken for
+    annotations during source-sync.
+    """
     stripped = text.strip()
     if not stripped:
         return False
+
+    if any(char.isspace() for char in stripped):
+        return any(token in stripped for token in ('[', ']', '|', '"', "'"))
 
     if any(token in stripped for token in ('[', ']', '|', '.', '"', "'")):
         return True
 
     return stripped in _GOOGLE_KNOWN_TYPE_NAMES or stripped[:1].isupper()
+
+
+def _is_google_return_description(stripped_line: str) -> bool:
+    """
+    Return True when a return item is prose rather than a signature.
+
+    The source annotation is inserted ahead of these lines so syncing a
+    ``Returns:`` section does not discard the existing description.
+    """
+    return (
+        bool(stripped_line)
+        and ':' not in stripped_line
+        and not _is_google_section_header(stripped_line)
+        and not _looks_like_google_type(stripped_line)
+    )
 
 
 def _is_google_return_signature(stripped_line: str) -> bool:

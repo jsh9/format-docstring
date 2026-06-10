@@ -420,8 +420,10 @@ def segment_lines_by_wrappability(
     blocks (paragraphs following ::), which should not be wrapped. Other
     content can be wrapped.
 
-    For Google-style docstrings, also detects doctest blocks (>>>) and fenced
-    code blocks (```), which are common in that style.
+    Also detects fenced code blocks using backticks or tildes. Fence handling
+    is intentionally style-agnostic because both wrappers must preserve literal
+    content before their own section parsers run. For Google-style docstrings,
+    detects doctest blocks (>>>) as well.
 
     Parameters
     ----------
@@ -429,8 +431,8 @@ def segment_lines_by_wrappability(
         The list of lines to segment.
     style : str, default='numpy'
         The docstring style being processed. Supported values:
-        - 'numpy': Detect tables, lists, and literal blocks only
-        - 'google': Additionally detect doctest blocks and fenced code blocks
+        - 'numpy': Detect tables, lists, literal blocks, and code fences
+        - 'google': Additionally detect doctest blocks
 
     Returns
     -------
@@ -507,15 +509,15 @@ def segment_lines_by_wrappability(
                 current_idx = doctest_end_idx
                 continue
 
-        # Check for fenced code block (``` - Google style only)
-        if style == 'google':
-            is_fence, fence_end_idx = is_code_fence(lines, current_idx)
-            if is_fence:
-                # Add code fence segment (not wrappable)
-                fence_lines = lines[current_idx:fence_end_idx]
-                segments.append((fence_lines, False))
-                current_idx = fence_end_idx
-                continue
+        # Protect fenced code before collecting prose so both wrappers keep
+        # backtick and tilde fence contents out of later wrapping passes.
+        is_fence, fence_end_idx = is_code_fence(lines, current_idx)
+        if is_fence:
+            # Add code fence segment (not wrappable)
+            fence_lines = lines[current_idx:fence_end_idx]
+            segments.append((fence_lines, False))
+            current_idx = fence_end_idx
+            continue
 
         # Neither table, list, nor literal block - collect wrappable content
         start_idx = current_idx
@@ -531,10 +533,13 @@ def segment_lines_by_wrappability(
             if is_table or is_list or is_literal:
                 break
 
+            is_fence, _ = is_code_fence(lines, current_idx)
+            if is_fence:
+                break
+
             if style == 'google':
                 is_doctest, _ = is_doctest_block(lines, current_idx)
-                is_fence, _ = is_code_fence(lines, current_idx)
-                if is_doctest or is_fence:
+                if is_doctest:
                     break
 
             current_idx += 1
@@ -946,8 +951,10 @@ def is_doctest_block(lines: list[str], start_idx: int) -> tuple[bool, int]:
     """
     Check if lines starting at start_idx form a Python doctest block.
 
-    A doctest block starts with '>>>' and includes subsequent lines that also
-    start with '>>>' or '...'.
+    A doctest block starts with '>>>' and includes subsequent prompts,
+    continuation prompts, and common doctest output lines. Output detection is
+    intentionally conservative so ordinary prose following an example can still
+    be wrapped.
 
     Parameters
     ----------
@@ -968,33 +975,57 @@ def is_doctest_block(lines: list[str], start_idx: int) -> tuple[bool, int]:
     if not line.startswith('>>>'):
         return False, start_idx
 
-    # Found start of doctest block
     current_idx = start_idx + 1
     while current_idx < len(lines):
         next_line = lines[current_idx].strip()
-        # Continue if it's a prompt '>>>', continuation '...', or empty?
-        # Standard doctest: '>>>' or '...'.
-        # Sometimes results don't have perfix, but that's hard to distinguish from normal text.
-        # Ideally we only capture the interactive session parts.
-        # But commonly examples include output without prefix.
-        # For wrapping purposes, catching the '>>>' and '...' sequence is the most critical/safe part.
-        # If we include output lines, we risk capturing normal text.
-        # However, usually output lines shouldn't be wrapped either?
-        # Let's stick to explicit '>>>' and '...' for now to be safe,
-        # or maybe indentation-based continuation?
-        # If the next line is indentedSAME as the start line?
-
-        # Simple heuristic: consecutive lines starting with `>>>` or `...`
         if next_line.startswith('>>>') or next_line.startswith('...'):
             current_idx += 1
             continue
 
-        # If line is empty, it breaks the block?
-        # Or if it's output?
-        # Let's stop at non-matching line.
+        if _is_doctest_output_line(next_line):
+            current_idx += 1
+            continue
+
         break
 
     return True, current_idx
+
+
+def _is_doctest_output_line(stripped_line: str) -> bool:
+    """
+    Return True for common doctest output lines.
+
+    The accepted shapes are deliberately narrow: they cover repr-like output
+    that must not be reflowed while letting ordinary prose after a prompt stay
+    wrappable.
+    """
+    if not stripped_line:
+        return False
+
+    if stripped_line in {'True', 'False', 'None', 'Ellipsis'}:
+        return True
+
+    if stripped_line.startswith(
+            (
+                '{',
+                '[',
+                '(',
+                "'",
+                '"',
+                '<',
+                'Traceback (most recent call last):',
+            )
+    ):
+        return True
+
+    numeric_pattern = r'[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?'
+    if re.fullmatch(numeric_pattern, stripped_line):
+        return True
+
+    if re.fullmatch(r'[A-Za-z_][\w.]*Error:.*', stripped_line):
+        return True
+
+    return False
 
 
 def _is_literal_block_paragraph(

@@ -1,0 +1,34 @@
+LINE_LENGTH: 70
+
+**********
+def document_custom_section(x: int):
+    """
+    Format known and custom sections.
+
+    Parameters
+    ----------
+    x : int
+        Existing parameter.
+
+    Todo
+    ----
+    Keep this custom section as prose, not as a Parameters item with the description pulled onto the header line.
+    """
+    pass
+
+**********
+def document_custom_section(x: int):
+    """
+    Format known and custom sections.
+
+    Parameters
+    ----------
+    x : int
+        Existing parameter.
+
+    Todo
+    ----
+    Keep this custom section as prose, not as a Parameters item with
+    the description pulled onto the header line.
+    """
+    pass

@@ -26,10 +26,11 @@ def test_wrap_docstring_google(
     """
     Verify each Google line-wrap fixture rewrites BEFORE text to AFTER text.
 
-    The fixture files carry the behavior-specific cases, including migrations
-    from NumPy syntax where Google has different signature delimiters. Keeping
-    this assertion fixture-driven lets those subtle syntax differences be
-    documented in the input/output examples without duplicating test bodies.
+    The fixture files carry behavior-specific regressions, including protected
+    literal content, doctest output, custom sections, and return-description
+    sync. Keeping this assertion fixture-driven lets subtle syntax differences
+    from NumPy be documented in input/output examples without duplicating test
+    bodies.
     """
     out = wrap_docstring(
         before, line_length=line_length, docstring_style='google'

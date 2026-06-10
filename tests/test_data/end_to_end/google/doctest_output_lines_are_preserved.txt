@@ -1,0 +1,26 @@
+LINE_LENGTH: 60
+
+**********
+def show_example():
+    """
+    Show example.
+
+    Examples:
+        >>> make_mapping()
+        {"very_long_key": "very long value that should remain exact doctest output and not be prose wrapped"}
+        >>> done()
+        True
+    """
+    pass
+
+**********
+def show_example():
+    """Show example.
+
+    Examples:
+        >>> make_mapping()
+        {"very_long_key": "very long value that should remain exact doctest output and not be prose wrapped"}
+        >>> done()
+        True
+    """
+    pass

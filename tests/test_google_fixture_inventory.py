@@ -18,6 +18,13 @@ NUMPY_ONLY_FIXTURES = {
     'mismatched_underlines_one_dash.txt',
     'mismatched_underlines_two_dashes.txt',
 }
+GOOGLE_ONLY_FIXTURES = {
+    # Keep Google-only allowances explicit even when empty. A new fixture that
+    # exists only for Google should be a deliberate exception, not drift from
+    # the NumPy gold-standard inventory.
+    'end_to_end': set(),
+    'line_wrap': set(),
+}
 
 
 def _fixture_names(path: Path) -> set[str]:
@@ -27,10 +34,16 @@ def _fixture_names(path: Path) -> set[str]:
 def test_google_fixture_inventory_matches_numpy_gold_standard() -> None:
     """
     Google fixtures should track NumPy coverage except NumPy syntax cases.
+
+    This protects the paired regression fixtures for fences, doctest output,
+    custom sections, return sync, and non-ASCII width accounting. A formatter
+    bug fixed for NumPy should usually have the equivalent Google case.
     """
     for fixture_group in ('line_wrap', 'end_to_end'):
         numpy_names = _fixture_names(TEST_DATA_DIR / fixture_group / 'numpy')
         google_names = _fixture_names(TEST_DATA_DIR / fixture_group / 'google')
 
         assert numpy_names - google_names == NUMPY_ONLY_FIXTURES
-        assert not google_names - numpy_names
+        assert google_names - numpy_names == GOOGLE_ONLY_FIXTURES[
+            fixture_group
+        ]
