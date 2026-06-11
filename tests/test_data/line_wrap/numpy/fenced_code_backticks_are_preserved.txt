@@ -1,0 +1,15 @@
+LINE_LENGTH: 79
+
+**********
+Examples
+--------
+```javascript
+const value = `template`;
+```
+
+**********
+Examples
+--------
+```javascript
+const value = `template`;
+```

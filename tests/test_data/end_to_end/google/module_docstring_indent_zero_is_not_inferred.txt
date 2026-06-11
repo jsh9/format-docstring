@@ -1,0 +1,14 @@
+LINE_LENGTH: 50
+
+**********
+"""
+    Module summary that is long enough to wrap around the configured width for testing.
+"""
+VALUE = 1
+
+**********
+"""
+    Module summary that is long enough to wrap
+    around the configured width for testing.
+"""
+VALUE = 1

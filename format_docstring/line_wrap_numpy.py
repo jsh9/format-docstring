@@ -831,7 +831,12 @@ def handle_single_line_docstring(
     if '\n' in whole_docstring_literal:  # multi-line: do not handle
         return whole_docstring_literal
 
-    if docstring_ending_col > line_length:  # whole docstring exceeds limit
+    # Re-check the rebuilt literal because normalizations can change its width
+    # after the AST end column was captured.
+    effective_ending_col = (
+        docstring_starting_col + len(whole_docstring_literal)
+    )
+    if effective_ending_col > line_length:  # whole docstring exceeds limit
         num_leading_indent: int = docstring_starting_col
         parts: list[str] = whole_docstring_literal.split(docstring_content)
         prefix: str = parts[0]
@@ -874,6 +879,62 @@ _DUNDER_LITERAL_PATTERN = re.compile(
 )
 # Replacement wraps the captured dunder name (group 1) with double backticks.
 _DUNDER_LITERAL_REPLACEMENT = r'``\1``'
+
+
+def _mask_rst_backtick_protected_lines(
+        lines: list[str],
+) -> tuple[list[str], dict[int, str]]:
+    """
+    Replace example/code lines with placeholders before rST backtick fixing.
+
+    The caller restores lines by index after regex replacement. Placeholders
+    preserve line endings so ``splitlines(keepends=True)`` keeps the same shape.
+    """
+    protected_lines: dict[int, str] = {}
+    masked_lines: list[str] = []
+    current_idx = 0
+
+    def mask(line: str) -> str:
+        # Keep one placeholder per original line so restoring by index remains
+        # stable after the regex replacement runs.
+        placeholder = '\x00RST_BACKTICK_PROTECTED_LINE\x00'
+        if line.endswith('\n'):
+            return placeholder + '\n'
+
+        return placeholder
+
+    while current_idx < len(lines):
+        # Protect full spans first; doctest output and fenced code content
+        # should not be touched by rST backtick normalization.
+        is_fence, fence_end_idx = is_code_fence(lines, current_idx)
+        if is_fence:
+            for idx in range(current_idx, fence_end_idx):
+                protected_lines[idx] = lines[idx]
+                masked_lines.append(mask(lines[idx]))
+
+            current_idx = fence_end_idx
+            continue
+
+        is_doctest, doctest_end_idx = is_doctest_block(lines, current_idx)
+        if is_doctest:
+            for idx in range(current_idx, doctest_end_idx):
+                protected_lines[idx] = lines[idx]
+                masked_lines.append(mask(lines[idx]))
+
+            current_idx = doctest_end_idx
+            continue
+
+        line = lines[current_idx]
+        stripped = line.lstrip()
+        if stripped.startswith(('>>> ', '... ')):
+            protected_lines[current_idx] = line
+            masked_lines.append(mask(line))
+        else:
+            masked_lines.append(line)
+
+        current_idx += 1
+
+    return masked_lines, protected_lines
 
 
 def _fix_rst_backticks(docstring: str) -> str:
@@ -970,30 +1031,10 @@ def _fix_rst_backticks(docstring: str) -> str:
         prefix = match.group(0)[: match.group(0).index('`')]
         return f'{prefix}``{content}``'
 
-    # Protect REPL lines (>>> and ...) from backtick fixing by temporarily
-    # replacing them with placeholders, then restoring after processing.
-    # This allows multi-line backtick pairs (such as external links spanning
-    # lines) to be handled correctly while still preserving backticks in REPL
-    # comments.
     lines = docstring.splitlines(keepends=True)
-    repl_lines: dict[int, str] = {}
-    protected_lines: list[str] = []
+    protected_lines, original_lines = _mask_rst_backtick_protected_lines(lines)
 
-    for i, line in enumerate(lines):
-        stripped = line.lstrip()
-        # Protect REPL lines (>>> or ...) - don't fix backticks in these
-        if stripped.startswith(('>>> ', '... ')):
-            repl_lines[i] = line
-            # Use a placeholder that won't be matched by the regex
-            protected_lines.append(
-                '\x00REPL_LINE\x00\n'
-                if line.endswith('\n')
-                else '\x00REPL_LINE\x00'
-            )
-        else:
-            protected_lines.append(line)
-
-    # Process the entire docstring (with REPL lines protected)
+    # Process the docstring with examples/code temporarily hidden.
     protected_docstring = ''.join(protected_lines)
     processed = _RST_BACKTICK_PATTERN.sub(replace_func, protected_docstring)
     # Upgrade remaining single-backtick ``__dunder__`` literals to double
@@ -1002,9 +1043,9 @@ def _fix_rst_backticks(docstring: str) -> str:
         _DUNDER_LITERAL_REPLACEMENT, processed
     )
 
-    # Restore REPL lines
+    # Restore protected example/code lines.
     result_lines = processed.splitlines(keepends=True)
-    for i, original_line in repl_lines.items():
+    for i, original_line in original_lines.items():
         if i < len(result_lines):
             result_lines[i] = original_line
 

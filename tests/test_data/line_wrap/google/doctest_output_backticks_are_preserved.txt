@@ -1,0 +1,15 @@
+LINE_LENGTH: 79
+
+**********
+Examples:
+    >>> print_message()
+    result uses `value` exactly
+    >>> done()
+    True
+
+**********
+Examples:
+    >>> print_message()
+    result uses `value` exactly
+    >>> done()
+    True

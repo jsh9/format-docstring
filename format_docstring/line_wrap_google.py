@@ -1248,6 +1248,7 @@ def _pass2_wrap_google_docstring(
                 if (
                     not in_signature_section
                     and not _is_google_section_header(stripped)
+                    and not stripped.rstrip().endswith('::')
                     and _is_google_signature(stripped)
                 ):
                     # Preserve existing colon-spacing cleanup for label-like

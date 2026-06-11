@@ -1,0 +1,11 @@
+LINE_LENGTH: 79
+
+**********
+Summary::
+
+    value = 1
+
+**********
+Summary::
+
+    value = 1

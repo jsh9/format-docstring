@@ -5,7 +5,7 @@ import io
 import operator
 import textwrap
 import tokenize
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from format_docstring.line_wrap_google import wrap_docstring_google
 from format_docstring.line_wrap_numpy import (
@@ -21,6 +21,9 @@ ModuleClassOrFunc = (
 )
 
 NO_FORMAT_DOCSTRING_MARKER = 'no-format-docstring'
+# ``None`` is a meaningful caller value, so use a sentinel to tell omitted
+# indentation apart from an explicit "do not add indentation" request.
+_LEADING_INDENT_UNSET = object()
 
 
 def _determine_newline(text: str) -> str:
@@ -669,7 +672,7 @@ def wrap_docstring(
         docstring: str,
         line_length: int = 79,
         docstring_style: str = 'numpy',
-        leading_indent: int = 0,
+        leading_indent: int | None | object = _LEADING_INDENT_UNSET,
         *,
         fix_rst_backticks: bool = True,
         function_param_metadata: ParameterMetadata | None = None,
@@ -689,8 +692,10 @@ def wrap_docstring(
         Target maximum line length for wrapping logic.
     docstring_style : str, default='numpy'
         The docstring style to target ('numpy' or 'google').
-    leading_indent : int, default=0
-        The number of indentation spaces of this docstring.
+    leading_indent : int | None, optional
+        The number of indentation spaces of this docstring. When omitted, the
+        style-specific default is used; explicit ``None`` means no indentation
+        should be added.
     fix_rst_backticks : bool, default=True
         If True, automatically fix single backticks to double backticks per rST
         syntax.
@@ -719,10 +724,18 @@ def wrap_docstring(
     - 'google' -> wrap_docstring_google
     """
     style = (docstring_style or '').strip().lower()
+    # Normalize once so style-specific code can preserve the difference between
+    # omitted indentation, explicit module-level zero, and explicit ``None``.
+    leading_indent_was_unset = leading_indent is _LEADING_INDENT_UNSET
+    leading_indent_value = cast(
+        'int | None',
+        None if leading_indent_was_unset else leading_indent,
+    )
     if style == 'google':
-        # For Google style, infer leading_indent from first non-empty line if not set
-        effective_leading_indent = leading_indent
-        if effective_leading_indent == 0:
+        effective_leading_indent = leading_indent_value
+        if leading_indent_was_unset:
+            # Direct wrapper calls historically inferred Google indentation
+            # from content, but AST rewrites pass an explicit source column.
             for line in docstring.splitlines():
                 if line.strip():
                     effective_leading_indent = len(line) - len(line.lstrip())
@@ -743,7 +756,10 @@ def wrap_docstring(
     return wrap_docstring_numpy(
         docstring,
         line_length=line_length,
-        leading_indent=leading_indent,
+        # Preserve NumPy's previous default when callers omit indentation.
+        leading_indent=(
+            0 if leading_indent_was_unset else leading_indent_value
+        ),
         fix_rst_backticks=fix_rst_backticks,
         parameter_metadata=function_param_metadata,
         attribute_metadata=class_attribute_metadata,
