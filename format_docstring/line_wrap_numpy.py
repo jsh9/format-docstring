@@ -12,6 +12,7 @@ from format_docstring.line_wrap_utils import (
     is_code_fence,
     is_doctest_block,
     is_literal_block_paragraph,
+    is_rst_code_block,
     process_temp_output,
 )
 
@@ -834,8 +835,8 @@ def handle_single_line_docstring(
 
     # Re-check the rebuilt literal because normalizations can change its width
     # after the AST end column was captured.
-    effective_ending_col = (
-        docstring_starting_col + len(whole_docstring_literal)
+    effective_ending_col = docstring_starting_col + len(
+        whole_docstring_literal
     )
     if effective_ending_col > line_length:  # whole docstring exceeds limit
         num_leading_indent: int = docstring_starting_col
@@ -889,7 +890,8 @@ def _mask_rst_backtick_protected_lines(
     Replace example/code lines with placeholders before rST backtick fixing.
 
     The caller restores lines by index after regex replacement. Placeholders
-    preserve line endings so ``splitlines(keepends=True)`` keeps the same shape.
+    preserve line endings so ``splitlines(keepends=True)`` keeps the same
+    shape.
     """
     protected_lines: dict[int, str] = {}
     masked_lines: list[str] = []
@@ -923,6 +925,18 @@ def _mask_rst_backtick_protected_lines(
                 masked_lines.append(mask(lines[idx]))
 
             current_idx = doctest_end_idx
+            continue
+
+        # rST code directives are code blocks even without fence markers. Mask
+        # the directive and indented body so code backticks stay untouched while
+        # dedented prose after the block is still normalized.
+        is_rst_code, rst_code_end_idx = is_rst_code_block(lines, current_idx)
+        if is_rst_code:
+            for idx in range(current_idx, rst_code_end_idx):
+                protected_lines[idx] = lines[idx]
+                masked_lines.append(mask(lines[idx]))
+
+            current_idx = rst_code_end_idx
             continue
 
         # ``::`` literal blocks are detected from the previous content line,

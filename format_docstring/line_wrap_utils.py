@@ -5,6 +5,10 @@ import textwrap
 
 # Regex pattern to split text into paragraphs (multiple consecutive newlines)
 _PARAGRAPH_SPLIT_PATTERN = re.compile(r'\n\s*\n')
+_RST_CODE_DIRECTIVE_PATTERN = re.compile(
+    r'^\s*\.\.\s+(?:code-block|sourcecode|code)::(?:\s+.*)?$',
+    re.IGNORECASE,
+)
 
 ParameterMetadata = dict[str, tuple[str | None, str | None]]
 
@@ -488,6 +492,16 @@ def segment_lines_by_wrappability(
             current_idx = list_end_idx
             continue
 
+        # Check for rST code directives before literal blocks. Directive lines
+        # also end in ``::``, but the directive itself is part of the protected
+        # block and should not be grouped with surrounding prose.
+        is_rst_code, rst_code_end_idx = is_rst_code_block(lines, current_idx)
+        if is_rst_code:
+            rst_code_lines = lines[current_idx:rst_code_end_idx]
+            segments.append((rst_code_lines, False))
+            current_idx = rst_code_end_idx
+            continue
+
         # Check for literal block following ::
         is_literal, literal_end_idx = is_literal_block_paragraph(
             lines, current_idx
@@ -528,9 +542,10 @@ def segment_lines_by_wrappability(
         while current_idx < len(lines):
             is_table, _ = is_rST_table(lines, current_idx)
             is_list, _ = is_bulleted_list(lines, current_idx)
+            is_rst_code, _ = is_rst_code_block(lines, current_idx)
             is_literal, _ = is_literal_block_paragraph(lines, current_idx)
 
-            if is_table or is_list or is_literal:
+            if is_table or is_list or is_rst_code or is_literal:
                 break
 
             is_fence, _ = is_code_fence(lines, current_idx)
@@ -605,6 +620,57 @@ def is_code_fence(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
 
     # No closing fence found - treat the rest as code block
     return True, len(lines)
+
+
+def _indent_width(line: str) -> int:
+    """Return the width of leading whitespace in ``line``."""
+    return len(line) - len(line.lstrip())
+
+
+def is_rst_code_block(
+        lines: list[str], start_idx: int = 0
+) -> tuple[bool, int]:
+    """
+    Check if lines starting at start_idx form an rST code directive block.
+
+    Common rST code directives are introduced by lines such as ``..
+    code-block:: python``. Their indented body is code-like content, so
+    wrapping and rST backtick normalization should preserve it.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The list of lines to check.
+    start_idx : int, default=0
+        The starting index to check from.
+
+    Returns
+    -------
+    tuple[bool, int]
+        A tuple of (is_rst_code_block, end_idx) where end_idx is the index
+        after the protected directive block.
+    """
+    if start_idx >= len(lines):
+        return False, start_idx
+
+    directive_line = lines[start_idx].rstrip()
+    if not _RST_CODE_DIRECTIVE_PATTERN.fullmatch(directive_line):
+        return False, start_idx
+
+    directive_indent = _indent_width(lines[start_idx])
+    current_idx = start_idx + 1
+    while current_idx < len(lines):
+        line = lines[current_idx]
+        if not line.strip():
+            current_idx += 1
+            continue
+
+        if _indent_width(line) <= directive_indent:
+            break
+
+        current_idx += 1
+
+    return True, current_idx
 
 
 def is_rST_table(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:  # noqa: N802
@@ -997,8 +1063,8 @@ def _is_docstring_section_boundary(lines: list[str], idx: int) -> bool:
     Return True when ``idx`` starts a known docstring section.
 
     Doctest preservation uses this as its only non-blank stopping point. That
-    keeps plain text output intact without swallowing the rest of the
-    docstring after an example block.
+    keeps plain text output intact without swallowing the rest of the docstring
+    after an example block.
     """
     stripped = lines[idx].strip()
     if not stripped:
@@ -1051,8 +1117,8 @@ def is_literal_block_paragraph(
     """
     Check if lines starting at start_idx form a literal block following ::.
 
-    A literal block is a paragraph that follows a line ending with ::
-    (double colon). The entire paragraph should not be wrapped.
+    A literal block is an indented block that follows a line ending with ::
+    (double colon). The entire block should not be wrapped.
 
     Parameters
     ----------
@@ -1087,16 +1153,30 @@ def is_literal_block_paragraph(
     if not prev_line.endswith('::'):
         return False, start_idx
 
-    # Current line starts a literal block - find its end
+    literal_indent = _indent_width(lines[prev_idx])
     current_idx = start_idx
+    has_literal_content = False
     while current_idx < len(lines):
-        line = lines[current_idx].strip()
+        line = lines[current_idx]
 
-        # Empty line ends the literal block
-        if not line:
+        if not line.strip():
+            current_idx += 1
+            continue
+
+        # Google compact-first-line formatting can remove the introducer's
+        # original docstring indent before segmentation. A real section header
+        # still ends that literal block; otherwise a summary ``::`` can swallow
+        # the later ``Args:`` section just because every body line is indented.
+        if _is_docstring_section_boundary(lines, current_idx):
             break
 
+        if _indent_width(line) <= literal_indent:
+            break
+
+        has_literal_content = True
         current_idx += 1
 
-    # Need at least one line to be a literal block
-    return current_idx > start_idx, current_idx
+    if not has_literal_content:
+        return False, start_idx
+
+    return True, current_idx

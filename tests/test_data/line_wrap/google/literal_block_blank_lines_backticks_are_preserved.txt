@@ -1,0 +1,19 @@
+LINE_LENGTH: 79
+
+**********
+Example::
+
+    first = `template`
+
+    second = `name`
+
+Back to prose with `identifier`.
+
+**********
+Example::
+
+    first = `template`
+
+    second = `name`
+
+Back to prose with ``identifier``.

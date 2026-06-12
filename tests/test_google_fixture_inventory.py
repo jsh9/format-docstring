@@ -44,6 +44,6 @@ def test_google_fixture_inventory_matches_numpy_gold_standard() -> None:
         google_names = _fixture_names(TEST_DATA_DIR / fixture_group / 'google')
 
         assert numpy_names - google_names == NUMPY_ONLY_FIXTURES
-        assert google_names - numpy_names == GOOGLE_ONLY_FIXTURES[
-            fixture_group
-        ]
+        assert (
+            google_names - numpy_names == GOOGLE_ONLY_FIXTURES[fixture_group]
+        )

@@ -331,12 +331,12 @@ underlined sections are preserved and their body text is wrapped as generic
 prose.
 
 For Google style, supported sections are standardized to canonical Google
-headers: `Args:`, `Returns:`, `Yields:`, `Raises:`, `Attributes:`,
-`Examples:`, `Notes:`, and `Warnings:`. Aliases such as `Arguments:`,
-`Parameters:`, `Return:`, and `Warning:` are normalized to those forms. Unknown
-`Header:` blocks are only treated leniently after a recognized signature
-section, where they act as boundaries so their prose is not mistaken for more
-arguments or return values.
+headers: `Args:`, `Returns:`, `Yields:`, `Raises:`, `Attributes:`, `Examples:`,
+`Notes:`, and `Warnings:`. Aliases such as `Arguments:`, `Parameters:`,
+`Return:`, and `Warning:` are normalized to those forms. Unknown `Header:`
+blocks are only treated leniently after a recognized signature section, where
+they act as boundaries so their prose is not mistaken for more arguments or
+return values.
 
 ### 3.2. Content that is preserved
 

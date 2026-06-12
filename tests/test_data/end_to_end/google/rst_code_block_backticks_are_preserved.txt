@@ -1,0 +1,27 @@
+LINE_LENGTH: 79
+
+**********
+def f():
+    """
+    Examples:
+
+    .. code-block:: python
+
+        value = `template`
+
+    Back to prose with `identifier`.
+    """
+    pass
+
+**********
+def f():
+    """
+    Examples:
+
+    .. code-block:: python
+
+        value = `template`
+
+    Back to prose with ``identifier``.
+    """
+    pass

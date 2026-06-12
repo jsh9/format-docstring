@@ -504,8 +504,7 @@ def _pass1_unwrap_google_docstring(
                     # normal Google return signature with an inline
                     # description.
                     indent = standardized_line[
-                        : len(standardized_line)
-                        - len(standardized_stripped)
+                        : len(standardized_line) - len(standardized_stripped)
                     ]
                     standardized_line = (
                         f'{indent}{desired_annotation}: '
@@ -582,8 +581,7 @@ def _pass1_unwrap_google_docstring(
                     is_return_section
                     and inline_desc is None
                     and any(
-                        desc_line.strip()
-                        for desc_line in description_lines
+                        desc_line.strip() for desc_line in description_lines
                     )
                     and not signature_part.rstrip().endswith(':')
                 ):
@@ -1453,8 +1451,8 @@ def _is_google_signature_section_header(line: str) -> bool:
     """
     Return True for sections whose entries use Google signatures.
 
-    Pass two uses this to distinguish real signature rows from label-like
-    prose such as ``Warning:`` in ``Notes:``.
+    Pass two uses this to distinguish real signature rows from label-like prose
+    such as ``Warning:`` in ``Notes:``.
     """
     return line.strip().lower() in {
         'args:',
