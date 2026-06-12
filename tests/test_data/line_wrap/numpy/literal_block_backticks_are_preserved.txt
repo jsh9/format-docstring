@@ -1,0 +1,11 @@
+LINE_LENGTH: 79
+
+**********
+Example::
+
+    value = `template`
+
+**********
+Example::
+
+    value = `template`

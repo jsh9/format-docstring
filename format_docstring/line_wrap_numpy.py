@@ -11,6 +11,7 @@ from format_docstring.line_wrap_utils import (
     finalize_lines,
     is_code_fence,
     is_doctest_block,
+    is_literal_block_paragraph,
     process_temp_output,
 )
 
@@ -922,6 +923,22 @@ def _mask_rst_backtick_protected_lines(
                 masked_lines.append(mask(lines[idx]))
 
             current_idx = doctest_end_idx
+            continue
+
+        # ``::`` literal blocks are detected from the previous content line,
+        # so this check must happen before looking only at current-line text.
+        is_literal, literal_end_idx = is_literal_block_paragraph(
+            lines, current_idx
+        )
+        if is_literal:
+            # Backtick fixing is prose-only. Literal blocks may contain code or
+            # output where single backticks are meaningful, so mask the whole
+            # span and restore it after the regex replacement.
+            for idx in range(current_idx, literal_end_idx):
+                protected_lines[idx] = lines[idx]
+                masked_lines.append(mask(lines[idx]))
+
+            current_idx = literal_end_idx
             continue
 
         line = lines[current_idx]

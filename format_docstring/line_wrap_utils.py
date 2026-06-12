@@ -489,7 +489,7 @@ def segment_lines_by_wrappability(
             continue
 
         # Check for literal block following ::
-        is_literal, literal_end_idx = _is_literal_block_paragraph(
+        is_literal, literal_end_idx = is_literal_block_paragraph(
             lines, current_idx
         )
         if is_literal:
@@ -528,7 +528,7 @@ def segment_lines_by_wrappability(
         while current_idx < len(lines):
             is_table, _ = is_rST_table(lines, current_idx)
             is_list, _ = is_bulleted_list(lines, current_idx)
-            is_literal, _ = _is_literal_block_paragraph(lines, current_idx)
+            is_literal, _ = is_literal_block_paragraph(lines, current_idx)
 
             if is_table or is_list or is_literal:
                 break
@@ -1045,7 +1045,7 @@ def _is_docstring_section_boundary(lines: list[str], idx: int) -> bool:
     )
 
 
-def _is_literal_block_paragraph(
+def is_literal_block_paragraph(
         lines: list[str], start_idx: int
 ) -> tuple[bool, int]:
     """

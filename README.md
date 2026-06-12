@@ -16,16 +16,20 @@ ______________________________________________________________________
   - [2.4. Default value declarations are standardized](#24-default-value-declarations-are-standardized)
   - [2.5. Single backticks are converted to double backticks (rST syntax)](#25-single-backticks-are-converted-to-double-backticks-rst-syntax)
   - [2.6. Docstring parameters and returns stay in sync with signatures](#26-docstring-parameters-and-returns-stay-in-sync-with-signatures)
-- [3. Installation](#3-installation)
-- [4. Usage](#4-usage)
-  - [4.1. Command Line Interface](#41-command-line-interface)
-  - [4.2. Pre-commit Hook](#42-pre-commit-hook)
-  - [4.3. Opting Out of Formatting](#43-opting-out-of-formatting)
-- [5. Configuration](#5-configuration)
-  - [5.1. Command-Line Options](#51-command-line-options)
-  - [5.2. Usage Examples](#52-usage-examples)
-  - [5.3. `pyproject.toml` Configuration](#53-pyprojecttoml-configuration)
-- [6. Caveat](#6-caveat)
+- [3. Special Formatting Rules](#3-special-formatting-rules)
+  - [3.1. Section handling](#31-section-handling)
+  - [3.2. Content that is preserved](#32-content-that-is-preserved)
+  - [3.3. Signature synchronization](#33-signature-synchronization)
+- [4. Installation](#4-installation)
+- [5. Usage](#5-usage)
+  - [5.1. Command Line Interface](#51-command-line-interface)
+  - [5.2. Pre-commit Hook](#52-pre-commit-hook)
+  - [5.3. Opting Out of Formatting](#53-opting-out-of-formatting)
+- [6. Configuration](#6-configuration)
+  - [6.1. Command-Line Options](#61-command-line-options)
+  - [6.2. Usage Examples](#62-usage-examples)
+  - [6.3. `pyproject.toml` Configuration](#63-pyprojecttoml-configuration)
+- [7. Caveat](#7-caveat)
 
 ______________________________________________________________________
 
@@ -312,15 +316,53 @@ redundant `, optional`, forward references keep their original quoting, and
 return signatures track tuple splitting conventions already present in the
 docstring.
 
-## 3. Installation
+## 3. Special Formatting Rules
+
+`format-docstring` assumes docstrings are already close to NumPy or Google
+style. It applies a few intentionally conservative rules beyond plain text
+wrapping.
+
+### 3.1. Section handling
+
+For NumPy style, signature sections such as `Parameters`, `Other Parameters`,
+`Attributes`, `Returns`, `Yields`, `Raises`, and `Examples` get special
+parsing. Common singular or colon-suffixed forms are standardized. Unknown
+underlined sections are preserved and their body text is wrapped as generic
+prose.
+
+For Google style, supported sections are standardized to canonical Google
+headers: `Args:`, `Returns:`, `Yields:`, `Raises:`, `Attributes:`,
+`Examples:`, `Notes:`, and `Warnings:`. Aliases such as `Arguments:`,
+`Parameters:`, `Return:`, and `Warning:` are normalized to those forms. Unknown
+`Header:` blocks are only treated leniently after a recognized signature
+section, where they act as boundaries so their prose is not mistaken for more
+arguments or return values.
+
+### 3.2. Content that is preserved
+
+rST tables, bullet lists, fenced code blocks, doctest blocks, and literal
+blocks introduced by `::` are preserved instead of being rewrapped. Inline rST
+single-backtick literals are converted to double backticks in prose, but
+backticks inside protected code-like content are left unchanged.
+
+### 3.3. Signature synchronization
+
+When formatting complete Python source, parameter and return signature lines
+are synchronized from the actual function or class signature. Function
+annotations and default values are treated as the source of truth, class
+docstrings can use `__init__` and class attribute metadata, and tuple return
+annotations are split only when the docstring already enumerates multiple
+return entries.
+
+## 4. Installation
 
 ```bash
 pip install format-docstring
 ```
 
-## 4. Usage
+## 5. Usage
 
-### 4.1. Command Line Interface
+### 5.1. Command Line Interface
 
 **For Python files:**
 
@@ -336,7 +378,7 @@ format-docstring-jupyter path/to/notebook.ipynb
 format-docstring-jupyter path/to/directory/
 ```
 
-### 4.2. Pre-commit Hook
+### 5.2. Pre-commit Hook
 
 To use `format-docstring` as a pre-commit hook, add this to your
 `.pre-commit-config.yaml`:
@@ -360,7 +402,7 @@ Then install the pre-commit hook:
 pre-commit install
 ```
 
-### 4.3. Opting Out of Formatting
+### 5.3. Opting Out of Formatting
 
 Add a comment containing `no-format-docstring` on the same line as the closing
 triple quotes to prevent the formatter from touching that docstring:
@@ -373,14 +415,14 @@ first run `format-docstring`, accept the parts you like, revert the edits you
 dislike, and then add an inline `# no-format-docstring` comment so future runs
 leave that docstring untouched.
 
-## 5. Configuration
+## 6. Configuration
 
-### 5.1. Command-Line Options
+### 6.1. Command-Line Options
 
 - `--line-length INTEGER`: Maximum line length for wrapping docstrings
   (default: 79)
 - `--docstring-style CHOICE`: Docstring style to target (`numpy` or `google`,
-  default: `numpy`). Note: Currently only `numpy` style is fully supported.
+  default: `numpy`)
 - `--fix-rst-backticks BOOL`: Automatically fix single backticks to double
   backticks per rST syntax (default: True)
 - `--verbose CHOICE`: Logging detail level (`default` keeps the existing
@@ -393,7 +435,7 @@ leave that docstring untouched.
 - `--version`: Show version information
 - `--help`: Show help message
 
-### 5.2. Usage Examples
+### 6.2. Usage Examples
 
 ```bash
 # Format a single file with default settings
@@ -418,7 +460,7 @@ format-docstring --config pyproject.toml --line-length 100 src/
 format-docstring --fix-rst-backticks=False my_module.py
 ```
 
-### 5.3. `pyproject.toml` Configuration
+### 6.3. `pyproject.toml` Configuration
 
 You can configure default values in your `pyproject.toml`. CLI arguments will
 override these settings:
@@ -447,7 +489,7 @@ verbose = "default"  # or "diff" to print unified diffs
 The tool searches for `pyproject.toml` starting from the target file/directory
 and walking up the parent directories until one is found.
 
-## 6. Caveat
+## 7. Caveat
 
 This tool assumes the docstrings are written in **mostly** the correct format,
 because it needs those formatting cues (such as section headers and `------`)
