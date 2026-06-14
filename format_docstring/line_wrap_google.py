@@ -14,6 +14,15 @@ from format_docstring.line_wrap_utils import (
     merge_lines_and_strip,
     segment_lines_by_wrappability,
 )
+from format_docstring.section_utils import (
+    canonical_google_section_header,
+    is_google_attribute_section_header,
+    is_google_parameter_section_header,
+    is_google_returns_or_yields_section_header,
+    is_google_section_header,
+    is_google_signature_section_header,
+    is_google_yields_section_header,
+)
 
 # Google docstrings can preserve string prefixes such as ``rf`` when rebuilt,
 # so first-line wrapping reserves two prefix characters plus opening quotes.
@@ -147,88 +156,6 @@ def _pass1_unwrap_google_docstring(
     if not lines:
         return docstring_
 
-    # Section header mappings: map variant spellings to canonical Google-style headers
-    # Google style uses "Args:" while NumPy style uses "Parameters:"
-    section_args: Final[set[str]] = {
-        'args:',
-        'arg:',  # standard Google style
-        'arguments:',
-        'argument:',
-        'parameters:',
-        'parameter:',  # NumPy style variants
-    }
-    section_returns: Final[set[str]] = {
-        'returns:',
-        'return:',
-    }
-    section_yields: Final[set[str]] = {
-        'yields:',
-        'yield:',
-    }
-    section_raises: Final[set[str]] = {
-        'raises:',
-        'raise:',
-    }
-    section_attributes: Final[set[str]] = {
-        'attributes:',
-        'attribute:',
-    }
-    section_examples: Final[set[str]] = {
-        'examples:',
-        'example:',
-    }
-    section_notes: Final[set[str]] = {
-        'notes:',
-        'note:',
-    }
-    section_warnings: Final[set[str]] = {
-        'warnings:',
-        'warning:',
-    }
-
-    # Mapping from any variant to canonical Google-style header
-    def get_canonical_header(header_lower: str) -> str | None:
-        """
-        Return the canonical header for a variant, or None if not recognized.
-        """
-        if header_lower in section_args:
-            return 'Args:'
-
-        if header_lower in section_returns:
-            return 'Returns:'
-
-        if header_lower in section_yields:
-            return 'Yields:'
-
-        if header_lower in section_raises:
-            return 'Raises:'
-
-        if header_lower in section_attributes:
-            return 'Attributes:'
-
-        if header_lower in section_examples:
-            return 'Examples:'
-
-        if header_lower in section_notes:
-            return 'Notes:'
-
-        if header_lower in section_warnings:
-            return 'Warnings:'
-
-        return None
-
-    # All recognized section headers (for detection)
-    section_headers: Final[set[str]] = (
-        section_args
-        | section_returns
-        | section_yields
-        | section_raises
-        | section_attributes
-        | section_examples
-        | section_notes
-        | section_warnings
-    )
-
     temp_out: list[str | list[str]] = []
     i: int = 0
     current_section: str = ''
@@ -244,13 +171,68 @@ def _pass1_unwrap_google_docstring(
     return_component_index = 0
     return_signature_style_determined = False
     return_use_multiple_signatures = False
-    sections_with_signatures = (
-        section_args
-        | section_returns
-        | section_yields
-        | section_raises
-        | section_attributes
-    )
+
+    def flush_summary_before_section() -> None:
+        """
+        Compact only the leading summary before emitting a section header.
+
+        Google end-to-end formatting can put the first summary sentence beside
+        the opening quotes. Once a real or custom section starts, later lines
+        must keep section structure instead of being merged into the summary.
+        """
+        if not (compact_first_line and not current_section and temp_out):
+            return
+
+        summary_lines_flat = []
+        for item in temp_out:
+            if isinstance(item, list):
+                summary_lines_flat.extend(item)
+            else:
+                summary_lines_flat.append(item)
+
+        segments = segment_lines_by_wrappability(
+            summary_lines_flat, style='google'
+        )
+
+        temp_out.clear()
+        first_segment_processed = False
+
+        for seg_lines, is_wrappable in segments:
+            if is_wrappable:
+                trailing_empty_lines = []
+                while seg_lines and not seg_lines[-1].strip():
+                    trailing_empty_lines.append(seg_lines.pop())
+
+                trailing_empty_lines.reverse()
+
+                leading_empty_lines = []
+                while seg_lines and not seg_lines[0].strip():
+                    leading_empty_lines.append(seg_lines.pop(0))
+
+                merged = merge_lines_and_strip('\n'.join(seg_lines))
+
+                if first_segment_processed:
+                    for _ in leading_empty_lines:
+                        temp_out.append('')
+
+                if merged:
+                    first_segment_processed = (
+                        _append_google_summary_merged(
+                            temp_out,
+                            merged,
+                            leading_indent=leading_indent,
+                            is_first_segment=(
+                                not first_segment_processed
+                            ),
+                        )
+                        or first_segment_processed
+                    )
+
+                for _ in trailing_empty_lines:
+                    temp_out.append('')
+            else:
+                temp_out.extend(seg_lines)
+                first_segment_processed = True
 
     while i < len(lines):
         line = lines[i]
@@ -280,7 +262,8 @@ def _pass1_unwrap_google_docstring(
         # Google style sections are typically "Name:" at the same indentation level as the summary (or slightly indented if nested)
         # We'll assume top-level sections match the leading_indent if provided, or are just identifiers ending in colon.
         # But for robustness, we check if the line matches a known section header.
-        if stripped.lower() in section_headers:
+        canonical = canonical_google_section_header(stripped)
+        if canonical is not None:
             # If we were in summary mode (empty current_section), we need to process the accumulated summary lines?
             # Actually, `temp_out` holds lines in order.
             # We haven't been "unwrapping" summary lines in the loop.
@@ -399,29 +382,27 @@ def _pass1_unwrap_google_docstring(
                             True  # We have emitted content
                         )
 
-            current_section = stripped.lower()
+            current_section = canonical.lower()
             current_section_indent = indent_length
             # Normalize section header to canonical Google-style form
             # e.g., "parameter:" -> "Args:", "return:" -> "Returns:"
             indent = line[: len(line) - len(stripped)]
-            canonical = get_canonical_header(stripped.lower())
-            if canonical:
-                temp_out.append(indent + canonical)
-            else:
-                # Fallback: use title case if not recognized
-                temp_out.append(indent + stripped.title())
+            temp_out.append(indent + canonical)
 
             i += 1
             continue
 
         if (
-            current_section in sections_with_signatures
-            and indent_length <= current_section_indent
-            and _is_google_unknown_section_header(stripped)
+            _is_google_unknown_section_header(stripped)
+            and (
+                (not current_section and _has_summary_content(temp_out))
+                or indent_length <= current_section_indent
+            )
         ):
             # Unknown bare headers end signature parsing without becoming
             # canonical Google sections. This preserves custom sections such as
             # ``Todo:`` while keeping following prose out of ``Args:`` parsing.
+            flush_summary_before_section()
             current_section = stripped.lower()
             current_section_indent = indent_length
             temp_out.append(line)
@@ -431,14 +412,14 @@ def _pass1_unwrap_google_docstring(
         # 2. Signature detection & Unwrapping
         # We only apply this logic inside specific sections
         # Use section sets to support variant spellings (e.g., "parameter:", "return:")
-        if current_section in sections_with_signatures:
+        if is_google_signature_section_header(current_section):
             section_lower = current_section.lower()
             is_return_section = (
-                section_lower in section_returns | section_yields
+                is_google_returns_or_yields_section_header(section_lower)
             )
-            is_yields_section = section_lower in section_yields
+            is_yields_section = is_google_yields_section_header(section_lower)
             metadata_for_section = parameter_metadata
-            if section_lower in section_attributes:
+            if is_google_attribute_section_header(section_lower):
                 metadata_for_section = attribute_metadata
 
             # Check if this line is a signature line.
@@ -537,7 +518,10 @@ def _pass1_unwrap_google_docstring(
                 signature_part, inline_desc = _split_google_signature(
                     standardized_line
                 )
-                if section_lower in section_args | section_attributes:
+                if (
+                    is_google_parameter_section_header(section_lower)
+                    or is_google_attribute_section_header(section_lower)
+                ):
                     signature_part = _rewrite_google_parameter_signature(
                         signature_part,
                         metadata_for_section,
@@ -922,6 +906,20 @@ def _append_google_summary_merged(
         emitted_content = True
 
     return emitted_content
+
+
+def _has_summary_content(items: list[str | list[str]]) -> bool:
+    """Return True when buffered pre-section lines contain nonblank text."""
+    for item in items:
+        if isinstance(item, list):
+            if any(line.strip() for line in item):
+                return True
+            continue
+
+        if item.strip():
+            return True
+
+    return False
 
 
 def _pass2_wrap_google_docstring(
@@ -1392,28 +1390,6 @@ _GOOGLE_SIGNATURE_BODY_PATTERN = re.compile(
 _GOOGLE_RST_ROLE_SIGNATURE_PATTERN = re.compile(
     r'^(?P<indent>\s*):[^:]+:`[^`]+`:\s*(?P<description>.*)$'
 )
-_GOOGLE_SECTION_HEADERS: Final[set[str]] = {
-    'args:',
-    'arg:',
-    'arguments:',
-    'argument:',
-    'parameters:',
-    'parameter:',
-    'returns:',
-    'return:',
-    'yields:',
-    'yield:',
-    'raises:',
-    'raise:',
-    'attributes:',
-    'attribute:',
-    'examples:',
-    'example:',
-    'notes:',
-    'note:',
-    'warnings:',
-    'warning:',
-}
 _GOOGLE_KNOWN_TYPE_NAMES: Final[set[str]] = {
     'Any',
     'Callable',
@@ -1444,7 +1420,7 @@ _GOOGLE_KNOWN_TYPE_NAMES: Final[set[str]] = {
 
 def _is_google_section_header(line: str) -> bool:
     """Return True when ``line`` is a recognized Google section header."""
-    return line.strip().lower() in _GOOGLE_SECTION_HEADERS
+    return is_google_section_header(line)
 
 
 def _is_google_signature_section_header(line: str) -> bool:
@@ -1454,22 +1430,7 @@ def _is_google_signature_section_header(line: str) -> bool:
     Pass two uses this to distinguish real signature rows from label-like prose
     such as ``Warning:`` in ``Notes:``.
     """
-    return line.strip().lower() in {
-        'args:',
-        'arg:',
-        'arguments:',
-        'argument:',
-        'parameters:',
-        'parameter:',
-        'returns:',
-        'return:',
-        'yields:',
-        'yield:',
-        'raises:',
-        'raise:',
-        'attributes:',
-        'attribute:',
-    }
+    return is_google_signature_section_header(line)
 
 
 def _is_google_unknown_section_header(stripped_line: str) -> bool:
@@ -1483,7 +1444,7 @@ def _is_google_unknown_section_header(stripped_line: str) -> bool:
     if _is_google_section_header(stripped_line):
         return False
 
-    if not stripped_line.endswith(':'):
+    if not stripped_line.endswith(':') or stripped_line.endswith('::'):
         return False
 
     title = stripped_line[:-1].strip()
@@ -1623,6 +1584,9 @@ def _looks_like_google_type(text: str) -> bool:
     """
     stripped = text.strip()
     if not stripped:
+        return False
+
+    if stripped.endswith(('.', '!', '?')):
         return False
 
     if any(char.isspace() for char in stripped):

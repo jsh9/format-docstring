@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 import textwrap
 
+from format_docstring.section_utils import is_known_docstring_section_name
+
 # Regex pattern to split text into paragraphs (multiple consecutive newlines)
 _PARAGRAPH_SPLIT_PATTERN = re.compile(r'\n\s*\n')
 _RST_CODE_DIRECTIVE_PATTERN = re.compile(
@@ -1070,33 +1072,11 @@ def _is_docstring_section_boundary(lines: list[str], idx: int) -> bool:
     if not stripped:
         return False
 
-    normalized = stripped.rstrip(':').lower()
-    known_sections = {
-        'args',
-        'arg',
-        'arguments',
-        'argument',
-        'attributes',
-        'attribute',
-        'examples',
-        'example',
-        'notes',
-        'note',
-        'other parameters',
-        'other parameter',
-        'parameters',
-        'parameter',
-        'raises',
-        'raise',
-        'returns',
-        'return',
-        'warnings',
-        'warning',
-        'yields',
-        'yield',
-    }
-
-    if stripped.endswith(':') and normalized in known_sections:
+    if (
+        stripped.endswith(':')
+        and not stripped.endswith('::')
+        and is_known_docstring_section_name(stripped)
+    ):
         return True
 
     next_idx = idx + 1
@@ -1105,7 +1085,7 @@ def _is_docstring_section_boundary(lines: list[str], idx: int) -> bool:
 
     underline = lines[next_idx].strip()
     return (
-        normalized in known_sections
+        is_known_docstring_section_name(stripped)
         and len(underline) >= 2
         and set(underline) <= {'-'}
     )

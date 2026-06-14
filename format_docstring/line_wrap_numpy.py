@@ -809,6 +809,9 @@ def _looks_like_return_annotation(text: str) -> bool:
     if not stripped:
         return False
 
+    if stripped.endswith(('.', '!', '?')):
+        return False
+
     if any(token in stripped for token in ('[', ']', '|', ',', '"', "'")):
         return True
 

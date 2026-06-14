@@ -1,0 +1,25 @@
+LINE_LENGTH: 79
+
+**********
+Format known and custom sections.
+
+Todo
+----
+Keep this custom section separate.
+
+Parameters
+----------
+x : int
+    Existing parameter.
+
+**********
+Format known and custom sections.
+
+Todo
+----
+Keep this custom section separate.
+
+Parameters
+----------
+x : int
+    Existing parameter.

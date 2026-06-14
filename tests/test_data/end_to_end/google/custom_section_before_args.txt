@@ -1,0 +1,26 @@
+LINE_LENGTH: 79
+
+**********
+def document_custom_section(x):
+    """
+    Format known and custom sections.
+
+    Todo:
+        Keep this custom section separate.
+
+    Args:
+        x: Existing parameter.
+    """
+    pass
+
+**********
+def document_custom_section(x):
+    """Format known and custom sections.
+
+    Todo:
+        Keep this custom section separate.
+
+    Args:
+        x: Existing parameter.
+    """
+    pass
