@@ -82,7 +82,7 @@ def yield_named() -> Generator[int, None, None]:
     """Yield named.
 
     Yields:
-        result (int): Should match annotation.
+        int: Should match annotation.
     """
     yield 1
 

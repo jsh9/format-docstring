@@ -94,9 +94,8 @@ def process_data(data, config=None):
 
     Returns:
         dict: Processed data with keys ``results``, ``metadata``, and
-            ``status``.
-        ``ProcessedData``: Alternative format with ``data`` and ``errors``
-            fields.
+            ``status``. ``ProcessedData``: Alternative format with ``data`` and
+            ``errors`` fields.
 
     Raises:
         ValueError: If ``data`` is empty or ``config`` contains invalid keys.

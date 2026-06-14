@@ -3,7 +3,6 @@ import textwrap
 from typing import Final
 
 from format_docstring.line_wrap_numpy import (
-    _split_tuple_annotation,
     _unwrap_generator_annotation,
 )
 from format_docstring.line_wrap_utils import (
@@ -164,14 +163,6 @@ def _pass1_unwrap_google_docstring(
     return_annotation_str: str | None = (
         return_annotation.strip() if return_annotation else None
     )
-    return_components: list[str] | None = (
-        _split_tuple_annotation(return_annotation_str)
-        if return_annotation_str is not None
-        else None
-    )
-    return_component_index = 0
-    return_signature_style_determined = False
-    return_use_multiple_signatures = False
 
     def flush_summary_before_section() -> None:
         """
@@ -440,47 +431,36 @@ def _pass1_unwrap_google_docstring(
             )
             standardized_stripped = standardized_line.lstrip()
 
-            if is_return_section and return_annotation_str is not None:
-                if not return_signature_style_determined:
-                    return_use_multiple_signatures = (
-                        _detect_multiple_google_return_signatures(
-                            lines,
-                            i,
-                            current_section,
-                        )
-                    )
-                    return_signature_style_determined = True
-
+            if is_return_section:
                 desired_annotation = return_annotation_str
-                if (
-                    return_use_multiple_signatures
-                    and return_components
-                    and return_component_index < len(return_components)
-                ):
-                    desired_annotation = return_components[
-                        return_component_index
-                    ]
-                    return_component_index += 1
-                elif (
-                    return_use_multiple_signatures
-                    and return_components
-                    and return_component_index >= len(return_components)
-                ):
-                    desired_annotation = return_components[-1]
-
-                if is_yields_section:
+                if desired_annotation is not None and is_yields_section:
                     desired_annotation = (
                         _unwrap_generator_annotation(desired_annotation)
                         or desired_annotation
                     )
 
-                if _is_google_return_signature(standardized_stripped):
+                rewritten_named_return = (
+                    _rewrite_google_named_return_signature(
+                        standardized_line,
+                        desired_annotation,
+                    )
+                )
+                if rewritten_named_return is not None:
+                    standardized_line = rewritten_named_return
+                    standardized_stripped = standardized_line.lstrip()
+                elif (
+                    desired_annotation is not None
+                    and _is_google_return_signature(standardized_stripped)
+                ):
                     standardized_line = _rewrite_google_return_signature(
                         standardized_line,
                         desired_annotation,
                     )
                     standardized_stripped = standardized_line.lstrip()
-                elif _is_google_return_description(standardized_stripped):
+                elif (
+                    desired_annotation is not None
+                    and _is_google_return_description(standardized_stripped)
+                ):
                     # A prose-only Returns entry still needs the real
                     # annotation. Merge them now so pass two can wrap it like a
                     # normal Google return signature with an inline
@@ -549,7 +529,19 @@ def _pass1_unwrap_google_docstring(
                         j += 1
                         continue
 
-                    if next_indent <= current_item_indent:
+                    if is_return_section:
+                        # Google returns/yields describe one value, so later
+                        # same-indent rows are preserved as raw description
+                        # text instead of becoming separate return entries.
+                        if (
+                            _is_google_section_header(next_stripped)
+                            or _is_google_unknown_section_header(
+                                next_stripped
+                            )
+                            or next_indent < current_item_indent
+                        ):
+                            break
+                    elif next_indent <= current_item_indent:
                         # Use <= because a new item would be at the same indentation level.
                         # Sections ending would be less indentation (usually).
                         # So if indent went back to current_item level or less, we stop.
@@ -1609,10 +1601,7 @@ def _is_google_return_description(stripped_line: str) -> bool:
     if not stripped_line or _is_google_section_header(stripped_line):
         return False
 
-    if ':' in stripped_line:
-        return _is_google_labeled_return_prose(stripped_line)
-
-    return not _looks_like_google_type(stripped_line)
+    return not _is_google_return_signature(stripped_line)
 
 
 def _is_google_return_signature(stripped_line: str) -> bool:
@@ -1636,7 +1625,33 @@ def _is_google_return_signature(stripped_line: str) -> bool:
     if _is_google_labeled_return_prose(stripped_line):
         return False
 
-    return _is_google_signature(stripped_line)
+    signature_part, _ = _split_google_signature(stripped_line)
+    body = signature_part.rstrip()
+    if not body.endswith(':'):
+        return False
+
+    return _looks_like_google_return_type_body(body[:-1])
+
+
+def _looks_like_google_return_type_body(body: str) -> bool:
+    """
+    Return True when a Google return/yield row names a type.
+
+    Google ``Returns:`` and ``Yields:`` describe values rather than declaring
+    named return variables. Type rows such as ``str:`` or ``MyType:`` remain
+    syncable signatures; typed variable rows are normalized separately so the
+    variable name can be discarded without losing the inline type.
+    """
+    match = _GOOGLE_SIGNATURE_BODY_PATTERN.fullmatch(body)
+    if not match:
+        indent_len = len(body) - len(body.lstrip())
+        candidate = body[indent_len:].strip()
+        return _looks_like_google_type(candidate)
+
+    if match.group('annotation') is not None:
+        return False
+
+    return _looks_like_google_type(match.group('name'))
 
 
 def _is_google_labeled_return_prose(stripped_line: str) -> bool:
@@ -1645,7 +1660,7 @@ def _is_google_labeled_return_prose(stripped_line: str) -> bool:
 
     Google return descriptions and signatures both use ``:``. This normalizes
     the signature-shaped prefix before applying the shared prose-label rule so
-    typed or named returns still take the signature path.
+    common labels like ``Result:`` do not get mistaken for custom types.
     """
     signature_part, description = _split_google_signature(stripped_line)
     if description is None:
@@ -1661,6 +1676,42 @@ def _is_google_labeled_return_prose(stripped_line: str) -> bool:
         label = match.group('name')
 
     return _is_labeled_return_prose(label, description)
+
+
+def _rewrite_google_named_return_signature(
+        line: str,
+        annotation: str | None,
+) -> str | None:
+    """
+    Return a normalized type row for ``name (type): desc`` returns.
+
+    Google returns and yields do not declare variable names, so the name is
+    discarded while the parenthesized type is kept when no synced annotation is
+    available.
+    """
+    signature_part, description = _split_google_signature(line)
+    stripped_colon = signature_part.rstrip()
+    if not stripped_colon.endswith(':'):
+        return None
+
+    body = stripped_colon[:-1]
+    match = _GOOGLE_SIGNATURE_BODY_PATTERN.fullmatch(body)
+    if not match:
+        return None
+
+    existing_annotation = (match.group('annotation') or '').strip()
+    if not existing_annotation:
+        return None
+
+    if not _looks_like_google_type(existing_annotation):
+        return None
+
+    return_type = annotation or existing_annotation
+    indent = match.group('indent')
+    if description is None:
+        return f'{indent}{return_type}'
+
+    return f'{indent}{return_type}: {description}'
 
 
 def _rewrite_google_return_signature(line: str, annotation: str) -> str:
@@ -1694,51 +1745,11 @@ def _rewrite_google_return_signature(line: str, annotation: str) -> str:
 
     name = match.group('name')
     existing_annotation = match.group('annotation')
-    is_named_return = (
-        existing_annotation is not None or not _looks_like_google_type(name)
-    )
     indent = match.group('indent')
-    if is_named_return:
-        return f'{indent}{name} ({annotation}): {description}'
+    if existing_annotation is not None or not _looks_like_google_type(name):
+        return f'{indent}{annotation}: {body.strip()}: {description}'
 
     return f'{indent}{annotation}: {description}'
-
-
-def _detect_multiple_google_return_signatures(
-        lines: list[str],
-        start_idx: int,
-        current_section: str,
-) -> bool:
-    """
-    Return True if the current return/yield section has multiple items.
-
-    Tuple annotations should only be split when the docstring already lists
-    multiple top-level return entries; a single tuple entry keeps the complete
-    tuple annotation.
-    """
-    start_line = lines[start_idx]
-    start_indent = len(start_line) - len(start_line.lstrip())
-    j = start_idx + 1
-    while j < len(lines):
-        candidate = lines[j]
-        stripped = candidate.lstrip()
-        if _is_google_section_header(stripped):
-            break
-
-        if not candidate.strip():
-            j += 1
-            continue
-
-        indent = len(candidate) - len(stripped)
-        if indent == start_indent and _is_google_return_signature(stripped):
-            return True
-
-        if indent < start_indent:
-            break
-
-        j += 1
-
-    return False
 
 
 def _find_google_signature_colon(line: str) -> int:

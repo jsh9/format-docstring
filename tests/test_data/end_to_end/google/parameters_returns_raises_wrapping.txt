@@ -39,11 +39,11 @@ def complex_function():
             that extend beyond the limit.
 
     Returns:
-        result1 (dict[str, int]): The first return value contains aggregated
-            information computed from the inputs and needs to be explained
-            thoroughly so it wraps properly.
-        result2 (list[str]): The second return value is a list of messages; its
-            description is long enough that it will wrap as well.
+        dict[str, int]: The first return value contains aggregated information
+            computed from the inputs and needs to be explained thoroughly so it
+            wraps properly. result2 (list[str]): The second return value is a
+            list of messages; its description is long enough that it will wrap
+            as well.
 
     Raises:
         ValueError: If alpha is invalid or contains values that cannot be

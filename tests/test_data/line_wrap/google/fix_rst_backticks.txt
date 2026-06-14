@@ -50,8 +50,8 @@ Args:
     config (``ConfigType``): A ``Config`` object for settings.
 
 Returns:
-    dict: A dictionary with keys ``result`` and ``status``.
-    ``ResultDict``: An alternative return format with ``data`` field.
+    dict: A dictionary with keys ``result`` and ``status``. ``ResultDict``: An
+        alternative return format with ``data`` field.
 
 See Also:
     ``other_function``: Related function

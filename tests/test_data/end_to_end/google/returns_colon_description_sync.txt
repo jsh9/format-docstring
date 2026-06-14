@@ -1,9 +1,9 @@
 LINE_LENGTH: 79
 
 **********
-# Regression: labeled colon return descriptions must stay prose.
-# Annotation sync can otherwise treat "Result" as a named return and drop it.
-def render_status() -> str:
+# Regression: keep labels such as "Result:" and "name:" in the description.
+# They are not return variable names in Google-style Returns sections.
+def render_status_label() -> str:
     """
     Render status.
 
@@ -12,13 +12,51 @@ def render_status() -> str:
     """
     return 'ready'
 
+
+def render_result_label() -> str:
+    """
+    Render result.
+
+    Returns:
+        result: The result.
+    """
+    return 'ready'
+
+
+def render_name_label() -> str:
+    """
+    Render name.
+
+    Returns:
+        name: The name.
+    """
+    return 'ready'
+
 **********
-# Regression: labeled colon return descriptions must stay prose.
-# Annotation sync can otherwise treat "Result" as a named return and drop it.
-def render_status() -> str:
+# Regression: keep labels such as "Result:" and "name:" in the description.
+# They are not return variable names in Google-style Returns sections.
+def render_status_label() -> str:
     """Render status.
 
     Returns:
         str: Result: ready for display.
+    """
+    return 'ready'
+
+
+def render_result_label() -> str:
+    """Render result.
+
+    Returns:
+        str: result: The result.
+    """
+    return 'ready'
+
+
+def render_name_label() -> str:
+    """Render name.
+
+    Returns:
+        str: name: The name.
     """
     return 'ready'

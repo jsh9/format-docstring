@@ -319,40 +319,158 @@ docstring.
 ## 3. Special Formatting Rules
 
 `format-docstring` assumes docstrings are already close to NumPy or Google
-style. It applies a few intentionally conservative rules beyond plain text
-wrapping.
+style. These examples show the extra rules applied around structure, protected
+content, and source-signature sync.
 
 ### 3.1. Section handling
 
-For NumPy style, signature sections such as `Parameters`, `Other Parameters`,
-`Attributes`, `Returns`, `Yields`, `Raises`, and `Examples` get special
-parsing. Common singular or colon-suffixed forms are standardized. Unknown
-underlined sections are preserved and their body text is wrapped as generic
-prose.
+Known sections are parsed and common aliases are canonicalized. Custom sections
+stay custom, and their body is wrapped as prose.
 
-For Google style, supported sections are standardized to canonical Google
-headers: `Args:`, `Returns:`, `Yields:`, `Raises:`, `Attributes:`, `Examples:`,
-`Notes:`, and `Warnings:`. Aliases such as `Arguments:`, `Parameters:`,
-`Return:`, and `Warning:` are normalized to those forms. Unknown `Header:`
-blocks are only treated leniently after a recognized signature section, where
-they act as boundaries so their prose is not mistaken for more arguments or
-return values.
+Before:
+
+```python
+# `Arguments:` is a supported Google alias. `Todo:` is custom.
+"""
+Do work.
+
+Arguments:
+    name: Person to greet.
+
+Todo:
+    Keep this custom section, but wrap its prose normally.
+"""
+```
+
+After:
+
+```python
+"""
+Do work.
+
+Args:
+    name: Person to greet.
+
+Todo:
+    Keep this custom section, but wrap its prose normally.
+"""
+```
+
+NumPy signature sections such as `Parameters`, `Other Parameters`,
+`Attributes`, `Returns`, `Yields`, `Raises`, and `Examples` get the same
+kind of section-aware parsing.
 
 ### 3.2. Content that is preserved
 
-rST tables, bullet lists, fenced code blocks, doctest blocks, and literal
-blocks introduced by `::` are preserved instead of being rewrapped. Inline rST
-single-backtick literals are converted to double backticks in prose, but
-backticks inside protected code-like content are left unchanged.
+Tables, bullet lists, fenced code blocks, doctest blocks, and literal blocks
+introduced by `::` are preserved. Prose still gets normal rST literal fixes.
+
+Before:
+
+```python
+"""
+Notes
+-----
+Use `value` in prose.
+
+Example::
+
+    print(`raw`)  # Literal blocks are protected.
+"""
+```
+
+After:
+
+```python
+"""
+Notes
+-----
+Use ``value`` in prose.
+
+Example::
+
+    print(`raw`)  # This protected line is left unchanged.
+"""
+```
 
 ### 3.3. Signature synchronization
 
 When formatting complete Python source, parameter and return signature lines
 are synchronized from the actual function or class signature. Function
 annotations and default values are treated as the source of truth, class
-docstrings can use `__init__` and class attribute metadata, and tuple return
-annotations are split only when the docstring already enumerates multiple
-return entries.
+docstrings can use `__init__` and class attribute metadata.
+
+Before:
+
+```python
+# The function signature is the source of truth.
+def parse(value: int = 3) -> tuple[int, str]:
+    """
+    Parse a value.
+
+    Parameters
+    ----------
+    value : str, optional
+        Value to parse.
+
+    Returns
+    -------
+    float
+        Parsed number.
+    str
+        Parsed label.
+    """
+```
+
+After:
+
+```python
+def parse(value: int = 3) -> tuple[int, str]:
+    """Parse a value.
+
+    Parameters
+    ----------
+    value : int = 3
+        Value to parse.
+
+    Returns
+    -------
+    int
+        Parsed number.
+    str
+        Parsed label.
+    """
+```
+
+**Google-style users:** this rule is intentionally strict. `Returns:` and
+`Yields:` describe one returned value; they do not declare return variable
+names. If the input lists several return variables, `format-docstring` keeps
+the text but rewrites it into one Google return description. The result can
+look awkward, but it avoids preserving a shape that Google style does not
+support.
+
+Before:
+
+```python
+def render() -> tuple[str, int]:
+    """Render a value.
+
+    Returns:
+        result (OldType): First value.
+        status (int): Second value.
+    """
+```
+
+After:
+
+```python
+def render() -> tuple[str, int]:
+    """Render a value.
+
+    Returns:
+        tuple[str, int]: First value. status (int): Second value.
+    """
+```
 
 ## 4. Installation
 

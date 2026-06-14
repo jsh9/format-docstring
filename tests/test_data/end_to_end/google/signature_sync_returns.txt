@@ -108,9 +108,8 @@ def compute_values() -> tuple[int, str, list[str]]:
     """Compute multiple outputs.
 
     Returns:
-        int: First element.
-        str: Second element.
-        list[str]: Third element.
+        tuple[int, str, list[str]]: First element. str: Second element.
+            List[str]: Third element.
     """
     return 1, 'two', ['three']
 
@@ -119,9 +118,8 @@ def annotate_values() -> tuple[int, str, list[str]]:
     """Annotated tuple returns.
 
     Returns:
-        primary (int): First element.
-        secondary (str): Second element.
-        items (list[str]): Third element.
+        tuple[int, str, list[str]]: First element. secondary (bool): Second
+            element. items (tuple[str, ...]): Third element.
     """
     return 1, 'two', ['three']
 
@@ -148,8 +146,7 @@ def custom_return_type_2() -> tuple['MyType1', "MyType2"]:
     """Do something
 
     Returns:
-        'MyType1': String
-        "MyType2": Integer
+        tuple['MyType1', "MyType2"]: String int: Integer
     """
     pass
 
@@ -158,7 +155,7 @@ def with_return_var_name_1() -> str:
     """Do something
 
     Returns:
-        result (str): The result
+        str: The result
     """
     pass
 
@@ -167,8 +164,7 @@ def with_return_var_name_2() -> tuple[str, int, int]:
     """Do something
 
     Returns:
-        name (str): The name
-        index (int): The index
-        status (int): The status
+        tuple[str, int, int]: name: The name index (bool): The index status
+            (str): The status
     """
     pass
