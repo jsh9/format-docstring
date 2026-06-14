@@ -360,10 +360,36 @@ NumPy signature sections such as `Parameters`, `Other Parameters`,
 `Attributes`, `Returns`, `Yields`, `Raises`, and `Examples` get the same
 kind of section-aware parsing.
 
+For Google-style docstrings, custom section headers are recognized only after
+summary content has been seen, or after another section has already started at
+the same or lower indentation. If the first content line is an unknown
+`Name:` header, it is treated as summary text rather than promoted to a custom
+section. In compact Google output, that first line may therefore stay beside
+the opening triple quotes.
+
+Before:
+
+```python
+def work():
+    """
+    Todo:
+        Keep this custom section as the leading content.
+    """
+```
+
+After:
+
+```python
+def work():
+    """Todo: Keep this custom section as the leading content.
+    """
+```
+
 ### 3.2. Content that is preserved
 
-Tables, bullet lists, fenced code blocks, doctest blocks, and literal blocks
-introduced by `::` are preserved. Prose still gets normal rST literal fixes.
+Tables, bullet lists, fenced code blocks, doctest blocks, Python-like code in
+`Examples` sections, and literal blocks introduced by `::` are preserved.
+Prose still gets normal rST literal fixes.
 
 Before:
 
@@ -447,7 +473,9 @@ def parse(value: int = 3) -> tuple[int, str]:
 names. If the input lists several return variables, `format-docstring` keeps
 the text but rewrites it into one Google return description. The result can
 look awkward, but it avoids preserving a shape that Google style does not
-support.
+support. This is also true when the function annotation is a tuple: unlike the
+NumPy formatter, the Google formatter does not split tuple elements across
+multiple `Returns:` or `Yields:` rows.
 
 Before:
 

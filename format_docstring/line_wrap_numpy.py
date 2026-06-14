@@ -12,6 +12,7 @@ from format_docstring.line_wrap_utils import (
     _is_labeled_return_prose,
     is_code_fence,
     is_doctest_block,
+    is_examples_code_block,
     is_literal_block_paragraph,
     is_rst_code_block,
     process_temp_output,
@@ -38,8 +39,8 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
     - In "Returns"/"Yields" sections, treat the first-level lines (either
       ``name : type`` or just ``type``) as signatures and do not wrap them;
       wrap their indented descriptions.
-    - In the "Examples" section, do not wrap doctest prompts or common
-      doctest output lines.
+    - In the "Examples" section, do not wrap doctest blocks or Python-like
+      code examples.
     - Do not wrap any lines inside fenced code blocks (``` ... ``` or
       ~~~ ... ~~~).
     - Outside these special cases, wrap only lines that exceed ``line_length``
@@ -161,6 +162,17 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
             if stripped.startswith(('>>> ', '... ')):
                 temp_out.append(line)
                 i += 1
+                continue
+
+            # Plain Python examples have meaningful line breaks even when they
+            # are not fenced or prompted. Keep detected code out of the prose
+            # collector because that later merges and wraps paragraph lines.
+            is_examples_code, examples_code_end_idx = (
+                is_examples_code_block(lines, i)
+            )
+            if is_examples_code:
+                temp_out.extend(lines[i:examples_code_end_idx])
+                i = examples_code_end_idx
                 continue
 
         # Parameters-like sections

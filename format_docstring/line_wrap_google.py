@@ -11,6 +11,7 @@ from format_docstring.line_wrap_utils import (
     finalize_lines,
     _is_labeled_return_prose,
     is_code_fence,
+    is_examples_code_block,
     merge_lines_and_strip,
     segment_lines_by_wrappability,
 )
@@ -793,7 +794,9 @@ def _join_paragraph_lines(
 
     This prevents URLs and inline elements from being broken across lines when
     individual lines are wrapped. Signatures (lines matching Google-style
-    parameter patterns) are kept separate.
+    parameter patterns) are kept separate. Python-like Examples code is also
+    kept separate because joining it here would destroy line breaks before the
+    preservation check in pass two can run.
 
     Parameters
     ----------
@@ -813,6 +816,7 @@ def _join_paragraph_lines(
     result: list[str] = []
     paragraph_lines: list[str] = []
     paragraph_indent: str = ''
+    in_examples_section = False
 
     def flush_paragraph() -> None:
         """Join accumulated paragraph lines and add to result."""
@@ -827,15 +831,40 @@ def _join_paragraph_lines(
             paragraph_lines = []
             paragraph_indent = ''
 
-    for line in lines:
+    line_idx = 0
+    while line_idx < len(lines):
+        line = lines[line_idx]
         if not line.strip():
             # Empty line - flush current paragraph and preserve empty line
             flush_paragraph()
             result.append(line)
+            line_idx += 1
             continue
 
         stripped = line.lstrip()
         indent_str = line[: len(line) - len(stripped)]
+        indent_level = len(indent_str)
+
+        canonical = canonical_google_section_header(stripped)
+        if canonical is not None:
+            in_examples_section = canonical == 'Examples:'
+        elif (
+            _is_google_unknown_section_header(stripped)
+            and indent_level <= (leading_indent or 0)
+        ):
+            in_examples_section = False
+
+        if in_examples_section:
+            # Protect plain code before paragraph joining. This pass is the
+            # last point where the original line boundaries are still intact.
+            is_examples_code, examples_code_end_idx = (
+                is_examples_code_block(lines, line_idx)
+            )
+            if is_examples_code:
+                flush_paragraph()
+                result.extend(lines[line_idx:examples_code_end_idx])
+                line_idx = examples_code_end_idx
+                continue
 
         # Check if this is a signature line
         is_sig = False
@@ -860,6 +889,8 @@ def _join_paragraph_lines(
                 paragraph_indent = indent_str
 
             paragraph_lines.append(line)
+
+        line_idx += 1
 
     # Flush any remaining paragraph
     flush_paragraph()
@@ -949,6 +980,7 @@ def _pass2_wrap_google_docstring(
     # stopped signature parsing; pass two still needs to wrap custom-section
     # prose without treating the source indentation as part of the text budget.
     custom_section_indent: int | None = None
+    in_examples_section = False
 
     for seg_lines, is_wrappable in segments:
         if not is_wrappable:
@@ -965,12 +997,15 @@ def _pass2_wrap_google_docstring(
         # joined paragraphs to prevent breaking URLs and inline elements.
         processed_lines = _join_paragraph_lines(seg_lines, leading_indent)
 
-        for line in processed_lines:
+        line_idx = 0
+        while line_idx < len(processed_lines):
+            line = processed_lines[line_idx]
             if not line.strip():
                 final_output.append(line)
                 if opening_quotes_on_own_line and is_first_line:
                     is_first_line = False
 
+                line_idx += 1
                 continue
 
             stripped = line.lstrip()
@@ -978,6 +1013,9 @@ def _pass2_wrap_google_docstring(
             indent_level = len(indent_str)
             if _is_google_section_header(stripped):
                 custom_section_indent = None
+                in_examples_section = (
+                    canonical_google_section_header(stripped) == 'Examples:'
+                )
                 in_signature_section = _is_google_signature_section_header(
                     stripped
                 )
@@ -986,12 +1024,27 @@ def _pass2_wrap_google_docstring(
                 and indent_level <= leading_indent
             ):
                 custom_section_indent = indent_level
+                in_examples_section = False
                 in_signature_section = False
             elif (
                 custom_section_indent is not None
                 and indent_level <= custom_section_indent
             ):
                 custom_section_indent = None
+
+            if in_examples_section:
+                # Check again after paragraph joining so code blocks that were
+                # kept intact above do not fall through to ``textwrap.fill``.
+                is_examples_code, examples_code_end_idx = (
+                    is_examples_code_block(processed_lines, line_idx)
+                )
+                if is_examples_code:
+                    final_output.extend(
+                        processed_lines[line_idx:examples_code_end_idx]
+                    )
+                    is_first_line = False
+                    line_idx = examples_code_end_idx
+                    continue
 
             if is_first_line:
                 # For first line, calculate total width for textwrap accounting for:
@@ -1077,6 +1130,8 @@ def _pass2_wrap_google_docstring(
 
                     if not desc_part or not desc_part.strip():
                         final_output.append(sig_part.rstrip())
+                        is_first_line = False
+                        line_idx += 1
                         continue
 
                     # We have description.
@@ -1174,6 +1229,8 @@ def _pass2_wrap_google_docstring(
                                 break_on_hyphens=False,
                             )
                             final_output.extend(wrapped.splitlines())
+                            is_first_line = False
+                            line_idx += 1
                             continue
 
                         # Try to fit first chunk
@@ -1296,6 +1353,7 @@ def _pass2_wrap_google_docstring(
                 final_output.extend(wrapped.splitlines())
 
             is_first_line = False
+            line_idx += 1
 
     return finalize_lines(final_output, closing_indent)
 

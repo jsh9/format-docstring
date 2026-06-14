@@ -8,6 +8,7 @@ from format_docstring.line_wrap_utils import (
     fix_typos_in_section_headings,
     is_bulleted_list,
     is_code_fence,
+    is_examples_code_block,
     is_literal_block_paragraph,
     is_rST_table,
     is_rst_code_block,
@@ -1610,6 +1611,82 @@ def test_segment_lines_by_wrappability(
 ) -> None:
     result = segment_lines_by_wrappability(lines)
     assert result == expected_segments
+
+
+@pytest.mark.parametrize(
+    ('lines', 'start_idx', 'expected_is_code', 'expected_end_idx'),
+    [
+        (
+            [
+                (
+                    '    result = call_function_with_a_really_long_argument_'
+                    'name(first_argument, second_argument, third_argument)'
+                ),
+                '    print(result)',
+                '',
+                '    Back to prose.',
+            ],
+            0,
+            True,
+            2,
+        ),
+        (
+            [
+                '    result = call_function(',
+                '        first_argument,',
+                '        second_argument,',
+                '    )',
+                '    print(result)',
+            ],
+            0,
+            True,
+            5,
+        ),
+        (
+            [
+                (
+                    '    This is a very long prose sentence in an examples '
+                    'section that should still be wrapped by the formatter.'
+                ),
+            ],
+            0,
+            False,
+            0,
+        ),
+        (
+            [
+                '    result = compute_value()',
+                'Args:',
+                '    value: Description.',
+            ],
+            0,
+            True,
+            1,
+        ),
+    ],
+    ids=[
+        'assignment_and_call',
+        'multiline_call',
+        'prose_is_not_code',
+        'stops_at_section',
+    ],
+)
+def test_is_examples_code_block(
+        lines: list[str],
+        start_idx: int,
+        *,
+        expected_is_code: bool,
+        expected_end_idx: int,
+) -> None:
+    """
+    Verify Examples code detection preserves only Python-like code blocks.
+
+    This guard is needed because undetected example code enters the prose
+    wrapping path, where adjacent lines are merged and long lines are wrapped.
+    """
+    is_code, end_idx = is_examples_code_block(lines, start_idx)
+    assert is_code == expected_is_code
+    assert end_idx == expected_end_idx
 
 
 @pytest.mark.parametrize(

@@ -11,6 +11,39 @@ _RST_CODE_DIRECTIVE_PATTERN = re.compile(
     r'^\s*\.\.\s+(?:code-block|sourcecode|code)::(?:\s+.*)?$',
     re.IGNORECASE,
 )
+# Used only after a wrapper has entered Examples. Keep the match conservative
+# so prose examples still flow through the normal paragraph wrapper.
+_PYTHON_EXAMPLE_START_PATTERN = re.compile(
+    r'^(?:'
+    r'(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*|\[[^\]]+\])*)'
+    r'(?:\s*,\s*[A-Za-z_]\w*)*\s*(?::\s*[^=]+)?'
+    r'\s*(?:[-+*/%@&|^]?=|:=)(?!=)|'
+    r'(?:await\s+)?[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\(|'
+    r'from\s+\S+\s+import\s+|'
+    r'import\s+|'
+    r'def\s+\w+|'
+    r'class\s+\w+|'
+    r'if\s+.+:|'
+    r'elif\s+.+:|'
+    r'else:|'
+    r'for\s+.+:|'
+    r'while\s+.+:|'
+    r'with\s+.+:|'
+    r'try:|'
+    r'except\b.*:|'
+    r'finally:|'
+    r'match\s+.+:|'
+    r'case\s+.+:|'
+    r'return\b|'
+    r'yield\b|'
+    r'raise\b|'
+    r'assert\b|'
+    r'pass\b|'
+    r'break\b|'
+    r'continue\b|'
+    r'@[A-Za-z_]'
+    r')'
+)
 
 ParameterMetadata = dict[str, tuple[str | None, str | None]]
 
@@ -597,6 +630,140 @@ def segment_lines_by_wrappability(
         segments.append((wrappable_lines, True))
 
     return segments
+
+
+def is_examples_code_block(
+        lines: list[str],
+        start_idx: int,
+) -> tuple[bool, int]:
+    """
+    Return True for Python-like code blocks inside an Examples section.
+
+    Callers are responsible for invoking this only while already inside an
+    Examples section. The detector keeps plain prose wrappable but preserves
+    obvious code statements and bracketed continuation lines. This is
+    intentionally conservative because non-code prose in Examples should still
+    use normal paragraph wrapping.
+    """
+    if start_idx >= len(lines):
+        return False, start_idx
+
+    if _is_docstring_section_boundary(lines, start_idx):
+        return False, start_idx
+
+    first_line = lines[start_idx]
+    if not _looks_like_examples_code_start(first_line):
+        return False, start_idx
+
+    base_indent = _indent_width(first_line)
+    bracket_depth = 0
+    current_idx = start_idx
+
+    while current_idx < len(lines):
+        line = lines[current_idx]
+        stripped = line.strip()
+
+        if current_idx > start_idx:
+            if not stripped:
+                break
+
+            if _is_docstring_section_boundary(lines, current_idx):
+                break
+
+            if not (
+                _looks_like_examples_code_start(line)
+                or _is_examples_code_continuation(
+                    line,
+                    base_indent=base_indent,
+                    bracket_depth=bracket_depth,
+                )
+                or stripped.startswith('#')
+            ):
+                break
+
+        # Update continuation state after accepting the current line so
+        # bracketed follow-up lines are preserved with the statement instead of
+        # being merged into prose.
+        bracket_depth = max(
+            0,
+            bracket_depth + _python_bracket_delta(line),
+        )
+        current_idx += 1
+
+    return True, current_idx
+
+
+def _looks_like_examples_code_start(line: str) -> bool:
+    """Return True when ``line`` starts a Python-like example statement."""
+    stripped = line.strip()
+    return (
+        bool(stripped)
+        and not stripped.startswith(('>>>', '...', '#'))
+        and bool(_PYTHON_EXAMPLE_START_PATTERN.match(stripped))
+    )
+
+
+def _is_examples_code_continuation(
+        line: str,
+        *,
+        base_indent: int,
+        bracket_depth: int,
+) -> bool:
+    """Return True when ``line`` continues an examples code block."""
+    stripped = line.strip()
+    if not stripped:
+        return False
+
+    if bracket_depth > 0:
+        return True
+
+    if _indent_width(line) <= base_indent:
+        return False
+
+    return stripped.startswith(('.', ',', ')', ']', '}'))
+
+
+def _python_bracket_delta(line: str) -> int:
+    """Return net bracket nesting while ignoring quoted strings and comments."""
+    delta = 0
+    quote_char = ''
+    escaped = False
+    idx = 0
+    while idx < len(line):
+        char = line[idx]
+        if quote_char:
+            if escaped:
+                escaped = False
+            elif char == '\\':
+                escaped = True
+            elif line.startswith(quote_char, idx):
+                idx += len(quote_char) - 1
+                quote_char = ''
+
+            idx += 1
+            continue
+
+        if line.startswith(("'''", '"""'), idx):
+            quote_char = line[idx : idx + 3]
+            idx += 3
+            continue
+
+        if char in {'"', "'"}:
+            quote_char = char
+            idx += 1
+            continue
+
+        if char == '#':
+            break
+
+        if char in '([{':
+            delta += 1
+        elif char in ')]}':
+            delta -= 1
+
+        idx += 1
+
+    return delta
 
 
 def is_code_fence(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
