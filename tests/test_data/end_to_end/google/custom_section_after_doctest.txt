@@ -1,0 +1,25 @@
+LINE_LENGTH: 60
+
+**********
+def f():
+    """
+    Examples:
+        >>> setup()
+        ok
+    Custom:
+        This custom section line is long enough that it should be wrapped by the formatter when it is not doctest output and should not stay unchanged.
+    """
+    pass
+
+**********
+def f():
+    """
+    Examples:
+        >>> setup()
+        ok
+    Custom:
+        This custom section line is long enough that it
+        should be wrapped by the formatter when it is not
+        doctest output and should not stay unchanged.
+    """
+    pass

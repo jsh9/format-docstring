@@ -3,7 +3,11 @@ from __future__ import annotations
 import re
 import textwrap
 
-from format_docstring.section_utils import is_known_docstring_section_name
+from format_docstring.section_utils import (
+    is_google_section_header,
+    is_google_unknown_section_header,
+    is_known_docstring_section_name,
+)
 
 # Regex pattern to split text into paragraphs (multiple consecutive newlines)
 _PARAGRAPH_SPLIT_PATTERN = re.compile(r'\n\s*\n')
@@ -581,7 +585,11 @@ def segment_lines_by_wrappability(
 
         # Check for doctest block (Google style only)
         if style == 'google':
-            is_doctest, doctest_end_idx = is_doctest_block(lines, current_idx)
+            is_doctest, doctest_end_idx = is_doctest_block(
+                lines,
+                current_idx,
+                style=style,
+            )
             if is_doctest:
                 # Add doctest segment (not wrappable)
                 doctest_lines = lines[current_idx:doctest_end_idx]
@@ -619,7 +627,11 @@ def segment_lines_by_wrappability(
                 break
 
             if style == 'google':
-                is_doctest, _ = is_doctest_block(lines, current_idx)
+                is_doctest, _ = is_doctest_block(
+                    lines,
+                    current_idx,
+                    style=style,
+                )
                 if is_doctest:
                     break
 
@@ -1213,7 +1225,12 @@ def _is_continuation_line(line: str, list_item_indent: int) -> bool:
     return line_indent > list_item_indent
 
 
-def is_doctest_block(lines: list[str], start_idx: int) -> tuple[bool, int]:
+def is_doctest_block(
+        lines: list[str],
+        start_idx: int,
+        *,
+        style: str = 'numpy',
+) -> tuple[bool, int]:
     """
     Check if lines starting at start_idx form a Python doctest block.
 
@@ -1228,6 +1245,9 @@ def is_doctest_block(lines: list[str], start_idx: int) -> tuple[bool, int]:
         The list of lines to check.
     start_idx : int
         The starting index to check from.
+    style : str, default='numpy'
+        The docstring style being segmented. Google mode also treats peer
+        custom section headers as boundaries.
 
     Returns
     -------
@@ -1241,6 +1261,16 @@ def is_doctest_block(lines: list[str], start_idx: int) -> tuple[bool, int]:
     if not line.startswith('>>>'):
         return False, start_idx
 
+    google_section_indent: int | None = None
+    if style == 'google':
+        # Doctest output is arbitrary text, so a line like ``Result:`` may be
+        # output or a custom section. Anchor to the surrounding Google section
+        # indent so only peer custom headers end the protected block.
+        google_section_indent = _find_previous_google_section_indent(
+            lines,
+            start_idx,
+        )
+
     current_idx = start_idx + 1
     while current_idx < len(lines):
         next_line = lines[current_idx].strip()
@@ -1253,9 +1283,57 @@ def is_doctest_block(lines: list[str], start_idx: int) -> tuple[bool, int]:
         if _is_docstring_section_boundary(lines, current_idx):
             break
 
+        if (
+            google_section_indent is not None
+            and _is_google_custom_section_boundary(
+                lines[current_idx],
+                google_section_indent,
+            )
+        ):
+            break
+
         current_idx += 1
 
     return True, current_idx
+
+
+def _find_previous_google_section_indent(
+        lines: list[str],
+        start_idx: int,
+) -> int | None:
+    """
+    Return the nearest previous Google section header indentation.
+
+    Doctest block detection needs this context because segmentation can start
+    in the middle of an ``Examples:`` section, after the header itself has
+    already been emitted in an earlier wrappable segment.
+    """
+    current_idx = start_idx - 1
+    while current_idx >= 0:
+        line = lines[current_idx]
+        stripped = line.strip()
+        if is_google_section_header(stripped):
+            return _indent_width(line)
+
+        current_idx -= 1
+
+    return None
+
+
+def _is_google_custom_section_boundary(
+        line: str,
+        section_indent: int,
+) -> bool:
+    """
+    Return True when ``line`` starts a peer custom Google section.
+
+    The indent check keeps doctest output such as ``    Result:`` protected,
+    while allowing a dedented ``Custom:`` header to resume normal wrapping.
+    """
+    return (
+        _indent_width(line) <= section_indent
+        and is_google_unknown_section_header(line)
+    )
 
 
 def _is_docstring_section_boundary(lines: list[str], idx: int) -> bool:

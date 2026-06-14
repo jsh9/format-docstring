@@ -1,0 +1,27 @@
+LINE_LENGTH: 79
+
+**********
+def f():
+    """
+    Examples
+    --------
+    >>> setup()
+    ok
+
+    result = call_function_with_a_really_long_argument_name(first_argument, second_argument, third_argument)
+    print(result)
+    """
+    pass
+
+**********
+def f():
+    """
+    Examples
+    --------
+    >>> setup()
+    ok
+
+    result = call_function_with_a_really_long_argument_name(first_argument, second_argument, third_argument)
+    print(result)
+    """
+    pass

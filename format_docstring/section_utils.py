@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Final
 
 GOOGLE_PARAMETER_SECTION_NAMES: Final[set[str]] = {
@@ -100,6 +101,25 @@ def is_google_section_header(line: str) -> bool:
         and not stripped.endswith('::')
         and normalize_docstring_section_name(stripped) in GOOGLE_SECTION_NAMES
     )
+
+
+def is_google_unknown_section_header(line: str) -> bool:
+    """
+    Return True when ``line`` is a bare custom Google section header.
+
+    Custom headers are not canonicalized, but they still delimit sections. The
+    wrappers use this to stop parsing a previous block without treating prose
+    labels or literal-block ``::`` markers as section starts.
+    """
+    stripped = line.strip()
+    if is_google_section_header(stripped):
+        return False
+
+    if not stripped.endswith(':') or stripped.endswith('::'):
+        return False
+
+    title = stripped[:-1].strip()
+    return bool(re.fullmatch(r'[A-Za-z][A-Za-z0-9 _-]*', title))
 
 
 def canonical_google_section_header(line: str) -> str | None:

@@ -22,6 +22,7 @@ from format_docstring.section_utils import (
     is_google_returns_or_yields_section_header,
     is_google_section_header,
     is_google_signature_section_header,
+    is_google_unknown_section_header,
     is_google_yields_section_header,
 )
 
@@ -788,6 +789,8 @@ def _pass1_unwrap_google_docstring(
 def _join_paragraph_lines(
         lines: list[str],
         leading_indent: int | None,
+        *,
+        initial_in_examples_section: bool = False,
 ) -> list[str]:
     """
     Group consecutive non-signature lines into joined paragraphs.
@@ -804,6 +807,8 @@ def _join_paragraph_lines(
         The lines from a wrappable segment.
     leading_indent : int | None
         The leading indentation level.
+    initial_in_examples_section : bool, default=False
+        Whether this segment starts inside an ``Examples:`` section.
 
     Returns
     -------
@@ -816,7 +821,10 @@ def _join_paragraph_lines(
     result: list[str] = []
     paragraph_lines: list[str] = []
     paragraph_indent: str = ''
-    in_examples_section = False
+    # Wrappability segmentation can split an Examples section around a doctest
+    # block. Preserve the caller's section state so later plain code is not
+    # joined as prose after the protected doctest segment.
+    in_examples_section = initial_in_examples_section
 
     def flush_paragraph() -> None:
         """Join accumulated paragraph lines and add to result."""
@@ -995,7 +1003,13 @@ def _pass2_wrap_google_docstring(
 
         # Pre-process segment: Group consecutive non-signature lines into
         # joined paragraphs to prevent breaking URLs and inline elements.
-        processed_lines = _join_paragraph_lines(seg_lines, leading_indent)
+        # The Examples state is tracked outside the segment loop because code
+        # fences and doctests are separate non-wrappable segments.
+        processed_lines = _join_paragraph_lines(
+            seg_lines,
+            leading_indent,
+            initial_in_examples_section=in_examples_section,
+        )
 
         line_idx = 0
         while line_idx < len(processed_lines):
@@ -1336,12 +1350,6 @@ def _pass2_wrap_google_docstring(
                     and len(indent_str) < leading_indent
                 ):
                     subsequent_indent = ' ' * leading_indent
-                elif (
-                    custom_section_indent is not None
-                    and indent_level > custom_section_indent
-                ):
-                    wrap_width += leading_indent
-
                 wrapped = textwrap.fill(
                     line.strip(),
                     width=wrap_width,
@@ -1492,14 +1500,7 @@ def _is_google_unknown_section_header(stripped_line: str) -> bool:
     prevents a custom block after ``Args:`` from being parsed as another
     argument while preserving the author's header text.
     """
-    if _is_google_section_header(stripped_line):
-        return False
-
-    if not stripped_line.endswith(':') or stripped_line.endswith('::'):
-        return False
-
-    title = stripped_line[:-1].strip()
-    return bool(re.fullmatch(r'[A-Za-z][A-Za-z0-9 _-]*', title))
+    return is_google_unknown_section_header(stripped_line)
 
 
 def _lookup_google_metadata(

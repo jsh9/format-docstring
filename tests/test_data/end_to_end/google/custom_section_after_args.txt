@@ -21,7 +21,7 @@ def document_custom_section(x):
         x: Existing parameter.
 
     Todo:
-        Keep this custom section as prose, not as an Args item with the
-        description pulled onto the header line.
+        Keep this custom section as prose, not as an Args item with
+        the description pulled onto the header line.
     """
     pass
