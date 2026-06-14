@@ -10,6 +10,7 @@ from format_docstring.line_wrap_utils import (
     ParameterMetadata,
     add_leading_indent,
     finalize_lines,
+    _is_labeled_return_prose,
     is_code_fence,
     merge_lines_and_strip,
     segment_lines_by_wrappability,
@@ -1605,12 +1606,13 @@ def _is_google_return_description(stripped_line: str) -> bool:
     The source annotation is inserted ahead of these lines so syncing a
     ``Returns:`` section does not discard the existing description.
     """
-    return (
-        bool(stripped_line)
-        and ':' not in stripped_line
-        and not _is_google_section_header(stripped_line)
-        and not _looks_like_google_type(stripped_line)
-    )
+    if not stripped_line or _is_google_section_header(stripped_line):
+        return False
+
+    if ':' in stripped_line:
+        return _is_google_labeled_return_prose(stripped_line)
+
+    return not _looks_like_google_type(stripped_line)
 
 
 def _is_google_return_signature(stripped_line: str) -> bool:
@@ -1629,7 +1631,36 @@ def _is_google_return_signature(stripped_line: str) -> bool:
     if ':' not in stripped_line:
         return _looks_like_google_type(stripped_line)
 
+    # Labeled prose uses the same delimiter as Google signatures. Reject it
+    # here so return sync inserts the annotation without losing the label.
+    if _is_google_labeled_return_prose(stripped_line):
+        return False
+
     return _is_google_signature(stripped_line)
+
+
+def _is_google_labeled_return_prose(stripped_line: str) -> bool:
+    """
+    Return True when a colon-bearing Google return item is prose.
+
+    Google return descriptions and signatures both use ``:``. This normalizes
+    the signature-shaped prefix before applying the shared prose-label rule so
+    typed or named returns still take the signature path.
+    """
+    signature_part, description = _split_google_signature(stripped_line)
+    if description is None:
+        return False
+
+    body = signature_part.rstrip()
+    if not body.endswith(':'):
+        return False
+
+    label = body[:-1].strip()
+    match = _GOOGLE_SIGNATURE_BODY_PATTERN.fullmatch(label)
+    if match and match.group('annotation') is None:
+        label = match.group('name')
+
+    return _is_labeled_return_prose(label, description)
 
 
 def _rewrite_google_return_signature(line: str, annotation: str) -> str:

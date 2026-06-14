@@ -1,0 +1,28 @@
+LINE_LENGTH: 79
+
+**********
+# Regression: labeled colon return descriptions must stay prose.
+# Annotation sync can otherwise treat "Result" as a named return and drop it.
+def render_status() -> str:
+    """
+    Render status.
+
+    Returns
+    -------
+    Result: ready for display.
+    """
+    return 'ready'
+
+**********
+# Regression: labeled colon return descriptions must stay prose.
+# Annotation sync can otherwise treat "Result" as a named return and drop it.
+def render_status() -> str:
+    """
+    Render status.
+
+    Returns
+    -------
+    str
+        Result: ready for display.
+    """
+    return 'ready'

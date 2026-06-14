@@ -9,6 +9,7 @@ from format_docstring.line_wrap_utils import (
     add_leading_indent,
     collect_to_temp_output,
     finalize_lines,
+    _is_labeled_return_prose,
     is_code_fence,
     is_doctest_block,
     is_literal_block_paragraph,
@@ -761,6 +762,13 @@ def _detect_multiple_return_signatures(
 
         indent = len(candidate) - len(candidate.lstrip(' '))
         if indent <= indent_threshold:
+            # Labeled prose can sit at the same indent as a NumPy return
+            # signature. Skip it so tuple sync does not consume another
+            # annotation component for a description line.
+            if _is_numpy_labeled_return_prose(candidate.strip()):
+                j += 1
+                continue
+
             return True
 
         j += 1
@@ -784,11 +792,17 @@ def _rewrite_return_signature(line: str, annotation: str) -> str:
     colon_idx = stripped.find(':')
     if colon_idx != -1:
         name = stripped[:colon_idx].rstrip()
+        description = stripped[colon_idx + 1 :].strip()
         # Only treat the colon as a signature separator if something precedes
         # it. rST cross references such as ``:class:`Foo``` start with a colon,
         # in which case we just want to output the synced annotation.
         if not name:
             return f'{indent}{annotation}'
+
+        # Labels like ``Result:`` are description text, not return names. Keep
+        # the full line under the synced annotation so the label is preserved.
+        if _is_labeled_return_prose(name, description):
+            return f'{indent}{annotation}\n{indent}    {stripped}'
 
         return f'{indent}{name} : {annotation}'
 
@@ -796,6 +810,17 @@ def _rewrite_return_signature(line: str, annotation: str) -> str:
         return f'{indent}{annotation}\n{indent}    {stripped}'
 
     return f'{indent}{annotation}'
+
+
+def _is_numpy_labeled_return_prose(stripped_line: str) -> bool:
+    """Return True when a colon-bearing NumPy return item is prose."""
+    colon_idx = stripped_line.find(':')
+    if colon_idx == -1:
+        return False
+
+    label = stripped_line[:colon_idx].rstrip()
+    description = stripped_line[colon_idx + 1 :].strip()
+    return _is_labeled_return_prose(label, description)
 
 
 def _looks_like_return_annotation(text: str) -> bool:

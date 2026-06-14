@@ -14,6 +14,17 @@ _RST_CODE_DIRECTIVE_PATTERN = re.compile(
 
 ParameterMetadata = dict[str, tuple[str | None, str | None]]
 
+_RETURN_PROSE_LABELS = {
+    'output',
+    'outputs',
+    'result',
+    'results',
+    'return value',
+    'return values',
+    'value',
+    'values',
+}
+
 
 def add_leading_indent(docstring: str, leading_indent: int | None) -> str:
     r"""
@@ -29,6 +40,26 @@ def add_leading_indent(docstring: str, leading_indent: int | None) -> str:
             return needed_prefix + docstring
 
     return docstring
+
+
+def _is_labeled_return_prose(label: str, description: str) -> bool:
+    """
+    Return True for labeled prose such as ``Result: ready.``.
+
+    These labels are common prose prefixes in returns/yields sections. The
+    allow-list keeps annotation sync from mistaking them for names or types
+    and dropping the label from the description.
+    """
+    label_normalized = ' '.join(label.strip().lower().split())
+    description_stripped = description.strip()
+    return (
+        label_normalized in _RETURN_PROSE_LABELS
+        and bool(description_stripped)
+        and (
+            any(char.isspace() for char in description_stripped)
+            or description_stripped.endswith(('.', '!', '?'))
+        )
+    )
 
 
 def finalize_lines(out_lines: list[str], leading_indent: int | None) -> str:
