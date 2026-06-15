@@ -335,6 +335,47 @@ def test_standardize_default_value(line: str, expected: str) -> None:
             '>>> # Use `config` parameter to customize `mode`\n'
             '... # and set the `threshold` value',
         ),
+        # Examples prose still uses rST inline literals. This guards against
+        # over-masking the whole section while protecting nearby code rows.
+        (
+            'Examples:\n'
+            '    Use `raw` in prose.',
+            'Examples:\n'
+            '    Use ``raw`` in prose.',
+        ),
+        # NumPy plain Examples code is preserved byte-for-byte, including
+        # comment backticks, because these lines are source examples rather
+        # than rST prose.
+        (
+            'Examples\n'
+            '--------\n'
+            'value = 1  # use `raw` here\n'
+            '\n'
+            'Notes\n'
+            '-----\n'
+            'Use `raw` here',
+            'Examples\n'
+            '--------\n'
+            'value = 1  # use `raw` here\n'
+            '\n'
+            'Notes\n'
+            '-----\n'
+            'Use ``raw`` here',
+        ),
+        # Google plain Examples code uses indented rows under ``Examples:``.
+        # Keep code comment backticks while still normalizing later prose.
+        (
+            'Examples:\n'
+            '    value = 1  # use `raw` here\n'
+            '\n'
+            'Notes:\n'
+            '    Use `raw` here',
+            'Examples:\n'
+            '    value = 1  # use `raw` here\n'
+            '\n'
+            'Notes:\n'
+            '    Use ``raw`` here',
+        ),
     ],
 )
 def test_fix_rst_backticks_cases(src: str, expected: str) -> None:

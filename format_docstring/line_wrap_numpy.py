@@ -17,6 +17,10 @@ from format_docstring.line_wrap_utils import (
     is_rst_code_block,
     process_temp_output,
 )
+from format_docstring.section_utils import (
+    canonical_google_section_header,
+    is_google_unknown_section_header,
+)
 
 
 def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/format-docstring/issues/17
@@ -932,10 +936,17 @@ def _mask_rst_backtick_protected_lines(
     The caller restores lines by index after regex replacement. Placeholders
     preserve line endings so ``splitlines(keepends=True)`` keeps the same
     shape.
+
+    Plain prose in ``Examples`` still uses rST inline-literal syntax, but
+    detected Python-like code should be byte-for-byte preserved. Track section
+    state here because the regex fixer runs before the style-specific wrappers
+    decide which example lines are code.
     """
     protected_lines: dict[int, str] = {}
     masked_lines: list[str] = []
     current_idx = 0
+    in_examples = False
+    numpy_examples = {'example', 'example:', 'examples', 'examples:'}
 
     def mask(line: str) -> str:
         # Keep one placeholder per original line so restoring by index remains
@@ -946,36 +957,47 @@ def _mask_rst_backtick_protected_lines(
 
         return placeholder
 
+    def mask_span(start_idx: int, end_idx: int) -> None:
+        for idx in range(start_idx, end_idx):
+            protected_lines[idx] = lines[idx]
+            masked_lines.append(mask(lines[idx]))
+
     while current_idx < len(lines):
+        # Backtick normalization runs before NumPy/Google section parsing, so
+        # this shared pre-pass maintains just enough section state to preserve
+        # detected examples code without shielding examples prose.
+        line = lines[current_idx]
+        stripped = line.strip()
+        numpy_heading = _get_section_heading_title(lines, current_idx)
+        if numpy_heading is not None:
+            in_examples = numpy_heading in numpy_examples
+        else:
+            google_header = canonical_google_section_header(stripped)
+            if google_header is not None:
+                in_examples = google_header == 'Examples:'
+            elif is_google_unknown_section_header(stripped):
+                in_examples = False
+
         # Protect full spans first; doctest output and fenced code content
         # should not be touched by rST backtick normalization.
         is_fence, fence_end_idx = is_code_fence(lines, current_idx)
         if is_fence:
-            for idx in range(current_idx, fence_end_idx):
-                protected_lines[idx] = lines[idx]
-                masked_lines.append(mask(lines[idx]))
-
+            mask_span(current_idx, fence_end_idx)
             current_idx = fence_end_idx
             continue
 
         is_doctest, doctest_end_idx = is_doctest_block(lines, current_idx)
         if is_doctest:
-            for idx in range(current_idx, doctest_end_idx):
-                protected_lines[idx] = lines[idx]
-                masked_lines.append(mask(lines[idx]))
-
+            mask_span(current_idx, doctest_end_idx)
             current_idx = doctest_end_idx
             continue
 
         # rST code directives are code blocks even without fence markers. Mask
-        # the directive and indented body so code backticks stay untouched while
-        # dedented prose after the block is still normalized.
+        # the directive and indented body so code backticks stay untouched
+        # while dedented prose after the block is still normalized.
         is_rst_code, rst_code_end_idx = is_rst_code_block(lines, current_idx)
         if is_rst_code:
-            for idx in range(current_idx, rst_code_end_idx):
-                protected_lines[idx] = lines[idx]
-                masked_lines.append(mask(lines[idx]))
-
+            mask_span(current_idx, rst_code_end_idx)
             current_idx = rst_code_end_idx
             continue
 
@@ -988,16 +1010,24 @@ def _mask_rst_backtick_protected_lines(
             # Backtick fixing is prose-only. Literal blocks may contain code or
             # output where single backticks are meaningful, so mask the whole
             # span and restore it after the regex replacement.
-            for idx in range(current_idx, literal_end_idx):
-                protected_lines[idx] = lines[idx]
-                masked_lines.append(mask(lines[idx]))
-
+            mask_span(current_idx, literal_end_idx)
             current_idx = literal_end_idx
             continue
 
-        line = lines[current_idx]
-        stripped = line.lstrip()
-        if stripped.startswith(('>>> ', '... ')):
+        if in_examples:
+            # Plain Python examples are intentionally preserved like fenced
+            # code. Otherwise comments such as ``# use `raw``` would be
+            # rewritten even though the surrounding example line is code.
+            is_examples_code, examples_code_end_idx = is_examples_code_block(
+                lines,
+                current_idx,
+            )
+            if is_examples_code:
+                mask_span(current_idx, examples_code_end_idx)
+                current_idx = examples_code_end_idx
+                continue
+
+        if line.lstrip().startswith(('>>> ', '... ')):
             protected_lines[current_idx] = line
             masked_lines.append(mask(line))
         else:
@@ -1025,6 +1055,7 @@ def _fix_rst_backticks(docstring: str) -> str:
     - Inline external links: `` `text <https://example.com>`_ ``.
     - Explicit hyperlink targets: ``.. _`Label`: https://example.com``.
     - REPL lines: Lines starting with ``>>> `` or ``... `` (Python examples).
+    - Python-like code detected inside ``Examples`` sections.
 
     How it works (regex guards)
     ---------------------------
@@ -1038,7 +1069,8 @@ def _fix_rst_backticks(docstring: str) -> str:
     - Closing backtick is not part of ````...```` (``(?!`)``).
     - Closing backtick is not followed by ``__`` or ``_`` (to avoid
       anonymous/named references).
-    - The line does not start with ``>>> `` or ``... `` (Python REPL).
+    - The line is not protected as REPL or examples code before regex
+      replacement runs.
 
     Parameters
     ----------

@@ -477,6 +477,11 @@ support. This is also true when the function annotation is a tuple: unlike the
 NumPy formatter, the Google formatter does not split tuple elements across
 multiple `Returns:` or `Yields:` rows.
 
+Google return and yield types should use Python annotation syntax. Free-form
+multi-word type descriptions such as `list of str` are treated as prose rather
+than type signatures; write `list[str]` when the line should be formatted as a
+return or yield signature.
+
 Before:
 
 ```python

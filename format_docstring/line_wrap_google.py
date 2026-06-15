@@ -477,7 +477,12 @@ def _pass1_unwrap_google_docstring(
                     standardized_stripped = standardized_line.lstrip()
 
             is_signature = _is_google_signature(standardized_stripped)
-            if is_return_section and return_annotation_str is not None:
+            if is_return_section:
+                # Return and yield rows can be type signatures that the
+                # generic Google item detector rejects, especially rST roles
+                # such as ``:class:`Widget`:``. Classify them here so
+                # line-wrap-only calls get signature continuation indentation
+                # even when no source annotation is available for sync.
                 is_signature = is_signature or (
                     _is_google_return_signature(standardized_stripped)
                 )
@@ -1447,7 +1452,8 @@ _GOOGLE_SIGNATURE_BODY_PATTERN = re.compile(
     r'(?:\s*\((?P<annotation>.*)\))?$'
 )
 _GOOGLE_RST_ROLE_SIGNATURE_PATTERN = re.compile(
-    r'^(?P<indent>\s*):[^:]+:`[^`]+`:\s*(?P<description>.*)$'
+    r'^(?P<indent>\s*)(?P<signature>:[^:]+:`[^`]+`:)\s*'
+    r'(?P<description>.*)$'
 )
 _GOOGLE_KNOWN_TYPE_NAMES: Final[set[str]] = {
     'Any',
@@ -2101,6 +2107,18 @@ def _split_google_signature(line: str) -> tuple[str, str | None]:
     # For `dict[str, str]:`, first colon is at end. Safe.
     # For `Callable[[int, int], str]:`, first colon is inside? No `Callable` uses commas/arrows.
     # Slices `MyType[1:2]`? Rare in docstrings.
+
+    rst_match = _GOOGLE_RST_ROLE_SIGNATURE_PATTERN.fullmatch(line)
+    if rst_match:
+        # rST roles start with a colon, so the generic delimiter scanner would
+        # split before the role name. Keep the whole role as the signature so
+        # the description wraps under Google's continuation indent.
+        sig = f'{rst_match.group("indent")}{rst_match.group("signature")}'
+        desc = rst_match.group('description')
+        if not desc.strip():
+            return sig, None
+
+        return sig, desc.strip()
 
     colon_index = _find_google_signature_colon(line)
     if colon_index == -1:

@@ -12,6 +12,16 @@ def myfunc() -> MyClass:
     pass
 
 
+def unannotated_cross_ref():
+    """
+    Build a widget.
+
+    Returns:
+        :class:`Widget`: A long description that should wrap across the line length and keep the return type as a signature.
+    """
+    pass
+
+
 def uses_cross_refs(
         thing: MyClass,
         creator: Callable[[MyClass], MyClass],
@@ -36,6 +46,16 @@ def myfunc() -> MyClass:
 
     Returns:
         MyClass: An instance of MyClass
+    """
+    pass
+
+
+def unannotated_cross_ref():
+    """Build a widget.
+
+    Returns:
+        :class:`Widget`: A long description that should wrap across the line
+            length and keep the return type as a signature.
     """
     pass
 
