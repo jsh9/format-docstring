@@ -39,6 +39,8 @@ class Widget:
     count: tuple[int, ...]
     settings: Mapping[str, tuple[int, ...]]
     threshold: float = 0.75
+    # Regression: type-commented attributes keep assigned defaults during
+    # Attributes sync, matching function argument default handling.
     prefix = 'x'  # type: str | None
 
     def __init__(
@@ -137,7 +139,7 @@ class Widget:
         Settings payload.
     threshold : float, default=0.75
         Threshold attribute.
-    prefix :
+    prefix : str | None, default='x'
         Prefix attribute.
     """
 
@@ -145,6 +147,8 @@ class Widget:
     count: tuple[int, ...]
     settings: Mapping[str, tuple[int, ...]]
     threshold: float = 0.75
+    # Regression: type-commented attributes keep assigned defaults during
+    # Attributes sync, matching function argument default handling.
     prefix = 'x'  # type: str | None
 
     def __init__(

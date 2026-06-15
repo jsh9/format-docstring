@@ -4,6 +4,7 @@ LINE_LENGTH: 79
 from collections.abc import Generator, Iterator
 
 
+# Regression: Iterator annotations sync to yielded item types in Yields.
 def yield_numbers() -> Iterator[int]:
     """
     Yield numbers.
@@ -69,11 +70,12 @@ def yield_last_non_none() -> Generator[int, None, str]:
 from collections.abc import Generator, Iterator
 
 
+# Regression: Iterator annotations sync to yielded item types in Yields.
 def yield_numbers() -> Iterator[int]:
     """Yield numbers.
 
     Yields:
-        Iterator[int]: Should match annotation.
+        int: Should match annotation.
     """
     yield 1
 
@@ -91,7 +93,7 @@ def yield_custom_type_1() -> Iterator['MyType1']:
     """Yield custom type.
 
     Yields:
-        Iterator['MyType1']
+        'MyType1'
     """
     yield 'value'
 
@@ -100,7 +102,7 @@ def yield_custom_type_2() -> Iterator[tuple['MyType1', "MyType2"]]:
     """Yield another custom type.
 
     Yields:
-        Iterator[tuple['MyType1', "MyType2"]]: Combined values.
+        tuple['MyType1', "MyType2"]: Combined values.
     """
     yield 'value'
     yield 1

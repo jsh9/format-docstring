@@ -721,12 +721,12 @@ def _name_of(node: ast.AST) -> str | None:
 def _unwrap_generator_annotation(annotation: str | None) -> str | None:
     """
     Return the first yield type when ``annotation`` is a Generator or
-    AsyncGenerator.
+    AsyncGenerator, or the item type when it is an Iterator or AsyncIterator.
 
     This is a small helper to keep ``Yields`` sections intuitive; Python
     signatures often annotate generator functions as ``Generator[T, None,
-    None]`` but docstrings should spell out the yielded type ``T`` instead of
-    the whole container.
+    None]`` or ``Iterator[T]`` but docstrings should spell out the yielded type
+    ``T`` instead of the whole container.
     """
     if annotation is None:
         return None
@@ -740,7 +740,23 @@ def _unwrap_generator_annotation(annotation: str | None) -> str | None:
         return None
 
     base_name = _name_of(expr.value)
-    if base_name is None or base_name.split('.')[-1] not in {
+    if base_name is None:
+        return None
+
+    base_short_name = base_name.split('.')[-1]
+    if base_short_name in {
+        'Iterator',
+        'AsyncIterator',
+    }:
+        # Iterator[T] has only the yielded item type in its subscript. Return
+        # that item so Yields sections document values, not iterator objects.
+        segment = ast.get_source_segment(annotation, expr.slice)
+        if segment is None:
+            segment = ast.unparse(expr.slice)
+
+        return segment.strip()
+
+    if base_short_name not in {
         'Generator',
         'AsyncGenerator',
     }:

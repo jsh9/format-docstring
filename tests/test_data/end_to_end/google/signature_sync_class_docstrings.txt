@@ -28,6 +28,8 @@ class Widget:
     count: tuple[int, ...]
     settings: Mapping[str, tuple[int, ...]]
     threshold: float = 0.75
+    # Regression: type-commented attributes keep assigned defaults during
+    # Attributes sync, matching function argument default handling.
     prefix = 'x'  # type: str | None
 
     def __init__(
@@ -109,13 +111,15 @@ class Widget:
         count (tuple[int, ...]): Count attribute.
         settings (Mapping[str, tuple[int, ...]]): Settings payload.
         threshold (float, default=0.75): Threshold attribute.
-        prefix (str | None): Prefix attribute.
+        prefix (str | None, default='x'): Prefix attribute.
     """
 
     qux: dict[str, list[int]] = {'alpha': [1, 2]}
     count: tuple[int, ...]
     settings: Mapping[str, tuple[int, ...]]
     threshold: float = 0.75
+    # Regression: type-commented attributes keep assigned defaults during
+    # Attributes sync, matching function argument default handling.
     prefix = 'x'  # type: str | None
 
     def __init__(

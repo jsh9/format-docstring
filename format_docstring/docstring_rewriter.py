@@ -287,7 +287,14 @@ def _collect_class_metadata(
                 else None
             )
             if type_comment:
-                attribute_metadata[assign_target.id] = (type_comment, None)
+                # Type comments supply the annotation out-of-band, so keep the
+                # assignment value too. This lets class-attribute sync replace
+                # stale docstring defaults the same way function args do.
+                default = _render_signature_piece(stmt.value, source_code)
+                attribute_metadata[assign_target.id] = (
+                    type_comment,
+                    default,
+                )
             else:
                 # Record that this attribute explicitly has no annotation or
                 # default that should be projected into the docstring.
@@ -505,9 +512,7 @@ def build_replacement_docstring(
         init_metadata, class_attr_metadata = _collect_class_metadata(
             node,
             source_code,
-            include_type_comments=(
-                docstring_style.strip().lower() == 'google'
-            ),
+            include_type_comments=True,
         )
         if init_metadata:
             param_metadata = init_metadata
