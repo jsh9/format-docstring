@@ -8,3 +8,8 @@ Regression notes:
 - `custom_section_after_doctest.txt` verifies that a peer custom section after
   doctest output resumes normal prose wrapping instead of being preserved as
   doctest output.
+- `arg_description_starts_with_bulleted_list.txt` and
+  `arg_description_starts_with_table.txt` verify that an `Args:` entry whose
+  description starts on the next line keeps protected block indentation. This
+  guards the pass-one handoff where inline descriptions are already dedented
+  but following block lines still carry source indentation.

@@ -575,15 +575,14 @@ def _pass1_unwrap_google_docstring(
                     # preserving the Google ``type: description`` shape.
                     signature_part = f'{signature_part.rstrip()}:'
 
-                # Process the collected description
-                # We need to compute the "common indent" of the description lines to treat them as text blocks.
-                # But wait, we want to unwrap onto the signature line.
-                # The signature line effectively establishes the "indentation of the description" for the first paragraph.
-
-                # Let's clean up description lines:
-                # If they were on new lines, they have indentation. We should strip that relative indentation.
+                # Description lines use two coordinate systems: inline text is
+                # already dedented, while following lines still carry source
+                # indentation. Normalize before segmentation so preserved
+                # blocks are later re-indented exactly once.
                 processed_desc_lines = _dedent_lines(
-                    description_lines, current_item_indent
+                    description_lines,
+                    current_item_indent,
+                    has_inline_description=inline_desc is not None,
                 )
 
                 # Segment
@@ -2133,63 +2132,48 @@ def _split_google_signature(line: str) -> tuple[str, str | None]:
     return sig, desc.strip()
 
 
-def _dedent_lines(lines: list[str], base_indent: int) -> list[str]:
+def _dedent_lines(
+        lines: list[str],
+        base_indent: int,
+        *,
+        has_inline_description: bool,
+) -> list[str]:
     """
-    Dedents lines relative to the base indent of the item. Ideally, we assume
-    lines are indented more than base_indent. We just strip common whitespace?
-    Or strip explicitly? Let's just lstrip() and rely on logic elsewhere? No,
-    ``segment_lines_by_wrappability`` expects raw strings. If we stick to
-    "unwrapping", whitespace handling is key. We just want the TEXT content. So
-    for text segments, we will merge_lines_and_strip anyway which handles
-    whitespace. For code/tables, we likely want to PRESERVE the relative
-    indentation structure? In this phase, let's just use the line contents.
+    Return description lines relative to the Google item indentation.
+
+    Pass one stores inline text from ``arg: text`` without leading
+    indentation, but stores following description lines exactly as they appear
+    in the docstring. Later wrapping re-indents preserved blocks relative to
+    the item, so block lines must first be shifted to a common baseline. When
+    no inline description exists, the first collected line is part of that
+    block too; dedenting it prevents lists and tables from being indented
+    twice.
     """
-    # Simple strategy: just pass the lines. `merge_lines_and_strip` handles text.
-    # For preserved blocks (tables), they need indentation.
-    # We stripped them from the file.
-    # If we return them, we need to know how much to indent.
-    # In `wrap_docstring_google` we re-indent by `current_item_indent + 4`.
-    # So here we probably want to strip the "extra" indentation so they are uniform?
-    # Let's leave them as-is for now, but handle the first line (inline) specially.
+    if not lines:
+        return lines
 
-    # Actually, `description_lines` contains [inline_desc, next_line_1, next_line_2].
-    # inline_desc has valid text.
-    # next_line_1 includes the indentation.
-    # If we treat next_line_1 as text, we want to strip that indentation.
-    dedented = []
-    for idx, l in enumerate(lines):
-        if idx == 0:
-            dedented.append(
-                l
-            )  # Inline desc is already stripped of leading 'sig:'
-        else:
-            dedented.append(
-                l.strip()
-            )  # Strip completely for text merging purposes?
+    if has_inline_description and len(lines) <= 1:
+        return lines
 
-    # Wait, stripping completely destroys table formatting.
-    # We must only strip the "base indentation" of the description block.
-    # Which is unknown but likely `base_indent + 4` or `base_indent + 2`.
-    # Let's calculate common indent of lines [1:]
+    block_start_idx = 1 if has_inline_description else 0
+    block_lines = lines[block_start_idx:]
 
-    if len(lines) <= 1:
-        return lines  # Just inline desc
-
-    # Calculate min indent of lines 1..N (ignoring empties)
+    # Strip only the common block indent. Full stripping would destroy relative
+    # indentation inside tables, literal blocks, and nested lists.
     indents = []
-    for l in lines[1:]:
+    for l in block_lines:
         if l.strip():
             indents.append(len(l) - len(l.lstrip()))
 
     min_indent = min(indents) if indents else 0
 
     out = []
-    # Add first line (inline)
-    out.append(lines[0])
-    # Add rest, shifted by min_indent
-    for l in lines[1:]:
+    if has_inline_description:
+        # The inline description is already in item-relative coordinates.
+        out.append(lines[0])
+
+    for l in block_lines:
         if l.strip():
-            # If we strip `min_indent`, we preserve relative structure (important for tables)
             out.append(l[min_indent:])
         else:
             out.append('')
