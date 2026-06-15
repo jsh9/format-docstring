@@ -8,6 +8,15 @@ Regression notes:
 - `custom_section_after_doctest.txt` verifies that a peer custom section after
   doctest output resumes normal prose wrapping instead of being preserved as
   doctest output.
+- `doctest_output_section_headers_are_preserved.txt` verifies that indented
+  doctest output such as `Args:`, `Returns:`, and custom `Todo:` remains
+  output, while a peer `Args:` after the example starts a real section.
+- `examples_leading_comment_is_preserved.txt` verifies that a leading Python
+  comment in `Examples:` is preserved byte-for-byte. This is needed because the
+  backtick fixer and prose wrapper otherwise treat the comment as normal prose.
+- `examples_plain_output_after_code_is_preserved.txt` verifies that plain
+  repr-like output after example code keeps its original line break. This
+  guards the code/output span scanner from handing output to prose wrapping.
 - `arg_description_starts_with_bulleted_list.txt` and
   `arg_description_starts_with_table.txt` verify that an `Args:` entry whose
   description starts on the next line keeps protected block indentation. This

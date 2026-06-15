@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import pytest
 
 from format_docstring.line_wrap_utils import (
@@ -9,6 +11,8 @@ from format_docstring.line_wrap_utils import (
     is_bulleted_list,
     is_code_fence,
     is_examples_code_block,
+    is_google_doctest_block,
+    is_google_examples_code_block,
     is_literal_block_paragraph,
     is_rST_table,
     is_rst_code_block,
@@ -1614,7 +1618,7 @@ def test_segment_lines_by_wrappability(
 
 
 @pytest.mark.parametrize(
-    ('lines', 'start_idx', 'expected_is_code', 'expected_end_idx'),
+    ('lines', 'start_idx', 'detector', 'expected_is_code', 'expected_end_idx'),
     [
         (
             [
@@ -1627,6 +1631,7 @@ def test_segment_lines_by_wrappability(
                 '    Back to prose.',
             ],
             0,
+            is_examples_code_block,
             True,
             2,
         ),
@@ -1639,8 +1644,35 @@ def test_segment_lines_by_wrappability(
                 '    print(result)',
             ],
             0,
+            is_examples_code_block,
             True,
             5,
+        ),
+        (
+            [
+                (
+                    '    # Use `raw` mode with a long comment that should '
+                    'remain byte-for-byte as example code.'
+                ),
+                '    result = call(value)',
+            ],
+            0,
+            is_examples_code_block,
+            True,
+            2,
+        ),
+        (
+            [
+                '    result = build_mapping(alpha, beta, gamma)',
+                (
+                    "    {'alpha': 'a very long value that is output and "
+                    "should stay as written', 'beta': 2}"
+                ),
+            ],
+            0,
+            is_examples_code_block,
+            True,
+            2,
         ),
         (
             [
@@ -1650,6 +1682,7 @@ def test_segment_lines_by_wrappability(
                 ),
             ],
             0,
+            is_examples_code_block,
             False,
             0,
         ),
@@ -1660,20 +1693,42 @@ def test_segment_lines_by_wrappability(
                 '    value: Description.',
             ],
             0,
+            is_examples_code_block,
             True,
             1,
+        ),
+        (
+            [
+                'Examples:',
+                '    result = compute_value()',
+                '    Args:',
+                '    done',
+                'Args:',
+                '    value: Description.',
+            ],
+            1,
+            is_google_examples_code_block,
+            True,
+            4,
         ),
     ],
     ids=[
         'assignment_and_call',
         'multiline_call',
+        'leading_comment',
+        'repr_output',
         'prose_is_not_code',
         'stops_at_section',
+        'google_indented_header_output',
     ],
 )
 def test_is_examples_code_block(
         lines: list[str],
         start_idx: int,
+        detector: Callable[
+            [list[str], int],
+            tuple[bool, int],
+        ],
         *,
         expected_is_code: bool,
         expected_end_idx: int,
@@ -1683,9 +1738,74 @@ def test_is_examples_code_block(
 
     This guard is needed because undetected example code enters the prose
     wrapping path, where adjacent lines are merged and long lines are wrapped.
+    The same cases exercise default and Google detectors so the shared scanner
+    can stay generic while boundary behavior remains style-specific.
     """
-    is_code, end_idx = is_examples_code_block(lines, start_idx)
+    is_code, end_idx = detector(lines, start_idx)
     assert is_code == expected_is_code
+    assert end_idx == expected_end_idx
+
+
+@pytest.mark.parametrize(
+    (
+        'lines',
+        'start_idx',
+        'detector',
+        'expected_is_doctest',
+        'expected_end_idx',
+    ),
+    [
+        (
+            [
+                'Examples:',
+                '    >>> print("Args:")',
+                '    Args:',
+                '    >>> print("done")',
+                '    done',
+                '',
+                'Args:',
+                '    value: Description.',
+            ],
+            1,
+            is_google_doctest_block,
+            True,
+            5,
+        ),
+        (
+            [
+                'Examples:',
+                '    >>> print("done")',
+                '    done',
+                'Args:',
+                '    value: Description.',
+            ],
+            1,
+            is_google_doctest_block,
+            True,
+            3,
+        ),
+    ],
+    ids=['google_preserves_indented_header_output', 'google_stops_at_peer'],
+)
+def test_is_doctest_block_uses_google_indentation_boundaries(
+        lines: list[str],
+        start_idx: int,
+        detector: Callable[
+            [list[str], int],
+            tuple[bool, int],
+        ],
+        *,
+        expected_is_doctest: bool,
+        expected_end_idx: int,
+) -> None:
+    """
+    Verify Google doctest output can look like section headers.
+
+    A peer section header exits the doctest; an indented header-looking output
+    line remains part of the preserved doctest block.
+    """
+    is_doctest, end_idx = detector(lines, start_idx)
+    assert is_doctest == expected_is_doctest
     assert end_idx == expected_end_idx
 
 

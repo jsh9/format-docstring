@@ -1,0 +1,13 @@
+LINE_LENGTH: 60
+
+**********
+Examples
+--------
+result = build_mapping(alpha, beta, gamma)
+{'alpha': 'a very long value that is output and should stay as written', 'beta': 2}
+
+**********
+Examples
+--------
+result = build_mapping(alpha, beta, gamma)
+{'alpha': 'a very long value that is output and should stay as written', 'beta': 2}

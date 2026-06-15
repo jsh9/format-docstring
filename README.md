@@ -391,6 +391,36 @@ Tables, bullet lists, fenced code blocks, doctest blocks, Python-like code in
 `Examples` sections, and literal blocks introduced by `::` are preserved.
 Prose still gets normal rST literal fixes.
 
+The formatter expects docstrings to be structurally recognizable. Section
+headers must use the target style's syntax and indentation: Google sections use
+peer-level `Name:` headers, while NumPy sections use a title followed by an
+underline. The formatter fixes local formatting issues such as wrapping,
+spacing, and stale signature metadata, but it does not infer intent from
+misindented sections or unstructured prose.
+
+Within Google `Examples:` sections, indented text that looks like a section
+header, such as `Args:` or `Returns:`, is treated as example output rather than
+as a new section. A real section boundary must be at the same or lower
+indentation as the active `Examples:` header. Python comments and output lines
+inside example code are preserved; explanatory prose that should be wrapped
+should be written as prose and separated from code/output by a blank line.
+
+For example, the indented `Args:` below is doctest output, while the peer-level
+`Args:` that follows the blank line is a real section boundary:
+
+```python
+"""
+Examples:
+    >>> print("Args:")
+    Args:
+    >>> print("done")
+    done
+
+Args:
+    value: Real argument description.
+"""
+```
+
 Before:
 
 ```python

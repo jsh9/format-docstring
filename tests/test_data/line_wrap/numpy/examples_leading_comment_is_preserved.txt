@@ -1,0 +1,13 @@
+LINE_LENGTH: 60
+
+**********
+Examples
+--------
+# Use `raw` mode with a long comment that should remain byte-for-byte as example code and not be rewrapped.
+result = call(value)
+
+**********
+Examples
+--------
+# Use `raw` mode with a long comment that should remain byte-for-byte as example code and not be rewrapped.
+result = call(value)

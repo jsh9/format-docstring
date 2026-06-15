@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 import re
 import textwrap
 
@@ -50,6 +51,7 @@ _PYTHON_EXAMPLE_START_PATTERN = re.compile(
 )
 
 ParameterMetadata = dict[str, tuple[str | None, str | None]]
+_SectionBoundaryPredicate = Callable[[list[str], int], bool]
 
 _RETURN_PROSE_LABELS = {
     'output',
@@ -585,10 +587,9 @@ def segment_lines_by_wrappability(
 
         # Check for doctest block (Google style only)
         if style == 'google':
-            is_doctest, doctest_end_idx = is_doctest_block(
+            is_doctest, doctest_end_idx = is_google_doctest_block(
                 lines,
                 current_idx,
-                style=style,
             )
             if is_doctest:
                 # Add doctest segment (not wrappable)
@@ -627,10 +628,9 @@ def segment_lines_by_wrappability(
                 break
 
             if style == 'google':
-                is_doctest, _ = is_doctest_block(
+                is_doctest, _ = is_google_doctest_block(
                     lines,
                     current_idx,
-                    style=style,
                 )
                 if is_doctest:
                     break
@@ -653,14 +653,66 @@ def is_examples_code_block(
 
     Callers are responsible for invoking this only while already inside an
     Examples section. The detector keeps plain prose wrappable but preserves
-    obvious code statements and bracketed continuation lines. This is
-    intentionally conservative because non-code prose in Examples should still
-    use normal paragraph wrapping.
+    obvious code statements, comment lines, and same/deeper-indented output.
+    This is intentionally conservative because non-code prose in Examples
+    should still use normal paragraph wrapping when it is separated from code.
+    """
+    return _scan_examples_code_block(
+        lines,
+        start_idx,
+        is_boundary=_is_docstring_section_boundary,
+    )
+
+
+def is_google_examples_code_block(
+        lines: list[str],
+        start_idx: int,
+) -> tuple[bool, int]:
+    """
+    Return True for Python-like code blocks in Google ``Examples:``.
+
+    Google needs a stricter boundary predicate than the default detector:
+    indented ``Args:``-like output is example content, but peer or outer
+    ``Name:`` headers should end the protected block.
+    """
+    google_section_indent = _find_previous_google_section_indent(
+        lines,
+        start_idx,
+    )
+
+    def is_boundary(candidate_lines: list[str], idx: int) -> bool:
+        return _is_google_examples_section_boundary(
+            candidate_lines,
+            idx,
+            section_indent=google_section_indent,
+        )
+
+    return _scan_examples_code_block(
+        lines,
+        start_idx,
+        is_boundary=is_boundary,
+    )
+
+
+def _scan_examples_code_block(
+        lines: list[str],
+        start_idx: int,
+        *,
+        is_boundary: _SectionBoundaryPredicate,
+) -> tuple[bool, int]:
+    """
+    Scan one Examples code/output block using ``is_boundary``.
+
+    The first line must look like Python code or a Python comment. Once that
+    start is accepted, same/deeper-indented nonblank lines are preserved too so
+    repr output and plain output keep their original line breaks. The injected
+    boundary keeps this scanner style-neutral while allowing Google to use
+    indentation-aware section exits.
     """
     if start_idx >= len(lines):
         return False, start_idx
 
-    if _is_docstring_section_boundary(lines, start_idx):
+    if is_boundary(lines, start_idx):
         return False, start_idx
 
     first_line = lines[start_idx]
@@ -668,7 +720,6 @@ def is_examples_code_block(
         return False, start_idx
 
     base_indent = _indent_width(first_line)
-    bracket_depth = 0
     current_idx = start_idx
 
     while current_idx < len(lines):
@@ -679,27 +730,12 @@ def is_examples_code_block(
             if not stripped:
                 break
 
-            if _is_docstring_section_boundary(lines, current_idx):
+            if is_boundary(lines, current_idx):
                 break
 
-            if not (
-                _looks_like_examples_code_start(line)
-                or _is_examples_code_continuation(
-                    line,
-                    base_indent=base_indent,
-                    bracket_depth=bracket_depth,
-                )
-                or stripped.startswith('#')
-            ):
+            if _indent_width(line) < base_indent:
                 break
 
-        # Update continuation state after accepting the current line so
-        # bracketed follow-up lines are preserved with the statement instead of
-        # being merged into prose.
-        bracket_depth = max(
-            0,
-            bracket_depth + _python_bracket_delta(line),
-        )
         current_idx += 1
 
     return True, current_idx
@@ -710,72 +746,12 @@ def _looks_like_examples_code_start(line: str) -> bool:
     stripped = line.strip()
     return (
         bool(stripped)
-        and not stripped.startswith(('>>>', '...', '#'))
-        and bool(_PYTHON_EXAMPLE_START_PATTERN.match(stripped))
+        and not stripped.startswith(('>>>', '...'))
+        and (
+            stripped.startswith('#')
+            or bool(_PYTHON_EXAMPLE_START_PATTERN.match(stripped))
+        )
     )
-
-
-def _is_examples_code_continuation(
-        line: str,
-        *,
-        base_indent: int,
-        bracket_depth: int,
-) -> bool:
-    """Return True when ``line`` continues an examples code block."""
-    stripped = line.strip()
-    if not stripped:
-        return False
-
-    if bracket_depth > 0:
-        return True
-
-    if _indent_width(line) <= base_indent:
-        return False
-
-    return stripped.startswith(('.', ',', ')', ']', '}'))
-
-
-def _python_bracket_delta(line: str) -> int:
-    """Return net bracket nesting while ignoring quoted strings and comments."""
-    delta = 0
-    quote_char = ''
-    escaped = False
-    idx = 0
-    while idx < len(line):
-        char = line[idx]
-        if quote_char:
-            if escaped:
-                escaped = False
-            elif char == '\\':
-                escaped = True
-            elif line.startswith(quote_char, idx):
-                idx += len(quote_char) - 1
-                quote_char = ''
-
-            idx += 1
-            continue
-
-        if line.startswith(("'''", '"""'), idx):
-            quote_char = line[idx : idx + 3]
-            idx += 3
-            continue
-
-        if char in {'"', "'"}:
-            quote_char = char
-            idx += 1
-            continue
-
-        if char == '#':
-            break
-
-        if char in '([{':
-            delta += 1
-        elif char in ')]}':
-            delta -= 1
-
-        idx += 1
-
-    return delta
 
 
 def is_code_fence(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
@@ -1228,8 +1204,6 @@ def _is_continuation_line(line: str, list_item_indent: int) -> bool:
 def is_doctest_block(
         lines: list[str],
         start_idx: int,
-        *,
-        style: str = 'numpy',
 ) -> tuple[bool, int]:
     """
     Check if lines starting at start_idx form a Python doctest block.
@@ -1245,14 +1219,61 @@ def is_doctest_block(
         The list of lines to check.
     start_idx : int
         The starting index to check from.
-    style : str, default='numpy'
-        The docstring style being segmented. Google mode also treats peer
-        custom section headers as boundaries.
-
     Returns
     -------
     tuple[bool, int]
         (is_doctest, end_idx)
+    """
+    return _scan_doctest_block(
+        lines,
+        start_idx,
+        is_boundary=_is_docstring_section_boundary,
+    )
+
+
+def is_google_doctest_block(
+        lines: list[str],
+        start_idx: int,
+) -> tuple[bool, int]:
+    """
+    Check if lines starting at ``start_idx`` form a Google doctest block.
+
+    Doctest output can be arbitrary text, including ``Args:`` or custom
+    ``Todo:`` labels. Google detection therefore anchors boundaries to the
+    active section indentation instead of treating every header-looking line as
+    a section exit.
+    """
+    google_section_indent = _find_previous_google_section_indent(
+        lines,
+        start_idx,
+    )
+
+    def is_boundary(candidate_lines: list[str], idx: int) -> bool:
+        return _is_google_examples_section_boundary(
+            candidate_lines,
+            idx,
+            section_indent=google_section_indent,
+        )
+
+    return _scan_doctest_block(
+        lines,
+        start_idx,
+        is_boundary=is_boundary,
+    )
+
+
+def _scan_doctest_block(
+        lines: list[str],
+        start_idx: int,
+        *,
+        is_boundary: _SectionBoundaryPredicate,
+) -> tuple[bool, int]:
+    """
+    Scan one doctest block using ``is_boundary``.
+
+    The scanner preserves prompts and nonblank output until a blank line or a
+    style-specific section boundary. Passing the boundary predicate in keeps
+    the prompt/output rules shared while isolating section syntax differences.
     """
     if start_idx >= len(lines):
         return False, start_idx
@@ -1260,16 +1281,6 @@ def is_doctest_block(
     line = lines[start_idx].strip()
     if not line.startswith('>>>'):
         return False, start_idx
-
-    google_section_indent: int | None = None
-    if style == 'google':
-        # Doctest output is arbitrary text, so a line like ``Result:`` may be
-        # output or a custom section. Anchor to the surrounding Google section
-        # indent so only peer custom headers end the protected block.
-        google_section_indent = _find_previous_google_section_indent(
-            lines,
-            start_idx,
-        )
 
     current_idx = start_idx + 1
     while current_idx < len(lines):
@@ -1280,16 +1291,7 @@ def is_doctest_block(
         # Doctest output can be arbitrary prose, not just repr-like values.
         # Stop only at section boundaries so prose output stays byte-for-byte
         # while the next docstring section can still be wrapped normally.
-        if _is_docstring_section_boundary(lines, current_idx):
-            break
-
-        if (
-            google_section_indent is not None
-            and _is_google_custom_section_boundary(
-                lines[current_idx],
-                google_section_indent,
-            )
-        ):
+        if is_boundary(lines, current_idx):
             break
 
         current_idx += 1
@@ -1304,9 +1306,9 @@ def _find_previous_google_section_indent(
     """
     Return the nearest previous Google section header indentation.
 
-    Doctest block detection needs this context because segmentation can start
-    in the middle of an ``Examples:`` section, after the header itself has
-    already been emitted in an earlier wrappable segment.
+    Doctest and example-code detection need this context because segmentation
+    can start in the middle of an ``Examples:`` section, after the header
+    itself has already been emitted in an earlier wrappable segment.
     """
     current_idx = start_idx - 1
     while current_idx >= 0:
@@ -1320,19 +1322,37 @@ def _find_previous_google_section_indent(
     return None
 
 
-def _is_google_custom_section_boundary(
-        line: str,
-        section_indent: int,
+def _is_google_examples_section_boundary(
+        lines: list[str],
+        idx: int,
+        *,
+        section_indent: int | None,
 ) -> bool:
     """
-    Return True when ``line`` starts a peer custom Google section.
+    Return True when ``idx`` starts a peer/outer Google section boundary.
 
-    The indent check keeps doctest output such as ``    Result:`` protected,
-    while allowing a dedented ``Custom:`` header to resume normal wrapping.
+    Header-looking output indented inside an ``Examples:`` body is example
+    content, not a real section boundary. If no active section indent can be
+    recovered, fall back to the conservative generic boundary rules.
     """
+    if idx >= len(lines):
+        return False
+
+    if section_indent is None:
+        stripped = lines[idx].strip()
+        return _is_docstring_section_boundary(
+            lines,
+            idx,
+        ) or is_google_unknown_section_header(stripped)
+
+    line = lines[idx]
+    if _indent_width(line) > section_indent:
+        return False
+
+    stripped = line.strip()
     return (
-        _indent_width(line) <= section_indent
-        and is_google_unknown_section_header(line)
+        is_google_section_header(stripped)
+        or is_google_unknown_section_header(stripped)
     )
 
 

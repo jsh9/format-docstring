@@ -11,7 +11,8 @@ from format_docstring.line_wrap_utils import (
     finalize_lines,
     _is_labeled_return_prose,
     is_code_fence,
-    is_examples_code_block,
+    is_google_doctest_block,
+    is_google_examples_code_block,
     merge_lines_and_strip,
     segment_lines_by_wrappability,
 )
@@ -250,6 +251,18 @@ def _pass1_unwrap_google_docstring(
         if is_fence:
             temp_out.extend(lines[i:fence_end_idx])
             i = fence_end_idx
+            continue
+
+        # Doctests must be protected before section parsing because their
+        # output can be indistinguishable from an ``Args:``-style header.
+        # The Google detector only exits on peer/outer section indentation.
+        is_doctest, doctest_end_idx = is_google_doctest_block(
+            lines,
+            i,
+        )
+        if is_doctest:
+            temp_out.extend(lines[i:doctest_end_idx])
+            i = doctest_end_idx
             continue
 
         # Section detection
@@ -870,7 +883,10 @@ def _join_paragraph_lines(
             # Protect plain code before paragraph joining. This pass is the
             # last point where the original line boundaries are still intact.
             is_examples_code, examples_code_end_idx = (
-                is_examples_code_block(lines, line_idx)
+                is_google_examples_code_block(
+                    lines,
+                    line_idx,
+                )
             )
             if is_examples_code:
                 flush_paragraph()
@@ -1054,7 +1070,10 @@ def _pass2_wrap_google_docstring(
                 # Check again after paragraph joining so code blocks that were
                 # kept intact above do not fall through to ``textwrap.fill``.
                 is_examples_code, examples_code_end_idx = (
-                    is_examples_code_block(processed_lines, line_idx)
+                    is_google_examples_code_block(
+                        processed_lines,
+                        line_idx,
+                    )
                 )
                 if is_examples_code:
                     final_output.extend(

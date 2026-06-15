@@ -13,6 +13,8 @@ from format_docstring.line_wrap_utils import (
     is_code_fence,
     is_doctest_block,
     is_examples_code_block,
+    is_google_doctest_block,
+    is_google_examples_code_block,
     is_literal_block_paragraph,
     is_rst_code_block,
     process_temp_output,
@@ -946,6 +948,11 @@ def _mask_rst_backtick_protected_lines(
     masked_lines: list[str] = []
     current_idx = 0
     in_examples = False
+    # The rST pass runs before style-specific wrapping, so it tracks the active
+    # Examples detector explicitly. That keeps code/output protected without
+    # applying Google indentation rules to NumPy sections.
+    doctest_detector = is_doctest_block
+    examples_code_detector = is_examples_code_block
     numpy_examples = {'example', 'example:', 'examples', 'examples:'}
 
     def mask(line: str) -> str:
@@ -971,12 +978,22 @@ def _mask_rst_backtick_protected_lines(
         numpy_heading = _get_section_heading_title(lines, current_idx)
         if numpy_heading is not None:
             in_examples = numpy_heading in numpy_examples
+            doctest_detector = is_doctest_block
+            examples_code_detector = is_examples_code_block
         else:
             google_header = canonical_google_section_header(stripped)
             if google_header is not None:
                 in_examples = google_header == 'Examples:'
+                if in_examples:
+                    doctest_detector = is_google_doctest_block
+                    examples_code_detector = is_google_examples_code_block
+                else:
+                    doctest_detector = is_doctest_block
+                    examples_code_detector = is_examples_code_block
             elif is_google_unknown_section_header(stripped):
                 in_examples = False
+                doctest_detector = is_doctest_block
+                examples_code_detector = is_examples_code_block
 
         # Protect full spans first; doctest output and fenced code content
         # should not be touched by rST backtick normalization.
@@ -986,7 +1003,13 @@ def _mask_rst_backtick_protected_lines(
             current_idx = fence_end_idx
             continue
 
-        is_doctest, doctest_end_idx = is_doctest_block(lines, current_idx)
+        active_doctest_detector = (
+            doctest_detector if in_examples else is_doctest_block
+        )
+        is_doctest, doctest_end_idx = active_doctest_detector(
+            lines,
+            current_idx,
+        )
         if is_doctest:
             mask_span(current_idx, doctest_end_idx)
             current_idx = doctest_end_idx
@@ -1018,7 +1041,7 @@ def _mask_rst_backtick_protected_lines(
             # Plain Python examples are intentionally preserved like fenced
             # code. Otherwise comments such as ``# use `raw``` would be
             # rewritten even though the surrounding example line is code.
-            is_examples_code, examples_code_end_idx = is_examples_code_block(
+            is_examples_code, examples_code_end_idx = examples_code_detector(
                 lines,
                 current_idx,
             )
