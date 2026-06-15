@@ -167,9 +167,9 @@ def _pass1_unwrap_google_docstring(
         return_annotation.strip() if return_annotation else None
     )
 
-    def flush_summary_before_section() -> None:
+    def compact_pending_summary() -> None:
         """
-        Compact only the leading summary before emitting a section header.
+        Compact buffered summary text before a section boundary or final output.
 
         Google end-to-end formatting can put the first summary sentence beside
         the opening quotes. Once a real or custom section starts, later lines
@@ -178,56 +178,10 @@ def _pass1_unwrap_google_docstring(
         if not (compact_first_line and not current_section and temp_out):
             return
 
-        summary_lines_flat = []
-        for item in temp_out:
-            if isinstance(item, list):
-                summary_lines_flat.extend(item)
-            else:
-                summary_lines_flat.append(item)
-
-        segments = segment_lines_by_wrappability(
-            summary_lines_flat, style='google'
+        _compact_google_summary_output(
+            temp_out,
+            leading_indent=leading_indent,
         )
-
-        temp_out.clear()
-        first_segment_processed = False
-
-        for seg_lines, is_wrappable in segments:
-            if is_wrappable:
-                trailing_empty_lines = []
-                while seg_lines and not seg_lines[-1].strip():
-                    trailing_empty_lines.append(seg_lines.pop())
-
-                trailing_empty_lines.reverse()
-
-                leading_empty_lines = []
-                while seg_lines and not seg_lines[0].strip():
-                    leading_empty_lines.append(seg_lines.pop(0))
-
-                merged = merge_lines_and_strip('\n'.join(seg_lines))
-
-                if first_segment_processed:
-                    for _ in leading_empty_lines:
-                        temp_out.append('')
-
-                if merged:
-                    first_segment_processed = (
-                        _append_google_summary_merged(
-                            temp_out,
-                            merged,
-                            leading_indent=leading_indent,
-                            is_first_segment=(
-                                not first_segment_processed
-                            ),
-                        )
-                        or first_segment_processed
-                    )
-
-                for _ in trailing_empty_lines:
-                    temp_out.append('')
-            else:
-                temp_out.extend(seg_lines)
-                first_segment_processed = True
 
     while i < len(lines):
         line = lines[i]
@@ -265,129 +219,11 @@ def _pass1_unwrap_google_docstring(
             i = doctest_end_idx
             continue
 
-        # Section detection
-        # Google style sections are typically "Name:" at the same indentation level as the summary (or slightly indented if nested)
-        # We'll assume top-level sections match the leading_indent if provided, or are just identifiers ending in colon.
-        # But for robustness, we check if the line matches a known section header.
         canonical = canonical_google_section_header(stripped)
         if canonical is not None:
-            # If we were in summary mode (empty current_section), we need to process the accumulated summary lines?
-            # Actually, `temp_out` holds lines in order.
-            # We haven't been "unwrapping" summary lines in the loop.
-            # We just appended them.
-            # So `temp_out` currently contains [Line 1, Line 2, ...] of summary (wrapped separately).
-            # But the requirement is to unwrap them.
-
-            # Since we are iterating once, we can back-patch?
-            # Or we can detect "Header found" and say "Everything before this was summary, go modify temp_out".
-
-            if compact_first_line and not current_section and temp_out:
-                # We have summary lines in temp_out.
-                # Identify the summary block range.
-                # It's everything in temp_out so far.
-
-                # We need to process these lines with `segment_lines_by_wrappability` + merge.
-                # But `temp_out` contains strings, so it matches.
-                # However, we must be careful about `temp_out` structure: `list[str | list[str]]`.
-                # `process_temp_output` does wrapping.
-                # But here we want to UNwrap (merge lines).
-
-                # Let's extract all lines, clean them up, segment, merge, and replace in temp_out.
-
-                # Flatten current temp_out
-                summary_lines_flat = []
-                for item in temp_out:
-                    if isinstance(item, list):
-                        summary_lines_flat.extend(item)
-                    else:
-                        summary_lines_flat.append(item)
-
-                # We also need to strip base indentation from them?
-                # `add_leading_indent` added indentation.
-                # But summary text usually starts after `"""` on same line (no indent) OR next lines (indented).
-                # `docstring_` has leading indent normalized?
-                # `leading_indent` param is the indent of the docstring BLOCK.
-                # `add_leading_indent` ensures it starts with `\n` + indent.
-                # So standard lines should have that indent.
-
-                # Let's strip the common indent (likely `leading_indent`) to process text.
-                # But `docstring_` was passed to splitlines().
-                # If we strip, we lose relative indentation for `::` blocks?
-                # `segment_lines_by_wrappability` respects `::` blocks (indented literal blocks).
-                # But it expects lines to be relative to "0" or consistent?
-
-                # If we blindly merge wrapable lines, `merge_lines_and_strip` handles the newlines.
-
-                # Re-process summary
-                new_summary = []
-
-                # Dedent slightly for processing?
-                # Actually, `segment_lines_by_wrappability` looks for `::`
-
-                segments = segment_lines_by_wrappability(
-                    summary_lines_flat, style='google'
-                )
-
-                temp_out.clear()
-                first_segment_processed = False
-
-                for seg_lines, is_wrappable in segments:
-                    if is_wrappable:
-                        # Check for trailing empty lines
-                        trailing_empty_lines = []
-                        while seg_lines and not seg_lines[-1].strip():
-                            trailing_empty_lines.append(seg_lines.pop())
-
-                        trailing_empty_lines.reverse()
-
-                        # Check for leading empty lines
-                        leading_empty_lines = []
-                        while seg_lines and not seg_lines[0].strip():
-                            leading_empty_lines.append(seg_lines.pop(0))
-
-                        # Unwrap (merge)
-                        merged = merge_lines_and_strip('\n'.join(seg_lines))
-
-                        # Append leading empty lines
-                        if not first_segment_processed:
-                            # Skip all leading empty lines for the very first segment
-                            # (or if we haven't processed any segments yet)
-                            # to ensure docstring starts with text immediately after quotes.
-                            pass
-                        else:
-                            for _ in leading_empty_lines:
-                                temp_out.append('')
-
-                        if merged:
-                            first_segment_processed = (
-                                _append_google_summary_merged(
-                                    temp_out,
-                                    merged,
-                                    leading_indent=leading_indent,
-                                    is_first_segment=(
-                                        not first_segment_processed
-                                    ),
-                                )
-                                or first_segment_processed
-                            )
-
-                        # Re-add trailing empty lines (indented)
-                        indent_s = ' ' * (leading_indent or 0)
-                        for l in trailing_empty_lines:
-                            # If empty line, just newline? Or indented?
-                            # finalize_lines trims whitespace-only lines to empty strings usually.
-                            # But `temp_out` items are lines.
-                            # If we add "", it becomes empty line.
-                            # If we add "    ", it becomes indented empty line.
-                            # Let's add "" to be safe/clean.
-                            temp_out.append('')
-                    else:
-                        # Unwrappable (e.g. `::` block). Should be kept as is.
-                        # `segment_lines_by_wrappability` returns original lines.
-                        temp_out.extend(seg_lines)
-                        first_segment_processed = (
-                            True  # We have emitted content
-                        )
+            # A section header freezes summary parsing; compact the buffered
+            # prose first so later section content cannot move beside quotes.
+            compact_pending_summary()
 
             current_section = canonical.lower()
             current_section_indent = indent_length
@@ -409,16 +245,13 @@ def _pass1_unwrap_google_docstring(
             # Unknown bare headers end signature parsing without becoming
             # canonical Google sections. This preserves custom sections such as
             # ``Todo:`` while keeping following prose out of ``Args:`` parsing.
-            flush_summary_before_section()
+            compact_pending_summary()
             current_section = stripped.lower()
             current_section_indent = indent_length
             temp_out.append(line)
             i += 1
             continue
 
-        # 2. Signature detection & Unwrapping
-        # We only apply this logic inside specific sections
-        # Use section sets to support variant spellings (e.g., "parameter:", "return:")
         if is_google_signature_section_header(current_section):
             section_lower = current_section.lower()
             is_return_section = (
@@ -609,8 +442,6 @@ def _pass1_unwrap_google_docstring(
                 if segments:
                     first_seg_lines, is_wrappable = segments[0]
                     if is_wrappable:
-                        # Merge text
-                        # Check for trailing empty lines in the first segment
                         trailing_empty_lines = []
                         while (
                             first_seg_lines and not first_seg_lines[-1].strip()
@@ -622,22 +453,15 @@ def _pass1_unwrap_google_docstring(
                         merged_text = merge_lines_and_strip(
                             '\n'.join(first_seg_lines)
                         )
-                        # Append to signature
 
-                        # If signature line ended with space? It usually ends with colon.
-                        # We want "Sig: Description".
                         if merged_text:
-                            # If merged text has paragraphs (newlines), we must re-indent valid paragraphs
-                            # to the item's continuation indent level so Pass 2 treats them as indented.
                             merged_lines = merged_text.splitlines()
 
-                            # First line is inline, no indent needed (joined with signature)
                             sig_combined = (
                                 f'{signature_part} {merged_lines[0]}'
                             )
 
                             if len(merged_lines) > 1:
-                                # Start with inline line
                                 parts = [sig_combined]
                                 indent_pad = ' ' * (current_item_indent + 4)
 
@@ -653,50 +477,23 @@ def _pass1_unwrap_google_docstring(
                         else:
                             new_signature_line = signature_part
 
-                        # Add remaining segments
-
-                        # First, re-add trailing empty lines from the first segment (once)
                         indent_str = ' ' * (current_item_indent + 4)
-                        for l in trailing_empty_lines:
+                        for _ in trailing_empty_lines:
                             remaining_lines_to_append.append('')
 
                         for seg_lines, _ in segments[1:]:
-                            # These need to be indented properly relative to the docstring base?
-                            # Or relative to the item?
-                            # Standard Google style continuation lines are indented 4 spaces (or more) from the signature start.
-                            # Or they align with the description start.
-                            # Since we are modifying the first line indent, let's play it safe and indent them
-                            # relative to the item indent + 4 spaces.
-                            # But `seg_lines` here are stripped of their ORIGINAL indentation relative to the item.
-                            # We need to re-indent them.
-
-                            # Wait, segment_lines_by_wrappability returns lines as they were passed in.
-                            # But we passed in dedented lines.
-                            # So we need to re-add indentation.
-
-                            # indent_str is already calculated above
+                            # Pass one dedents description blocks before
+                            # segmentation, so preserved blocks must be shifted
+                            # back to Google's continuation indent here.
                             for l in seg_lines:
                                 remaining_lines_to_append.append(
                                     indent_str + l if l.strip() else ''
                                 )
 
                     else:
-                        # First segment is NOT wrappable (e.g. table immediately).
-                        # Keep it on new lines (standard flow).
-                        # Or should we try to append? Usually tables start on new line.
-                        # We'll just dump everything back as is, but maybe re-indented?
-                        # If we touch nothing, we might strictly satisfy "only unwrap... except for these cases".
-                        # Case 1 says "presreved without wrapping".
-                        # So if we have a table, we append the lines.
-                        # But wait, `inline_desc` might have been part of it?
-                        # If valid table starts on the same line as signature? unlikely.
-
-                        # If we have content, we just add it to remaining
-                        new_signature_line = signature_part  # No inline description if it was part of unwrappable?
-                        # Actually if `inline_desc` existed, it's passed to segmenter.
-                        # If segmenter says "Unwrappable", it implies it matched the rules.
-                        # For now let's just re-add them.
-
+                        # Tables and literal blocks cannot be merged inline.
+                        # Keep them under the item after restoring indent.
+                        new_signature_line = signature_part
                         indent_str = ' ' * (current_item_indent + 4)
                         for l in first_seg_lines:
                             remaining_lines_to_append.append(
@@ -710,17 +507,11 @@ def _pass1_unwrap_google_docstring(
                                 )
 
                 else:
-                    # No description content
-                    new_signature_line = (
-                        signature_part.rstrip()
-                    )  # Ensure no trailing space if empty desc
+                    new_signature_line = signature_part.rstrip()
 
-                # Add the new signature line
                 temp_out.append(new_signature_line)
-                # Add any remaining lines that couldn't be unwrapped (tables etc)
                 temp_out.extend(remaining_lines_to_append)
 
-                # Advance i
                 i = j
                 continue
 
@@ -728,77 +519,7 @@ def _pass1_unwrap_google_docstring(
         temp_out.append(line)
         i += 1
 
-    # Finally, process the output (this currently does the wrapping for other lines via the NumPy logic,
-    # but we will skip that for this phase or reuse `process_temp_output` which does generic wrapping.
-    # The prompt says "unwrap...", effectively we are doing that above.
-    # `process_temp_output` wraps lines that are too long.
-    # We want to run that to ensure everything else is wrapped?
-    # Actually, the user instruction focused on "intermediate step": "unwrap... regardless of line length".
-    # So we probably shouldn't run standard wrapping on the modified lines yet?
-    # Or maybe we should? "base indentation level" was requested.
-    # Let's return the lines we constructed.
-
-    # We should probably flatten the list first.
-    final_lines: list[str] = []
-    for item in temp_out:
-        if isinstance(item, list):
-            final_lines.extend(item)
-        else:
-            final_lines.append(item)
-
-    if compact_first_line and not current_section and temp_out:
-        summary_lines_flat = []
-        for item in temp_out:
-            if isinstance(item, list):
-                summary_lines_flat.extend(item)
-            else:
-                summary_lines_flat.append(item)
-
-        segments = segment_lines_by_wrappability(
-            summary_lines_flat,
-            style='google',
-        )
-        temp_out.clear()
-        first_segment_processed = False
-        for seg_lines, is_wrappable in segments:
-            if not is_wrappable:
-                temp_out.extend(seg_lines)
-                first_segment_processed = True
-                continue
-
-            trailing_empty_lines = []
-            while seg_lines and not seg_lines[-1].strip():
-                trailing_empty_lines.append(seg_lines.pop())
-
-            trailing_empty_lines.reverse()
-
-            leading_empty_lines = []
-            while seg_lines and not seg_lines[0].strip():
-                leading_empty_lines.append(seg_lines.pop(0))
-
-            merged = merge_lines_and_strip('\n'.join(seg_lines))
-            if not first_segment_processed:
-                if merged:
-                    first_segment_processed = (
-                        _append_google_summary_merged(
-                            temp_out,
-                            merged,
-                            leading_indent=leading_indent,
-                            is_first_segment=True,
-                        )
-                        or first_segment_processed
-                    )
-            else:
-                temp_out.extend('' for _ in leading_empty_lines)
-                if merged:
-                    _append_google_summary_merged(
-                        temp_out,
-                        merged,
-                        leading_indent=leading_indent,
-                        is_first_segment=False,
-                    )
-
-            temp_out.extend('' for _ in trailing_empty_lines)
+    compact_pending_summary()
 
     return finalize_lines(temp_out, closing_indent)
 
@@ -960,6 +681,66 @@ def _append_google_summary_merged(
     return emitted_content
 
 
+def _compact_google_summary_output(
+        output: list[str | list[str]],
+        *,
+        leading_indent: int | None,
+) -> None:
+    """
+    Merge buffered summary paragraphs for compact Google docstrings.
+
+    The summary buffer can contain already-protected literal segments. Segmenting
+    before merging keeps those blocks intact while still allowing ordinary prose
+    to move beside the opening quotes.
+    """
+    summary_lines_flat = []
+    for item in output:
+        if isinstance(item, list):
+            summary_lines_flat.extend(item)
+        else:
+            summary_lines_flat.append(item)
+
+    segments = segment_lines_by_wrappability(
+        summary_lines_flat,
+        style='google',
+    )
+
+    output.clear()
+    first_segment_processed = False
+    for seg_lines, is_wrappable in segments:
+        if not is_wrappable:
+            output.extend(seg_lines)
+            first_segment_processed = True
+            continue
+
+        trailing_empty_lines = []
+        while seg_lines and not seg_lines[-1].strip():
+            trailing_empty_lines.append(seg_lines.pop())
+
+        trailing_empty_lines.reverse()
+
+        leading_empty_lines = []
+        while seg_lines and not seg_lines[0].strip():
+            leading_empty_lines.append(seg_lines.pop(0))
+
+        merged = merge_lines_and_strip('\n'.join(seg_lines))
+        if first_segment_processed:
+            output.extend('' for _ in leading_empty_lines)
+
+        if merged:
+            first_segment_processed = (
+                _append_google_summary_merged(
+                    output,
+                    merged,
+                    leading_indent=leading_indent,
+                    is_first_segment=not first_segment_processed,
+                )
+                or first_segment_processed
+            )
+
+        output.extend('' for _ in trailing_empty_lines)
+
+
 def _has_summary_content(items: list[str | list[str]]) -> bool:
     """Return True when buffered pre-section lines contain nonblank text."""
     for item in items:
@@ -1107,222 +888,13 @@ def _pass2_wrap_google_docstring(
                 is_sig = _is_google_signature(stripped)
 
             if is_sig:
-                # It is a signature line, possibly with merged description.
-                # Pass one skips signature parsing in unknown sections, but
-                # pass two may still see signature-shaped prose such as
-                # ``See Also`` entries. Normalize here so colon spacing remains
-                # stable without reclassifying the surrounding section.
-                line = _normalize_google_signature_spacing(line)
-                sig_part, desc_part = _split_google_signature(
-                    line
-                )  # Keeps indentation on sig_part
-
-                # Check wrapping strategy
-                # If sig_part itself is too long for the FIRST line?
-                # We need to account for existing indent.
-                # sig_part includes the indent.
-
-                # Strategy 1: "if the signature itself ... keys exceeded the line length limit"
-                if len(sig_part.rstrip()) > line_length:
-                    # Case A: Long signature.
-                    # Use them as 1st line.
-                    final_output.append(sig_part.rstrip())
-
-                    # Remaining description goes to next lines
-                    if desc_part and desc_part.strip():
-                        # Indent + 4
-                        subsequent_indent = indent_str + '    '
-                        # Wrap description
-                        wrapped_desc = textwrap.fill(
-                            desc_part,
-                            width=line_length,
-                            initial_indent=subsequent_indent,
-                            subsequent_indent=subsequent_indent,
-                            break_long_words=False,
-                            break_on_hyphens=False,
-                        )
-                        final_output.extend(wrapped_desc.splitlines())
-
-                else:
-                    # Case B: Signature fits.
-                    # We try to put description on the same line if possible.
-
-                    # But wait, Pass 1 merged them. So `line` IS "sig fit desc ...".
-                    # We can use textwrap.fill with `initial_indent` matching `sig_part`?
-                    # No, `sig_part` contains text.
-
-                    # We want:
-                    # Line 1: indent + sig + space + desc_chunk
-                    # Line 2+: indent + 4 + desc_chunk
-
-                    # We can achieve this by setting `initial_indent` to `indent_str` (Pass 1 signature already has indent),
-                    # and providing the *content* as `sig_stripped + " " + desc`.
-                    # But textwrap might break the signature?
-                    # "if the signature itself ... use them as 1st line EVEN if they exceed".
-                    # If we use textwrap, it might wrap a long signature if we treat it as words.
-
-                    # So proper way:
-                    # 1. Start with `sig_part`.
-                    # 2. Append description text.
-
-                    if not desc_part or not desc_part.strip():
-                        final_output.append(sig_part.rstrip())
-                        is_first_line = False
-                        line_idx += 1
-                        continue
-
-                    # We have description.
-                    # Calculate strict available space on first line.
-                    # This is tricky because we don't want to break the signature itself.
-
-                    # Let's try to verify if `sig_part` + first word of desc fits?
-                    # Actually, we can use `textwrap` on the DESCRIPTION only, with specific indentation logic.
-
-                    # Calculate remaining width on first line:
-                    sig_len = len(
-                        sig_part.rstrip()
-                    )  # This includes indentation
-                    # Space after colon? `sig_part` from `_split` includes colon.
-                    # Pass 1 added a space if merging description.
-                    # But `_split` splits at colon.
-                    # The `line` from Pass 1 is `sig: desc`.
-                    # `sig_part` is `   sig:`. `desc_part` is ` desc`. (leading space preserved?)
-                    # `_split_google_signature` strips the description if separate return.
-                    # But here we are calling it on the full line.
-                    # Check `_split_google_signature` impl in file.
-                    # It returns `desc.strip()`. So logic above `desc_part` has NO leading space.
-
-                    # We need to insert a space.
-                    first_line_prefix = sig_part.rstrip() + ' '
-                    subsequent_indent = indent_str + '    '
-
-                    # We want to wrap `desc_part`.
-                    # The first line of description should appear after `first_line_prefix`.
-                    # But `textwrap` doesn't support "prefix that assumes X chars already used".
-                    # It supports `initial_indent`.
-
-                    # Workaround:
-                    # Wrap the description with `initial_indent=""` (effectively) and `subsequent_indent=subsequent_indent`.
-                    # Then PREPEND `first_line_prefix` to the first line?
-                    # But that assumes the first line of wrapped description fits in the remaining space.
-                    # We need to tell textwrap the `width` of the first line is smaller.
-
-                    # `textwrap` doesn't check first line width vs others separately easily.
-
-                    # Alternative: Construct a long string `sig + " " + desc`.
-                    # Use `textwrap.fill` with `subsequent_indent=subsequent_indent`.
-                    # But we must ensure it doesn't break inside `sig`.
-                    # `sig` usually has spaces `arg (type):`.
-                    # If we treat it as one word (replace spaces with non-breaking?), textwrap will keep it together.
-                    # But that seems hacking.
-
-                    # Better approach:
-                    # Use `textwrap.TextWrapper`.
-                    # Manually handle first line.
-
-                    wrapper = textwrap.TextWrapper(
-                        width=line_length,
-                        initial_indent='',  # We'll prepend sig manually
-                        subsequent_indent=subsequent_indent,
-                        break_long_words=False,
-                        break_on_hyphens=False,
+                final_output.extend(
+                    _wrap_google_signature_line(
+                        line,
+                        line_length=line_length,
+                        indent_str=indent_str,
                     )
-
-                    # Calculate available width for the first line
-                    # strict: `line_length` - `len(first_line_prefix)`
-                    remaining_first = line_length - len(first_line_prefix)
-
-                    if (
-                        remaining_first < 10
-                    ):  # Heuristic: if very little space, force wrap?
-                        # Force wrap (same as Long Signature logic effectively)
-                        final_output.append(sig_part.rstrip())
-                        wrapped = textwrap.fill(
-                            desc_part,
-                            width=line_length,
-                            initial_indent=subsequent_indent,
-                            subsequent_indent=subsequent_indent,
-                            break_long_words=False,
-                            break_on_hyphens=False,
-                        )
-                        final_output.extend(wrapped.splitlines())
-                    else:
-                        # Heuristic: If the first word doesn't fit in the remaining space on the first line,
-                        # force wrap to the next line.
-                        # This prevents "Sig: VeryLongWord..." from overflowing the first line.
-                        first_word = desc_part.split()[0] if desc_part else ''
-                        if (
-                            remaining_first < 10
-                            or len(first_word) > remaining_first
-                        ):
-                            # Force wrap
-                            final_output.append(sig_part.rstrip())
-                            wrapped = textwrap.fill(
-                                desc_part,
-                                width=line_length,
-                                initial_indent=subsequent_indent,
-                                subsequent_indent=subsequent_indent,
-                                break_long_words=False,
-                                break_on_hyphens=False,
-                            )
-                            final_output.extend(wrapped.splitlines())
-                            is_first_line = False
-                            line_idx += 1
-                            continue
-
-                        # Try to fit first chunk
-                        # We can construct the full text and define `initial_indent` as the signature?
-                        # But `textwrap` counts `initial_indent` length against `width`.
-                        # If `initial_indent` (signature) is long, it reduces separation.
-                        # This matches the requirement!
-                        # "Treat the whole description as the remaining contents" -> implies standard wrapping.
-
-                        # So:
-                        # filled = textwrap.fill(
-                        #    sig_part.strip() + " " + desc_part,
-                        #    width=line_length,
-                        #    initial_indent=indent_str,  <-- Wait, we want `sig_part` AS the indent?
-                        #    subsequent_indent=subsequent_indent
-                        # )
-                        # If we use `initial_indent=indent_str`, `textwrap` will put `sig...` after it.
-                        # It might break `sig...` if it has spaces.
-
-                        # We want `sig_part` to be treated as an atomic unit?
-                        # Not necessarily. Standard Google style:
-                        # arg (very long type): description
-                        # If type wraps? Usually types don't wrap in signature line.
-                        # They wrap indent+4.
-
-                        # The user requirement (1): "if the signature itself ... exceeded ... use them as 1st line".
-                        # This implies we DON'T want to wrap the signature itself.
-
-                        # So if we are in this `else` block (Case B), `sig_part` fits in `line_length`.
-                        # We want to keep it intact.
-
-                        # Let's try to construct a custom initial indent string: `sig_part + " "`.
-                        # But `sig_part` has `indent_str`.
-                        # So `full_sig = sig_part.rstrip() + " "`.
-                        # `textwrap.fill(desc_part, initial_indent=full_sig, subsequent_indent=subsequent_indent)`?
-                        # `textwrap` will treat `initial_indent` as literally indentation chars?
-                        # No, it just prepends it to the first line.
-                        # AND it counts its length.
-                        # This is EXACTLY what we want.
-
-                        full_sig = sig_part.rstrip() + ' '
-
-                        # Note: `sig_part` already includes the leading indentation of the line (e.g. 4 spaces).
-                        # So `full_sig` is "    arg (type): ".
-                        # `subsequent_indent` is "        ".
-
-                        wrapped = textwrap.fill(
-                            desc_part,
-                            width=line_length,
-                            initial_indent=full_sig,
-                            subsequent_indent=subsequent_indent,
-                            break_long_words=False,
-                            break_on_hyphens=False,
-                        )
-                        final_output.extend(wrapped.splitlines())
+                )
 
             # Normal text paragraph (Summary or Description continuation if failed detection)
             # Just wrap it respecting current indent.
@@ -1387,6 +959,83 @@ def _pass2_wrap_google_docstring(
             line_idx += 1
 
     return finalize_lines(final_output, closing_indent)
+
+
+def _wrap_google_signature_line(
+        line: str,
+        *,
+        line_length: int,
+        indent_str: str,
+) -> list[str]:
+    """
+    Wrap one Google signature line while keeping the signature intact.
+
+    Google signatures can contain spaces inside annotations, so wrapping the
+    whole row as prose could split the signature itself. Pass two keeps the
+    signature as the first-line prefix and only wraps the description under the
+    standard continuation indent.
+    """
+    normalized_line = _normalize_google_signature_spacing(line)
+    sig_part, desc_part = _split_google_signature(normalized_line)
+    sig_part_stripped = sig_part.rstrip()
+    subsequent_indent = indent_str + '    '
+
+    if len(sig_part_stripped) > line_length:
+        output = [sig_part_stripped]
+        if desc_part and desc_part.strip():
+            output.extend(
+                _wrap_google_signature_description(
+                    desc_part,
+                    line_length=line_length,
+                    subsequent_indent=subsequent_indent,
+                )
+            )
+
+        return output
+
+    if not desc_part or not desc_part.strip():
+        return [sig_part_stripped]
+
+    first_line_prefix = sig_part_stripped + ' '
+    remaining_first = line_length - len(first_line_prefix)
+    first_word = desc_part.split()[0] if desc_part else ''
+    if remaining_first < 10 or len(first_word) > remaining_first:
+        return [
+            sig_part_stripped,
+            *_wrap_google_signature_description(
+                desc_part,
+                line_length=line_length,
+                subsequent_indent=subsequent_indent,
+            ),
+        ]
+
+    wrapped = textwrap.fill(
+        desc_part,
+        width=line_length,
+        initial_indent=first_line_prefix,
+        subsequent_indent=subsequent_indent,
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+    return wrapped.splitlines()
+
+
+def _wrap_google_signature_description(
+        description: str,
+        *,
+        line_length: int,
+        subsequent_indent: str,
+) -> list[str]:
+    """Wrap a Google signature description on continuation lines."""
+    wrapped = textwrap.fill(
+        description,
+        width=line_length,
+        initial_indent=subsequent_indent,
+        subsequent_indent=subsequent_indent,
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+    return wrapped.splitlines()
 
 
 def _wrap_first_line_shorter(
@@ -2093,39 +1742,10 @@ def _standardize_default_value(signature: str) -> str:
 
 def _split_google_signature(line: str) -> tuple[str, str | None]:
     """
-    Splits a signature line into the signature part (including colon) and the
+    Split a signature line into the signature part (including colon) and the
     description part. Returns (signature_part, description_part).
     description_part might be None or empty string if nothing follows.
     """
-    # We want the FIRST colon that isn't inside brackets?
-    # Type hints can contain slices `Dict[str, int]`.
-    # `arg: Dict[str, int]` -> Colon at 3.
-    # `Returns: Dict[str, int]` -> Colon at 7.
-    # `dict[str, str]:` -> Colon at end.
-    # What if `Callable[[int], int]:` ?
-    # We strictly want the colon that ENDS the signature.
-    # In "name (type): desc", it's the colon after `)`.
-    # In "type:", it's the colon at end.
-
-    # Simple heuristic: The colon is likely followed by space or EOL.
-    # And if parens/brackets are balanced?
-
-    # Actually, Google style requires "name (type): description".
-    # The colon is a separator.
-    # Let's use `partition` but we have to be careful about `dict[a:b]`.
-    # `dict[int, slice(1:5)]` -> rare in signature naming?
-    # Types usually don't have colons *unless* they are callable or slices.
-
-    # If we assume the colon is the "main" delimiter.
-    # Let's find the colon that is followed by space or end of string.
-    # And check balance?
-
-    # For this task, we'll try simple split on first colon,
-    # but we might need to be smarter if types have colons.
-    # For `dict[str, str]:`, first colon is at end. Safe.
-    # For `Callable[[int, int], str]:`, first colon is inside? No `Callable` uses commas/arrows.
-    # Slices `MyType[1:2]`? Rare in docstrings.
-
     rst_match = _GOOGLE_RST_ROLE_SIGNATURE_PATTERN.fullmatch(line)
     if rst_match:
         # rST roles start with a colon, so the generic delimiter scanner would
