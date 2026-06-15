@@ -169,7 +169,8 @@ def _pass1_unwrap_google_docstring(
 
     def compact_pending_summary() -> None:
         """
-        Compact buffered summary text before a section boundary or final output.
+        Compact buffered summary text before a section boundary or final
+        output.
 
         Google end-to-end formatting can put the first summary sentence beside
         the opening quotes. Once a real or custom section starts, later lines
@@ -235,12 +236,9 @@ def _pass1_unwrap_google_docstring(
             i += 1
             continue
 
-        if (
-            _is_google_unknown_section_header(stripped)
-            and (
-                (not current_section and _has_summary_content(temp_out))
-                or indent_length <= current_section_indent
-            )
+        if _is_google_unknown_section_header(stripped) and (
+            (not current_section and _has_summary_content(temp_out))
+            or indent_length <= current_section_indent
         ):
             # Unknown bare headers end signature parsing without becoming
             # canonical Google sections. This preserves custom sections such as
@@ -254,8 +252,8 @@ def _pass1_unwrap_google_docstring(
 
         if is_google_signature_section_header(current_section):
             section_lower = current_section.lower()
-            is_return_section = (
-                is_google_returns_or_yields_section_header(section_lower)
+            is_return_section = is_google_returns_or_yields_section_header(
+                section_lower
             )
             is_yields_section = is_google_yields_section_header(section_lower)
             metadata_for_section = parameter_metadata
@@ -352,10 +350,9 @@ def _pass1_unwrap_google_docstring(
                 signature_part, inline_desc = _split_google_signature(
                     standardized_line
                 )
-                if (
-                    is_google_parameter_section_header(section_lower)
-                    or is_google_attribute_section_header(section_lower)
-                ):
+                if is_google_parameter_section_header(
+                    section_lower
+                ) or is_google_attribute_section_header(section_lower):
                     signature_part = _rewrite_google_parameter_signature(
                         signature_part,
                         metadata_for_section,
@@ -388,9 +385,7 @@ def _pass1_unwrap_google_docstring(
                         # text instead of becoming separate return entries.
                         if (
                             _is_google_section_header(next_stripped)
-                            or _is_google_unknown_section_header(
-                                next_stripped
-                            )
+                            or _is_google_unknown_section_header(next_stripped)
                             or next_indent < current_item_indent
                         ):
                             break
@@ -594,9 +589,8 @@ def _join_paragraph_lines(
         canonical = canonical_google_section_header(stripped)
         if canonical is not None:
             in_examples_section = canonical == 'Examples:'
-        elif (
-            _is_google_unknown_section_header(stripped)
-            and indent_level <= (leading_indent or 0)
+        elif _is_google_unknown_section_header(stripped) and indent_level <= (
+            leading_indent or 0
         ):
             in_examples_section = False
 
@@ -689,9 +683,9 @@ def _compact_google_summary_output(
     """
     Merge buffered summary paragraphs for compact Google docstrings.
 
-    The summary buffer can contain already-protected literal segments. Segmenting
-    before merging keeps those blocks intact while still allowing ordinary prose
-    to move beside the opening quotes.
+    The summary buffer can contain already-protected literal segments.
+    Segmenting before merging keeps those blocks intact while still allowing
+    ordinary prose to move beside the opening quotes.
     """
     summary_lines_flat = []
     for item in output:
@@ -747,6 +741,7 @@ def _has_summary_content(items: list[str | list[str]]) -> bool:
         if isinstance(item, list):
             if any(line.strip() for line in item):
                 return True
+
             continue
 
         if item.strip():
@@ -945,6 +940,7 @@ def _pass2_wrap_google_docstring(
                     and len(indent_str) < leading_indent
                 ):
                     subsequent_indent = ' ' * leading_indent
+
                 wrapped = textwrap.fill(
                     line.strip(),
                     width=wrap_width,
@@ -1780,13 +1776,12 @@ def _dedent_lines(
     """
     Return description lines relative to the Google item indentation.
 
-    Pass one stores inline text from ``arg: text`` without leading
-    indentation, but stores following description lines exactly as they appear
-    in the docstring. Later wrapping re-indents preserved blocks relative to
-    the item, so block lines must first be shifted to a common baseline. When
-    no inline description exists, the first collected line is part of that
-    block too; dedenting it prevents lists and tables from being indented
-    twice.
+    Pass one stores inline text from ``arg: text`` without leading indentation,
+    but stores following description lines exactly as they appear in the
+    docstring. Later wrapping re-indents preserved blocks relative to the item,
+    so block lines must first be shifted to a common baseline. When no inline
+    description exists, the first collected line is part of that block too;
+    dedenting it prevents lists and tables from being indented twice.
     """
     if not lines:
         return lines

@@ -173,8 +173,8 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
             # Plain Python examples have meaningful line breaks even when they
             # are not fenced or prompted. Keep detected code out of the prose
             # collector because that later merges and wraps paragraph lines.
-            is_examples_code, examples_code_end_idx = (
-                is_examples_code_block(lines, i)
+            is_examples_code, examples_code_end_idx = is_examples_code_block(
+                lines, i
             )
             if is_examples_code:
                 temp_out.extend(lines[i:examples_code_end_idx])

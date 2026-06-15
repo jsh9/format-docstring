@@ -338,10 +338,8 @@ def test_standardize_default_value(line: str, expected: str) -> None:
         # Examples prose still uses rST inline literals. This guards against
         # over-masking the whole section while protecting nearby code rows.
         (
-            'Examples:\n'
-            '    Use `raw` in prose.',
-            'Examples:\n'
-            '    Use ``raw`` in prose.',
+            'Examples:\n    Use `raw` in prose.',
+            'Examples:\n    Use ``raw`` in prose.',
         ),
         # NumPy plain Examples code is preserved byte-for-byte, including
         # comment backticks, because these lines are source examples rather

@@ -86,8 +86,8 @@ def _is_labeled_return_prose(label: str, description: str) -> bool:
     Return True for labeled prose such as ``Result: ready.``.
 
     These labels are common prose prefixes in returns/yields sections. The
-    allow-list keeps annotation sync from mistaking them for names or types
-    and dropping the label from the description.
+    allow-list keeps annotation sync from mistaking them for names or types and
+    dropping the label from the description.
     """
     label_normalized = ' '.join(label.strip().lower().split())
     description_stripped = description.strip()
@@ -1350,10 +1350,9 @@ def _is_google_examples_section_boundary(
         return False
 
     stripped = line.strip()
-    return (
-        is_google_section_header(stripped)
-        or is_google_unknown_section_header(stripped)
-    )
+    return is_google_section_header(
+        stripped
+    ) or is_google_unknown_section_header(stripped)
 
 
 def _is_docstring_section_boundary(lines: list[str], idx: int) -> bool:
