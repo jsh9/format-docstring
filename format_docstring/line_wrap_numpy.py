@@ -881,7 +881,7 @@ def handle_single_line_docstring(
         whole_docstring_literal: str | None,
         docstring_content: str,
         docstring_starting_col: int,
-        docstring_ending_col: int,
+        docstring_ending_col: int,  # noqa: ARG001
         line_length: int = 79,
 ) -> str | None:
     """
@@ -945,7 +945,7 @@ _DUNDER_LITERAL_PATTERN = re.compile(
 _DUNDER_LITERAL_REPLACEMENT = r'``\1``'
 
 
-def _mask_rst_backtick_protected_lines(
+def _mask_rst_backtick_protected_lines(  # noqa: C901, PLR0915
         lines: list[str],
 ) -> tuple[list[str], dict[int, str]]:
     """

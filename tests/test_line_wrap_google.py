@@ -18,7 +18,7 @@ DATA_DIR: Path = Path(__file__).parent / 'test_data/line_wrap/google'
     load_cases_from_dir(DATA_DIR),
 )
 def test_wrap_docstring_google(
-        name: str,
+        name: str,  # noqa: ARG001
         line_length: int,
         before: str,
         after: str,
@@ -45,16 +45,6 @@ def test_wrap_docstring_google_single_case() -> None:
     A placeholder test for easy debugging. Replaces the file name with the test
     case file that's producing errors if needed.
     """
-    # Example usage (uncomment if debugging specific file):
-    # _, length, before, after = load_case_from_file(
-    #     DATA_DIR / 'some_failing_case.txt'
-    # )
-    # out = wrap_docstring(
-    #     before,
-    #     line_length=length,
-    #     docstring_style='google',
-    # )
-    # assert out.strip('\n') == after.strip('\n')
 
 
 @pytest.mark.parametrize(

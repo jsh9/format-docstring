@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -21,6 +21,9 @@ from format_docstring.line_wrap_utils import (
     segment_lines_by_wrappability,
     wrap_preserving_indent,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 @pytest.mark.parametrize(
@@ -253,8 +256,10 @@ def test_finalize_lines(
                 'Examples::',
                 '',
                 [
-                    '    literal block with long text that should remain'
-                    ' on one line even though width is short'
+                    (
+                        '    literal block with long text that should remain'
+                        ' on one line even though width is short'
+                    )
                 ],
             ],
             30,
@@ -332,10 +337,15 @@ def test_process_temp_output_merges_literal_block(
     ('text', 'expected'),
     [
         (
-            '    something like this\n    and this is the second\n    line,'
-            '\n    and this is the 3rd\n    line.',
-            'something like this and this is the second line, and this is the'
-            ' 3rd line.',
+            (
+                '    something like this\n    and this is the second\n'
+                '    line,'
+                '\n    and this is the 3rd\n    line.'
+            ),
+            (
+                'something like this and this is the second line, and this is '
+                'the 3rd line.'
+            ),
         ),
         (
             'no indent here\nand here\ntoo',
@@ -374,14 +384,22 @@ def test_process_temp_output_merges_literal_block(
             '',
         ),
         (
-            'paragraph one line one\nparagraph one line two\n\nparagraph two'
-            ' line one\nparagraph two line two',
-            'paragraph one line one paragraph one line two\n\nparagraph two'
-            ' line one paragraph two line two',
+            (
+                'paragraph one line one\nparagraph one line two\n\n'
+                'paragraph two'
+                ' line one\nparagraph two line two'
+            ),
+            (
+                'paragraph one line one paragraph one line two\n\n'
+                'paragraph two'
+                ' line one paragraph two line two'
+            ),
         ),
         (
-            '  first para  \n  continues here  \n\n  second para'
-            '  \n  continues here  ',
+            (
+                '  first para  \n  continues here  \n\n  second para'
+                '  \n  continues here  '
+            ),
             'first para continues here\n\nsecond para continues here',
         ),
         (
@@ -2116,6 +2134,7 @@ def test_is_rst_code_block_uses_indentation_boundaries(
 def test_is_code_fence(
         lines: list[str],
         start_idx: int,
+        *,
         expected_is_fence: bool,
         expected_end_idx: int,
 ) -> None:

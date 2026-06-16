@@ -317,23 +317,31 @@ def test_standardize_default_value(line: str, expected: str) -> None:
         ),
         # --- should not fix (multi-line external links) ---
         (
-            "Here's another example where long URLs"
-            ' extend to the next line `Here is perhaps\n'
-            'the Link <https://www.this-is-a-url-that-is-long.com>`_'
-            ' and `Another One\n'
-            '<https://www.this-is-another-url-that-is-long.com>`_.',
-            "Here's another example where long URLs extend to"
-            ' the next line `Here is perhaps\n'
-            'the Link <https://www.this-is-a-url-that-is-long.com>`_'
-            ' and `Another One\n'
-            '<https://www.this-is-another-url-that-is-long.com>`_.',
+            (
+                "Here's another example where long URLs"
+                ' extend to the next line `Here is perhaps\n'
+                'the Link <https://www.this-is-a-url-that-is-long.com>`_'
+                ' and `Another One\n'
+                '<https://www.this-is-another-url-that-is-long.com>`_.'
+            ),
+            (
+                "Here's another example where long URLs extend to"
+                ' the next line `Here is perhaps\n'
+                'the Link <https://www.this-is-a-url-that-is-long.com>`_'
+                ' and `Another One\n'
+                '<https://www.this-is-another-url-that-is-long.com>`_.'
+            ),
         ),
         # --- should not fix (REPL lines with backticks) ---
         (
-            '>>> # Use `config` parameter to customize `mode`\n'
-            '... # and set the `threshold` value',
-            '>>> # Use `config` parameter to customize `mode`\n'
-            '... # and set the `threshold` value',
+            (
+                '>>> # Use `config` parameter to customize `mode`\n'
+                '... # and set the `threshold` value'
+            ),
+            (
+                '>>> # Use `config` parameter to customize `mode`\n'
+                '... # and set the `threshold` value'
+            ),
         ),
         # Examples prose still uses rST inline literals. This guards against
         # over-masking the whole section while protecting nearby code rows.
@@ -345,34 +353,42 @@ def test_standardize_default_value(line: str, expected: str) -> None:
         # comment backticks, because these lines are source examples rather
         # than rST prose.
         (
-            'Examples\n'
-            '--------\n'
-            'value = 1  # use `raw` here\n'
-            '\n'
-            'Notes\n'
-            '-----\n'
-            'Use `raw` here',
-            'Examples\n'
-            '--------\n'
-            'value = 1  # use `raw` here\n'
-            '\n'
-            'Notes\n'
-            '-----\n'
-            'Use ``raw`` here',
+            (
+                'Examples\n'
+                '--------\n'
+                'value = 1  # use `raw` here\n'
+                '\n'
+                'Notes\n'
+                '-----\n'
+                'Use `raw` here'
+            ),
+            (
+                'Examples\n'
+                '--------\n'
+                'value = 1  # use `raw` here\n'
+                '\n'
+                'Notes\n'
+                '-----\n'
+                'Use ``raw`` here'
+            ),
         ),
         # Google plain Examples code uses indented rows under ``Examples:``.
         # Keep code comment backticks while still normalizing later prose.
         (
-            'Examples:\n'
-            '    value = 1  # use `raw` here\n'
-            '\n'
-            'Notes:\n'
-            '    Use `raw` here',
-            'Examples:\n'
-            '    value = 1  # use `raw` here\n'
-            '\n'
-            'Notes:\n'
-            '    Use ``raw`` here',
+            (
+                'Examples:\n'
+                '    value = 1  # use `raw` here\n'
+                '\n'
+                'Notes:\n'
+                '    Use `raw` here'
+            ),
+            (
+                'Examples:\n'
+                '    value = 1  # use `raw` here\n'
+                '\n'
+                'Notes:\n'
+                '    Use ``raw`` here'
+            ),
         ),
     ],
 )

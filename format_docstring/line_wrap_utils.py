@@ -12,6 +12,7 @@ from format_docstring.section_utils import (
 
 # Regex pattern to split text into paragraphs (multiple consecutive newlines)
 _PARAGRAPH_SPLIT_PATTERN = re.compile(r'\n\s*\n')
+_SECTION_UNDERLINE_MIN_LENGTH = 2
 _RST_CODE_DIRECTIVE_PATTERN = re.compile(
     r'^\s*\.\.\s+(?:code-block|sourcecode|code)::(?:\s+.*)?$',
     re.IGNORECASE,
@@ -484,7 +485,7 @@ def fix_typos_in_section_headings(lines: list[str]) -> list[str]:
     return result
 
 
-def segment_lines_by_wrappability(
+def segment_lines_by_wrappability(  # noqa: C901, PLR0915
         lines: list[str],
         *,
         style: str = 'numpy',
@@ -790,7 +791,7 @@ def is_code_fence(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
     stripped = line.lstrip()
 
     # Check for opening fence (``` or ~~~)
-    if not (stripped.startswith('```') or stripped.startswith('~~~')):
+    if not stripped.startswith(('```', '~~~')):
         return False, start_idx
 
     # Determine the fence character used
@@ -1382,7 +1383,7 @@ def _is_docstring_section_boundary(lines: list[str], idx: int) -> bool:
     underline = lines[next_idx].strip()
     return (
         is_known_docstring_section_name(stripped)
-        and len(underline) >= 2
+        and len(underline) >= _SECTION_UNDERLINE_MIN_LENGTH
         and set(underline) <= {'-'}
     )
 

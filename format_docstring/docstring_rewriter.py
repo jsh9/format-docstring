@@ -677,7 +677,7 @@ def wrap_docstring(
         docstring: str,
         line_length: int = 79,
         docstring_style: str = 'numpy',
-        leading_indent: int | None | object = _LEADING_INDENT_UNSET,
+        leading_indent: int | object | None = _LEADING_INDENT_UNSET,
         *,
         fix_rst_backticks: bool = True,
         function_param_metadata: ParameterMetadata | None = None,

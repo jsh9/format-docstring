@@ -258,10 +258,14 @@ def test_module_level_docstring() -> None:
     assert rep == (
         1,
         206,
-        '"""\nword word word word word word word word word word word word'
-        ' word word word word\nword word word word word word word word word'
-        ' word word word word word word word\nword word word word word word'
-        ' word word\n"""',
+        (
+            '"""\nword word word word word word word word word word word word'
+            ' word word word word\nword word word word word '
+            'word word word word'
+            ' word word word word word word word\nword word word '
+            'word word word'
+            ' word word\n"""'
+        ),
     )
 
 

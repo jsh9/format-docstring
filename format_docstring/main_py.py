@@ -72,8 +72,8 @@ def main(
     """Format .py files."""
     ret = 0
 
-    # Validating style is handled by the rewriter or Click choice, but strictly speaking
-    # we don't need to block non-numpy here anymore as rewriter supports google.
+    # Validating style is handled by the rewriter or Click choice. We no longer
+    # need to block non-numpy here because the rewriter supports Google.
 
     for path in paths:
         fixer = PythonFileFixer(
