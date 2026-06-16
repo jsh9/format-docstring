@@ -44,11 +44,11 @@ Homepage = "https://github.com/your/repo"
 Issues = "https://github.com/your/repo/issues"
 Repository = "https://github.com/your/repo.git"
 
-[tool.ty.analysis]
-allowed-unresolved-imports = ["tomli"]
-
 [tool.setuptools.package-data]
 "*" = ["py.typed"]
 
 [tool.setuptools.packages.find]
 exclude = ["testing*", "tests*"]
+
+[tool.ty.analysis]
+allowed-unresolved-imports = ["tomli"]

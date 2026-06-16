@@ -447,6 +447,7 @@ def build_replacement_docstring(
     val = docstring_obj.value
     if not isinstance(val, ast.Constant):
         return None
+
     if not hasattr(val, 'lineno') or not hasattr(val, 'end_lineno'):
         return None
 
