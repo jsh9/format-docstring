@@ -7,9 +7,9 @@ from format_docstring.line_wrap_numpy import (
 )
 from format_docstring.line_wrap_utils import (
     ParameterMetadata,
+    _is_labeled_return_prose,
     add_leading_indent,
     finalize_lines,
-    _is_labeled_return_prose,
     is_code_fence,
     is_google_doctest_block,
     is_google_examples_code_block,
@@ -894,20 +894,19 @@ def _pass2_wrap_google_docstring(
             # Normal text paragraph (Summary or Description continuation if failed detection)
             # Just wrap it respecting current indent.
 
-            else:
-                if (
-                    not in_signature_section
-                    and not _is_google_section_header(stripped)
-                    and not stripped.rstrip().endswith('::')
-                    and _is_google_signature(stripped)
-                ):
-                    # Preserve existing colon-spacing cleanup for label-like
-                    # prose, but keep it on the normal prose wrapping path so
-                    # sections such as Notes do not gain signature indents.
-                    line = _normalize_google_signature_spacing(line)
-                    stripped = line.lstrip()
-                    indent_str = line[: len(line) - len(stripped)]
-                    indent_level = len(indent_str)
+            elif (
+                not in_signature_section
+                and not _is_google_section_header(stripped)
+                and not stripped.rstrip().endswith('::')
+                and _is_google_signature(stripped)
+            ):
+                # Preserve existing colon-spacing cleanup for label-like
+                # prose, but keep it on the normal prose wrapping path so
+                # sections such as Notes do not gain signature indents.
+                line = _normalize_google_signature_spacing(line)
+                stripped = line.lstrip()
+                indent_str = line[: len(line) - len(stripped)]
+                indent_level = len(indent_str)
 
             if not is_sig and is_first_line:
                 actual_indent_str = indent_str

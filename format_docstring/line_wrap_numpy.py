@@ -6,10 +6,10 @@ import textwrap
 
 from format_docstring.line_wrap_utils import (
     ParameterMetadata,
+    _is_labeled_return_prose,
     add_leading_indent,
     collect_to_temp_output,
     finalize_lines,
-    _is_labeled_return_prose,
     is_code_fence,
     is_doctest_block,
     is_examples_code_block,

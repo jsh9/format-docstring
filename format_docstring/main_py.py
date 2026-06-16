@@ -122,8 +122,7 @@ class PythonFileFixer(BaseFixer):
                 print(msg, file=sys.stderr)
                 return 0
 
-            with Path(filename).open('rb') as fb:
-                source_bytes = fb.read()
+            source_bytes = Path(filename).read_bytes()
 
         try:
             source_text: str = source_bytes.decode()
@@ -145,8 +144,7 @@ class PythonFileFixer(BaseFixer):
         elif source_text != source_text_orig:
             print(f'Rewriting {filename}', file=sys.stderr)
             self.print_diff(filename, source_text_orig, source_text)
-            with Path(filename).open('wb') as f:
-                f.write(source_text.encode())
+            Path(filename).write_bytes(source_text.encode())
 
         return int(source_text != source_text_orig)
 

@@ -51,35 +51,17 @@ GOOGLE_SIGNATURE_SECTION_NAMES: Final[set[str]] = (
 )
 
 _GOOGLE_SECTION_CANONICAL_BY_NAME: Final[dict[str, str]] = {
-    **{name: 'Args:' for name in {'arg', 'args', 'argument', 'arguments'}},
-    **{name: 'Args:' for name in {'parameter', 'parameters'}},
-    **{
-        name: 'Keyword Args:'
-        for name in {
-            'keyword arg',
-            'keyword args',
-            'keyword argument',
-            'keyword arguments',
-        }
-    },
-    **{
-        name: 'Other Args:'
-        for name in {
-            'other arg',
-            'other args',
-            'other argument',
-            'other arguments',
-            'other parameter',
-            'other parameters',
-        }
-    },
-    **{name: 'Returns:' for name in GOOGLE_RETURN_SECTION_NAMES},
-    **{name: 'Yields:' for name in GOOGLE_YIELDS_SECTION_NAMES},
-    **{name: 'Raises:' for name in GOOGLE_RAISES_SECTION_NAMES},
-    **{name: 'Attributes:' for name in GOOGLE_ATTRIBUTE_SECTION_NAMES},
-    **{name: 'Examples:' for name in GOOGLE_EXAMPLE_SECTION_NAMES},
-    **{name: 'Notes:' for name in GOOGLE_NOTES_SECTION_NAMES},
-    **{name: 'Warnings:' for name in GOOGLE_WARNINGS_SECTION_NAMES},
+    **dict.fromkeys({'arg', 'args', 'argument', 'arguments'}, 'Args:'),
+    **dict.fromkeys({'parameter', 'parameters'}, 'Args:'),
+    **dict.fromkeys({'keyword arg', 'keyword args', 'keyword argument', 'keyword arguments'}, 'Keyword Args:'),
+    **dict.fromkeys({'other arg', 'other args', 'other argument', 'other arguments', 'other parameter', 'other parameters'}, 'Other Args:'),
+    **dict.fromkeys(GOOGLE_RETURN_SECTION_NAMES, 'Returns:'),
+    **dict.fromkeys(GOOGLE_YIELDS_SECTION_NAMES, 'Yields:'),
+    **dict.fromkeys(GOOGLE_RAISES_SECTION_NAMES, 'Raises:'),
+    **dict.fromkeys(GOOGLE_ATTRIBUTE_SECTION_NAMES, 'Attributes:'),
+    **dict.fromkeys(GOOGLE_EXAMPLE_SECTION_NAMES, 'Examples:'),
+    **dict.fromkeys(GOOGLE_NOTES_SECTION_NAMES, 'Notes:'),
+    **dict.fromkeys(GOOGLE_WARNINGS_SECTION_NAMES, 'Warnings:'),
 }
 
 

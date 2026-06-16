@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 import re
 import textwrap
+from collections.abc import Callable
 
 from format_docstring.section_utils import (
     is_google_section_header,
@@ -1219,6 +1219,7 @@ def is_doctest_block(
         The list of lines to check.
     start_idx : int
         The starting index to check from.
+
     Returns
     -------
     tuple[bool, int]
