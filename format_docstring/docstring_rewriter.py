@@ -697,7 +697,7 @@ def wrap_docstring(
         Target maximum line length for wrapping logic.
     docstring_style : str, default='numpy'
         The docstring style to target ('numpy' or 'google').
-    leading_indent : int | None | object, default=_LEADING_INDENT_UNSET
+    leading_indent : int | object | None, default=_LEADING_INDENT_UNSET
         The number of indentation spaces of this docstring. When omitted, the
         style-specific default is used; explicit ``None`` means no indentation
         should be added.

@@ -1789,9 +1789,7 @@ def _dedent_lines(
     # Strip only the common block indent. Full stripping would destroy relative
     # indentation inside tables, literal blocks, and nested lists.
     indents = [
-        len(line) - len(line.lstrip())
-        for line in block_lines
-        if line.strip()
+        len(line) - len(line.lstrip()) for line in block_lines if line.strip()
     ]
 
     min_indent = min(indents) if indents else 0
