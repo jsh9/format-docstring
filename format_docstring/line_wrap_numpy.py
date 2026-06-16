@@ -391,8 +391,10 @@ def _is_param_signature(text: str) -> bool:
     shapes that appear in real-world NumPy-style docs and avoid false
     negatives, while still rejecting obviously non-signature prose.
 
-    Accepted (examples)
-    -------------------
+    Notes
+    -----
+    Accepted examples:
+
     - ``name : type``
     - ``name: type``  (missing space is fine)
     - ``alpha, beta : list[str] | None``  (comma-separated names)
@@ -402,8 +404,8 @@ def _is_param_signature(text: str) -> bool:
     - ``*args, **kwargs : Any``  (mixed with other parameters)
     - Leading indentation allowed
 
-    Rejected (examples)
-    -------------------
+    Rejected examples:
+
     - Lines without a colon
     - Names that are not valid identifiers or comma-separated identifiers
       (e.g. ``1name : int``, ``alpha, beta gamma : int``)
@@ -1086,8 +1088,10 @@ def _fix_rst_backticks(docstring: str) -> str:
     It deliberately **does not** modify other rST constructs that require
     single backticks.
 
-    What stays untouched
-    --------------------
+    Notes
+    -----
+    The following forms stay untouched:
+
     - Existing double-backtick literals: ````code````.
     - Roles: ``:role:`text``` (e.g., ``:emphasis:`word```).
     - Cross-references: `` `text`_ `` and anonymous refs `` `text`__ ``.
@@ -1096,9 +1100,10 @@ def _fix_rst_backticks(docstring: str) -> str:
     - REPL lines: Lines starting with ``>>> `` or ``... `` (Python examples).
     - Python-like code detected inside ``Examples`` sections.
 
-    How it works (regex guards)
-    ---------------------------
+    Regex guards:
+
     The pattern only upgrades a match when **all** these are true:
+
     - Opening backtick is not part of an existing ````...```` (``(?<!`)``).
     - Opening backtick is not immediately preceded by ``:`` (to avoid roles).
     - Opening backtick is not immediately preceded by ``_`` (to avoid

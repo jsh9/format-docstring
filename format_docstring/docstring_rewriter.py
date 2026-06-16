@@ -713,6 +713,9 @@ def wrap_docstring(
     class_attribute_metadata : ParameterMetadata | None, default=None
         Attribute metadata for class docstrings (names mapped to annotations
         and default values) collected from class-level assignments.
+    compact_google_docstring : bool, default=False
+        If True, Google-style wrapping may place the first summary line beside
+        the opening quotes when indentation allows it.
     append_google_closing_indent : bool, default=False
         If True, Google-style wrapping appends the indentation needed before
         closing quotes in rebuilt docstring literals.
