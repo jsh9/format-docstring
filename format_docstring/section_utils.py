@@ -53,8 +53,26 @@ GOOGLE_SIGNATURE_SECTION_NAMES: Final[set[str]] = (
 _GOOGLE_SECTION_CANONICAL_BY_NAME: Final[dict[str, str]] = {
     **dict.fromkeys({'arg', 'args', 'argument', 'arguments'}, 'Args:'),
     **dict.fromkeys({'parameter', 'parameters'}, 'Args:'),
-    **dict.fromkeys({'keyword arg', 'keyword args', 'keyword argument', 'keyword arguments'}, 'Keyword Args:'),
-    **dict.fromkeys({'other arg', 'other args', 'other argument', 'other arguments', 'other parameter', 'other parameters'}, 'Other Args:'),
+    **dict.fromkeys(
+        {
+            'keyword arg',
+            'keyword args',
+            'keyword argument',
+            'keyword arguments',
+        },
+        'Keyword Args:',
+    ),
+    **dict.fromkeys(
+        {
+            'other arg',
+            'other args',
+            'other argument',
+            'other arguments',
+            'other parameter',
+            'other parameters',
+        },
+        'Other Args:',
+    ),
     **dict.fromkeys(GOOGLE_RETURN_SECTION_NAMES, 'Returns:'),
     **dict.fromkeys(GOOGLE_YIELDS_SECTION_NAMES, 'Yields:'),
     **dict.fromkeys(GOOGLE_RAISES_SECTION_NAMES, 'Raises:'),
