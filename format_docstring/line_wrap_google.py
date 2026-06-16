@@ -733,11 +733,7 @@ def _compact_google_summary_output(
 
 def _has_summary_content(items: list[str]) -> bool:
     """Return True when buffered pre-section lines contain nonblank text."""
-    for item in items:
-        if item.strip():
-            return True
-
-    return False
+    return any(item.strip() for item in items)
 
 
 def _pass2_wrap_google_docstring(  # noqa: C901, PLR0915
