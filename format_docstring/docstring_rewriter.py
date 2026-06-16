@@ -444,7 +444,9 @@ def build_replacement_docstring(
     if docstring_obj is None:
         return None
 
-    val: ast.Constant = docstring_obj.value  # type: ignore[assignment]
+    val = docstring_obj.value
+    if not isinstance(val, ast.Constant):
+        return None
     if not hasattr(val, 'lineno') or not hasattr(val, 'end_lineno'):
         return None
 

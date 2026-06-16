@@ -288,7 +288,7 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
                 continue
 
             # Treat top-level lines as signatures
-            if indent_length <= leading_indent:  # type: ignore[operator]
+            if leading_indent is not None and indent_length <= leading_indent:
                 temp_out.append(line)
                 i += 1
                 continue

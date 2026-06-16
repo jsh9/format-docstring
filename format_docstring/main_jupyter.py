@@ -163,7 +163,7 @@ class JupyterNotebookFixer(BaseFixer):
                 index: int = code_cell_indices[i]
                 source: SourceCodeContainer = code_cell_sources[i]
                 source_without_magic: str = source.source_without_magic
-                magics: dict[str, str] = source.magics
+                magics: dict[int, str] = source.magics
                 fixed: str = doc_rewriter.fix_src(
                     source_code=source_without_magic,
                     line_length=self.line_length,

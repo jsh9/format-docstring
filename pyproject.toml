@@ -44,12 +44,8 @@ Homepage = "https://github.com/your/repo"
 Issues = "https://github.com/your/repo/issues"
 Repository = "https://github.com/your/repo.git"
 
-[tool.mypy]
-strict = true
-
-[[tool.mypy.overrides]]
-ignore_missing_imports = true
-module = "jupyter_notebook_parser"
+[tool.ty.analysis]
+allowed-unresolved-imports = ["tomli"]
 
 [tool.setuptools.package-data]
 "*" = ["py.typed"]

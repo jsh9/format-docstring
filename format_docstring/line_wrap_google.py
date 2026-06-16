@@ -159,7 +159,7 @@ def _pass1_unwrap_google_docstring(  # noqa: C901, PLR0915
     if not lines:
         return docstring_
 
-    temp_out: list[str | list[str]] = []
+    temp_out: list[str] = []
     i: int = 0
     current_section: str = ''
     current_section_indent = 0
@@ -646,7 +646,7 @@ def _join_paragraph_lines(  # noqa: C901, PLR0915
 
 
 def _append_google_summary_merged(
-        output: list[str | list[str]],
+        output: list[str],
         merged: str,
         *,
         leading_indent: int | None,
@@ -680,26 +680,18 @@ def _append_google_summary_merged(
 
 
 def _compact_google_summary_output(
-        output: list[str | list[str]],
+        output: list[str],
         *,
         leading_indent: int | None,
 ) -> None:
     """
     Merge buffered summary paragraphs for compact Google docstrings.
 
-    The summary buffer can contain already-protected literal segments.
-    Segmenting before merging keeps those blocks intact while still allowing
+    Segmenting before merging keeps literal blocks intact while still allowing
     ordinary prose to move beside the opening quotes.
     """
-    summary_lines_flat = []
-    for item in output:
-        if isinstance(item, list):
-            summary_lines_flat.extend(item)
-        else:
-            summary_lines_flat.append(item)
-
     segments = segment_lines_by_wrappability(
-        summary_lines_flat,
+        output,
         style='google',
     )
 
@@ -739,15 +731,9 @@ def _compact_google_summary_output(
         output.extend('' for _ in trailing_empty_lines)
 
 
-def _has_summary_content(items: list[str | list[str]]) -> bool:
+def _has_summary_content(items: list[str]) -> bool:
     """Return True when buffered pre-section lines contain nonblank text."""
     for item in items:
-        if isinstance(item, list):
-            if any(line.strip() for line in item):
-                return True
-
-            continue
-
         if item.strip():
             return True
 
