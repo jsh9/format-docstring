@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
 from format_docstring.line_wrap_utils import (
@@ -7,12 +9,21 @@ from format_docstring.line_wrap_utils import (
     finalize_lines,
     fix_typos_in_section_headings,
     is_bulleted_list,
+    is_code_fence,
+    is_examples_code_block,
+    is_google_doctest_block,
+    is_google_examples_code_block,
+    is_literal_block_paragraph,
+    is_rst_code_block,
     is_rST_table,
     merge_lines_and_strip,
     process_temp_output,
     segment_lines_by_wrappability,
     wrap_preserving_indent,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 @pytest.mark.parametrize(
@@ -245,8 +256,10 @@ def test_finalize_lines(
                 'Examples::',
                 '',
                 [
-                    '    literal block with long text that should remain'
-                    ' on one line even though width is short'
+                    (
+                        '    literal block with long text that should remain'
+                        ' on one line even though width is short'
+                    )
                 ],
             ],
             30,
@@ -324,10 +337,15 @@ def test_process_temp_output_merges_literal_block(
     ('text', 'expected'),
     [
         (
-            '    something like this\n    and this is the second\n    line,'
-            '\n    and this is the 3rd\n    line.',
-            'something like this and this is the second line, and this is the'
-            ' 3rd line.',
+            (
+                '    something like this\n    and this is the second\n'
+                '    line,'
+                '\n    and this is the 3rd\n    line.'
+            ),
+            (
+                'something like this and this is the second line, and this is '
+                'the 3rd line.'
+            ),
         ),
         (
             'no indent here\nand here\ntoo',
@@ -366,14 +384,22 @@ def test_process_temp_output_merges_literal_block(
             '',
         ),
         (
-            'paragraph one line one\nparagraph one line two\n\nparagraph two'
-            ' line one\nparagraph two line two',
-            'paragraph one line one paragraph one line two\n\nparagraph two'
-            ' line one paragraph two line two',
+            (
+                'paragraph one line one\nparagraph one line two\n\n'
+                'paragraph two'
+                ' line one\nparagraph two line two'
+            ),
+            (
+                'paragraph one line one paragraph one line two\n\n'
+                'paragraph two'
+                ' line one paragraph two line two'
+            ),
         ),
         (
-            '  first para  \n  continues here  \n\n  second para'
-            '  \n  continues here  ',
+            (
+                '  first para  \n  continues here  \n\n  second para'
+                '  \n  continues here  '
+            ),
             'first para continues here\n\nsecond para continues here',
         ),
         (
@@ -1490,19 +1516,21 @@ def test_is_bulleted_list(
                 'Back to regular text',
             ],
             [
-                (['This is an example::', ''], True),
+                (['This is an example::'], True),
                 (
                     [
+                        '',
                         '    def function():',
                         '        return True',
                         '    print("Hello")',
+                        '',
                     ],
                     False,
                 ),
-                (['', 'Back to regular text'], True),
+                (['Back to regular text'], True),
             ],
         ),
-        # Literal block without empty line before
+        # Unindented content after ``::`` is prose, not a literal block.
         (
             [
                 'Here is code::',
@@ -1512,9 +1540,16 @@ def test_is_bulleted_list(
                 'Regular text again',
             ],
             [
-                (['Here is code::'], True),
-                (['import sys', 'print(sys.version)'], False),
-                (['', 'Regular text again'], True),
+                (
+                    [
+                        'Here is code::',
+                        'import sys',
+                        'print(sys.version)',
+                        '',
+                        'Regular text again',
+                    ],
+                    True,
+                ),
             ],
         ),
         # Multiple literal blocks
@@ -1532,11 +1567,11 @@ def test_is_bulleted_list(
                 'Regular text',
             ],
             [
-                (['First example::', ''], True),
-                (['    code block 1', '    more code'], False),
-                (['', 'Second example::', ''], True),
-                (['    code block 2'], False),
-                (['', 'Regular text'], True),
+                (['First example::'], True),
+                (['', '    code block 1', '    more code', ''], False),
+                (['Second example::'], True),
+                (['', '    code block 2', ''], False),
+                (['Regular text'], True),
             ],
         ),
         # Literal block with mixed content
@@ -1551,10 +1586,34 @@ def test_is_bulleted_list(
                 '- Another item',
             ],
             [
-                (['Example with table and literal::', ''], True),
-                (['    def func():', '        pass'], False),
-                ([''], True),
+                (['Example with table and literal::'], True),
+                (['', '    def func():', '        pass', ''], False),
                 (['- List item', '- Another item'], False),
+            ],
+        ),
+        # rST code directive block followed by prose
+        (
+            [
+                'Examples:',
+                '',
+                '.. code-block:: python',
+                '',
+                '    value = `template`',
+                '',
+                'Back to regular text',
+            ],
+            [
+                (['Examples:', ''], True),
+                (
+                    [
+                        '.. code-block:: python',
+                        '',
+                        '    value = `template`',
+                        '',
+                    ],
+                    False,
+                ),
+                (['Back to regular text'], True),
             ],
         ),
         # Text ending with :: but no following content
@@ -1574,3 +1633,511 @@ def test_segment_lines_by_wrappability(
 ) -> None:
     result = segment_lines_by_wrappability(lines)
     assert result == expected_segments
+
+
+@pytest.mark.parametrize(
+    ('lines', 'start_idx', 'detector', 'expected_is_code', 'expected_end_idx'),
+    [
+        (
+            [
+                (
+                    '    result = call_function_with_a_really_long_argument_'
+                    'name(first_argument, second_argument, third_argument)'
+                ),
+                '    print(result)',
+                '',
+                '    Back to prose.',
+            ],
+            0,
+            is_examples_code_block,
+            True,
+            2,
+        ),
+        (
+            [
+                '    result = call_function(',
+                '        first_argument,',
+                '        second_argument,',
+                '    )',
+                '    print(result)',
+            ],
+            0,
+            is_examples_code_block,
+            True,
+            5,
+        ),
+        (
+            [
+                (
+                    '    # Use `raw` mode with a long comment that should '
+                    'remain byte-for-byte as example code.'
+                ),
+                '    result = call(value)',
+            ],
+            0,
+            is_examples_code_block,
+            True,
+            2,
+        ),
+        (
+            [
+                '    result = build_mapping(alpha, beta, gamma)',
+                (
+                    "    {'alpha': 'a very long value that is output and "
+                    "should stay as written', 'beta': 2}"
+                ),
+            ],
+            0,
+            is_examples_code_block,
+            True,
+            2,
+        ),
+        (
+            [
+                (
+                    '    This is a very long prose sentence in an examples '
+                    'section that should still be wrapped by the formatter.'
+                ),
+            ],
+            0,
+            is_examples_code_block,
+            False,
+            0,
+        ),
+        (
+            [
+                '    result = compute_value()',
+                'Args:',
+                '    value: Description.',
+            ],
+            0,
+            is_examples_code_block,
+            True,
+            1,
+        ),
+        (
+            [
+                'Examples:',
+                '    result = compute_value()',
+                '    Args:',
+                '    done',
+                'Args:',
+                '    value: Description.',
+            ],
+            1,
+            is_google_examples_code_block,
+            True,
+            4,
+        ),
+    ],
+    ids=[
+        'assignment_and_call',
+        'multiline_call',
+        'leading_comment',
+        'repr_output',
+        'prose_is_not_code',
+        'stops_at_section',
+        'google_indented_header_output',
+    ],
+)
+def test_is_examples_code_block(
+        lines: list[str],
+        start_idx: int,
+        detector: Callable[
+            [list[str], int],
+            tuple[bool, int],
+        ],
+        *,
+        expected_is_code: bool,
+        expected_end_idx: int,
+) -> None:
+    """
+    Verify Examples code detection preserves only Python-like code blocks.
+
+    This guard is needed because undetected example code enters the prose
+    wrapping path, where adjacent lines are merged and long lines are wrapped.
+    The same cases exercise default and Google detectors so the shared scanner
+    can stay generic while boundary behavior remains style-specific.
+    """
+    is_code, end_idx = detector(lines, start_idx)
+    assert is_code == expected_is_code
+    assert end_idx == expected_end_idx
+
+
+@pytest.mark.parametrize(
+    (
+        'lines',
+        'start_idx',
+        'detector',
+        'expected_is_doctest',
+        'expected_end_idx',
+    ),
+    [
+        (
+            [
+                'Examples:',
+                '    >>> print("Args:")',
+                '    Args:',
+                '    >>> print("done")',
+                '    done',
+                '',
+                'Args:',
+                '    value: Description.',
+            ],
+            1,
+            is_google_doctest_block,
+            True,
+            5,
+        ),
+        (
+            [
+                'Examples:',
+                '    >>> print("done")',
+                '    done',
+                'Args:',
+                '    value: Description.',
+            ],
+            1,
+            is_google_doctest_block,
+            True,
+            3,
+        ),
+    ],
+    ids=['google_preserves_indented_header_output', 'google_stops_at_peer'],
+)
+def test_is_doctest_block_uses_google_indentation_boundaries(
+        lines: list[str],
+        start_idx: int,
+        detector: Callable[
+            [list[str], int],
+            tuple[bool, int],
+        ],
+        *,
+        expected_is_doctest: bool,
+        expected_end_idx: int,
+) -> None:
+    """
+    Verify Google doctest output can look like section headers.
+
+    A peer section header exits the doctest; an indented header-looking output
+    line remains part of the preserved doctest block.
+    """
+    is_doctest, end_idx = detector(lines, start_idx)
+    assert is_doctest == expected_is_doctest
+    assert end_idx == expected_end_idx
+
+
+@pytest.mark.parametrize(
+    ('lines', 'start_idx', 'expected_is_literal', 'expected_end_idx'),
+    [
+        (
+            [
+                'Example::',
+                '',
+                '    first = `template`',
+                '',
+                '    second = `name`',
+                '',
+                'Back to prose',
+            ],
+            1,
+            True,
+            6,
+        ),
+        (
+            [
+                'Example::',
+                'Not indented prose',
+            ],
+            1,
+            False,
+            1,
+        ),
+        (
+            [
+                'Summary::',
+                '',
+                '    code-like text',
+                '',
+                '    Args:',
+                '        value: Description',
+            ],
+            1,
+            True,
+            4,
+        ),
+    ],
+    ids=['internal_blank_lines', 'dedented_prose', 'section_boundary'],
+)
+def test_is_literal_block_paragraph_uses_indentation_boundaries(
+        lines: list[str],
+        start_idx: int,
+        *,
+        expected_is_literal: bool,
+        expected_end_idx: int,
+) -> None:
+    """
+    Verify ``::`` literal spans preserve internal blanks and stop at prose.
+
+    This guards the rST boundary rule used by both wrapping and backtick
+    masking: blank lines stay inside a literal block only while the next
+    content remains indented past the introducing paragraph.
+    """
+    is_literal, end_idx = is_literal_block_paragraph(lines, start_idx)
+    assert is_literal == expected_is_literal
+    assert end_idx == expected_end_idx
+
+
+@pytest.mark.parametrize(
+    ('lines', 'start_idx', 'expected_is_code', 'expected_end_idx'),
+    [
+        (
+            [
+                '.. code-block:: python',
+                '',
+                '    value = `template`',
+                '',
+                'Back to prose',
+            ],
+            0,
+            True,
+            4,
+        ),
+        (
+            [
+                '  .. sourcecode:: python',
+                '',
+                '      value = `template`',
+                '  Back to prose',
+            ],
+            0,
+            True,
+            3,
+        ),
+        (
+            [
+                '.. code::',
+                '    value = `template`',
+                'Back to prose',
+            ],
+            0,
+            True,
+            2,
+        ),
+        (
+            [
+                '.. note::',
+                '',
+                '    Not a code directive',
+            ],
+            0,
+            False,
+            0,
+        ),
+    ],
+    ids=['code_block', 'sourcecode', 'code', 'not_code_directive'],
+)
+def test_is_rst_code_block_uses_indentation_boundaries(
+        lines: list[str],
+        start_idx: int,
+        *,
+        expected_is_code: bool,
+        expected_end_idx: int,
+) -> None:
+    """
+    Verify rST code directives are protected until dedented prose resumes.
+
+    This is necessary because directive bodies can contain code syntax where
+    single backticks are meaningful and must not be normalized as prose.
+    """
+    is_code, end_idx = is_rst_code_block(lines, start_idx)
+    assert is_code == expected_is_code
+    assert end_idx == expected_end_idx
+
+
+@pytest.mark.parametrize(
+    ('lines', 'start_idx', 'expected_is_fence', 'expected_end_idx'),
+    [
+        # Basic triple backtick code fence
+        (
+            [
+                '```',
+                'def foo():',
+                '    pass',
+                '```',
+            ],
+            0,
+            True,
+            4,
+        ),
+        # Code fence with language identifier
+        (
+            [
+                '```python',
+                'def foo():',
+                '    pass',
+                '```',
+            ],
+            0,
+            True,
+            4,
+        ),
+        # Triple tilde code fence
+        (
+            [
+                '~~~',
+                'code here',
+                '~~~',
+            ],
+            0,
+            True,
+            3,
+        ),
+        # Tilde fence with language identifier
+        (
+            [
+                '~~~bash',
+                'echo "hello"',
+                '~~~',
+            ],
+            0,
+            True,
+            3,
+        ),
+        # Code fence with indentation
+        (
+            [
+                '    ```',
+                '    def bar():',
+                '        return 1',
+                '    ```',
+            ],
+            0,
+            True,
+            4,
+        ),
+        # Not a code fence - doesn't start with ```
+        (
+            [
+                'regular text',
+                'more text',
+            ],
+            0,
+            False,
+            0,
+        ),
+        # Empty lines list
+        (
+            [],
+            0,
+            False,
+            0,
+        ),
+        # Invalid start index
+        (
+            ['```', 'code', '```'],
+            5,
+            False,
+            5,
+        ),
+        # Code fence starting at different index
+        (
+            [
+                'Some text before',
+                '```',
+                'code inside fence',
+                '```',
+                'text after',
+            ],
+            1,
+            True,
+            4,
+        ),
+        # Unclosed code fence - should treat rest as code block
+        (
+            [
+                '```',
+                'code without closing',
+                'more code',
+            ],
+            0,
+            True,
+            3,
+        ),
+        # Empty code fence
+        (
+            [
+                '```',
+                '```',
+            ],
+            0,
+            True,
+            2,
+        ),
+        # Code fence with multiple language specifiers (common in markdown)
+        (
+            [
+                '```python3',
+                'print("hello")',
+                '```',
+            ],
+            0,
+            True,
+            3,
+        ),
+        # Code fence with spaces after backticks
+        (
+            [
+                '```   ',
+                'content',
+                '```',
+            ],
+            0,
+            True,
+            3,
+        ),
+        # Line starting with `` (two backticks, not three)
+        (
+            [
+                '``not a fence``',
+                'regular text',
+            ],
+            0,
+            False,
+            0,
+        ),
+        # Single backtick - not a fence
+        (
+            [
+                '`inline code`',
+                'more text',
+            ],
+            0,
+            False,
+            0,
+        ),
+        # Code fence followed by more content
+        (
+            [
+                '```',
+                'code',
+                '```',
+                '',
+                'Normal paragraph',
+            ],
+            0,
+            True,
+            3,
+        ),
+    ],
+)
+def test_is_code_fence(
+        lines: list[str],
+        start_idx: int,
+        *,
+        expected_is_fence: bool,
+        expected_end_idx: int,
+) -> None:
+    is_fence, end_idx = is_code_fence(lines, start_idx)
+    assert is_fence == expected_is_fence
+    assert end_idx == expected_end_idx

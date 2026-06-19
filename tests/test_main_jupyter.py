@@ -2,14 +2,26 @@ import json
 from pathlib import Path
 from shutil import copy2
 
+import pytest
 from click.testing import CliRunner
 
 from format_docstring.main_jupyter import main as cli_main_ipynb
 
+DATA_DIR = Path(__file__).parent / 'test_data/integration_test'
 
-def test_integration_cli_ipynb(tmp_path: Path) -> None:
+
+@pytest.mark.parametrize(
+    ('style', 'style_args'),
+    [
+        ('numpy', ['--docstring-style', 'numpy']),
+        ('google', ['--docstring-style', 'google']),
+    ],
+)
+def test_integration_cli_ipynb(
+        tmp_path: Path, style: str, style_args: list[str]
+) -> None:
     """Run CLI on a copied .ipynb file and compare to expected output."""
-    data_dir = Path(__file__).parent / 'test_data/integration_test/numpy'
+    data_dir = DATA_DIR / style
     before = data_dir / 'before.ipynb'
     after = data_dir / 'after.ipynb'
 
@@ -17,7 +29,7 @@ def test_integration_cli_ipynb(tmp_path: Path) -> None:
     copy2(before, work_file)
 
     runner = CliRunner()
-    res = runner.invoke(cli_main_ipynb, [str(work_file)])
+    res = runner.invoke(cli_main_ipynb, [*style_args, str(work_file)])
     assert res.exit_code in {0, 1}, res.output
 
     actual = json.loads(work_file.read_text())
@@ -25,9 +37,18 @@ def test_integration_cli_ipynb(tmp_path: Path) -> None:
     assert actual == expected
 
 
-def test_integration_cli_ipynb_len50(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ('style', 'style_args'),
+    [
+        ('numpy', ['--docstring-style', 'numpy']),
+        ('google', ['--docstring-style', 'google']),
+    ],
+)
+def test_integration_cli_ipynb_len50(
+        tmp_path: Path, style: str, style_args: list[str]
+) -> None:
     """Run CLI with --line-length 50 on .ipynb and compare to expected."""
-    data_dir = Path(__file__).parent / 'test_data/integration_test/numpy'
+    data_dir = DATA_DIR / style
     before = data_dir / 'before.ipynb'
     after = data_dir / 'after_50.ipynb'
 
@@ -36,7 +57,7 @@ def test_integration_cli_ipynb_len50(tmp_path: Path) -> None:
 
     runner = CliRunner()
     res = runner.invoke(
-        cli_main_ipynb, ['--line-length', '50', str(work_file)]
+        cli_main_ipynb, [*style_args, '--line-length', '50', str(work_file)]
     )
     assert res.exit_code in {0, 1}, res.output
 

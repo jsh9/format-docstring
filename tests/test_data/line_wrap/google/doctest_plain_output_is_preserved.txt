@@ -1,0 +1,15 @@
+LINE_LENGTH: 60
+
+**********
+Examples:
+    >>> print_message()
+    this is plain output from the doctest that should stay on one exact output line even though it is too long for the configured width
+    >>> done()
+    True
+
+**********
+Examples:
+    >>> print_message()
+    this is plain output from the doctest that should stay on one exact output line even though it is too long for the configured width
+    >>> done()
+    True

@@ -1,0 +1,20 @@
+LINE_LENGTH: 70
+
+**********
+Format known and custom sections.
+
+Args:
+    x: Existing parameter.
+
+Todo:
+    Keep this custom section as prose, not as an Args item with the description pulled onto the header line.
+
+**********
+Format known and custom sections.
+
+Args:
+    x: Existing parameter.
+
+Todo:
+    Keep this custom section as prose, not as an Args item with the
+    description pulled onto the header line.

@@ -1,0 +1,23 @@
+LINE_LENGTH: 60
+
+**********
+Examples
+--------
+~~~
+Parameters
+----------
+x : int
+    first line inside a literal fence
+        second line inside the same literal fence that should not be joined
+~~~
+
+**********
+Examples
+--------
+~~~
+Parameters
+----------
+x : int
+    first line inside a literal fence
+        second line inside the same literal fence that should not be joined
+~~~

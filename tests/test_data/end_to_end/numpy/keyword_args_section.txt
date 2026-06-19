@@ -1,0 +1,29 @@
+LINE_LENGTH: 79
+
+**********
+def configure(*, timeout: int = 30, retries: int = 3) -> None:
+    """
+    Configure the client.
+
+    Other Parameters
+    ----------------
+    timeout :
+        Timeout in seconds.
+    retries :
+        Number of retry attempts.
+    """
+    pass
+
+**********
+def configure(*, timeout: int = 30, retries: int = 3) -> None:
+    """
+    Configure the client.
+
+    Other Parameters
+    ----------------
+    timeout : int, default=30
+        Timeout in seconds.
+    retries : int, default=3
+        Number of retry attempts.
+    """
+    pass

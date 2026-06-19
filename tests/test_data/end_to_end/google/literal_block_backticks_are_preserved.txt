@@ -1,0 +1,18 @@
+LINE_LENGTH: 79
+
+**********
+def f():
+    """
+    Example::
+
+        value = `template`
+    """
+    pass
+
+**********
+def f():
+    """Example::
+
+        value = `template`
+    """
+    pass

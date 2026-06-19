@@ -2,11 +2,68 @@ from __future__ import annotations
 
 import re
 import textwrap
+from collections.abc import Callable
+
+from format_docstring.section_utils import (
+    is_google_section_header,
+    is_google_unknown_section_header,
+    is_known_docstring_section_name,
+)
 
 # Regex pattern to split text into paragraphs (multiple consecutive newlines)
 _PARAGRAPH_SPLIT_PATTERN = re.compile(r'\n\s*\n')
+_SECTION_UNDERLINE_MIN_LENGTH = 2
+_RST_CODE_DIRECTIVE_PATTERN = re.compile(
+    r'^\s*\.\.\s+(?:code-block|sourcecode|code)::(?:\s+.*)?$',
+    re.IGNORECASE,
+)
+# Used only after a wrapper has entered Examples. Keep the match conservative
+# so prose examples still flow through the normal paragraph wrapper.
+_PYTHON_EXAMPLE_START_PATTERN = re.compile(
+    r'^(?:'
+    r'(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*|\[[^\]]+\])*)'
+    r'(?:\s*,\s*[A-Za-z_]\w*)*\s*(?::\s*[^=]+)?'
+    r'\s*(?:[-+*/%@&|^]?=|:=)(?!=)|'
+    r'(?:await\s+)?[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\(|'
+    r'from\s+\S+\s+import\s+|'
+    r'import\s+|'
+    r'def\s+\w+|'
+    r'class\s+\w+|'
+    r'if\s+.+:|'
+    r'elif\s+.+:|'
+    r'else:|'
+    r'for\s+.+:|'
+    r'while\s+.+:|'
+    r'with\s+.+:|'
+    r'try:|'
+    r'except\b.*:|'
+    r'finally:|'
+    r'match\s+.+:|'
+    r'case\s+.+:|'
+    r'return\b|'
+    r'yield\b|'
+    r'raise\b|'
+    r'assert\b|'
+    r'pass\b|'
+    r'break\b|'
+    r'continue\b|'
+    r'@[A-Za-z_]'
+    r')'
+)
 
 ParameterMetadata = dict[str, tuple[str | None, str | None]]
+_SectionBoundaryPredicate = Callable[[list[str], int], bool]
+
+_RETURN_PROSE_LABELS = {
+    'output',
+    'outputs',
+    'result',
+    'results',
+    'return value',
+    'return values',
+    'value',
+    'values',
+}
 
 
 def add_leading_indent(docstring: str, leading_indent: int | None) -> str:
@@ -23,6 +80,26 @@ def add_leading_indent(docstring: str, leading_indent: int | None) -> str:
             return needed_prefix + docstring
 
     return docstring
+
+
+def _is_labeled_return_prose(label: str, description: str) -> bool:
+    """
+    Return True for labeled prose such as ``Result: ready.``.
+
+    These labels are common prose prefixes in returns/yields sections. The
+    allow-list keeps annotation sync from mistaking them for names or types and
+    dropping the label from the description.
+    """
+    label_normalized = ' '.join(label.strip().lower().split())
+    description_stripped = description.strip()
+    return (
+        label_normalized in _RETURN_PROSE_LABELS
+        and bool(description_stripped)
+        and (
+            any(char.isspace() for char in description_stripped)
+            or description_stripped.endswith(('.', '!', '?'))
+        )
+    )
 
 
 def finalize_lines(out_lines: list[str], leading_indent: int | None) -> str:
@@ -408,8 +485,10 @@ def fix_typos_in_section_headings(lines: list[str]) -> list[str]:
     return result
 
 
-def segment_lines_by_wrappability(
+def segment_lines_by_wrappability(  # noqa: C901, PLR0915
         lines: list[str],
+        *,
+        style: str = 'numpy',
 ) -> list[tuple[list[str], bool]]:
     """
     Segment lines into chunks that can or cannot be wrapped.
@@ -418,10 +497,19 @@ def segment_lines_by_wrappability(
     blocks (paragraphs following ::), which should not be wrapped. Other
     content can be wrapped.
 
+    Also detects fenced code blocks using backticks or tildes. Fence handling
+    is intentionally style-agnostic because both wrappers must preserve literal
+    content before their own section parsers run. For Google-style docstrings,
+    detects doctest blocks (>>>) as well.
+
     Parameters
     ----------
     lines : list[str]
         The list of lines to segment.
+    style : str, default='numpy'
+        The docstring style being processed. Supported values:
+        - 'numpy': Detect tables, lists, literal blocks, and code fences
+        - 'google': Additionally detect doctest blocks
 
     Returns
     -------
@@ -477,8 +565,18 @@ def segment_lines_by_wrappability(
             current_idx = list_end_idx
             continue
 
+        # Check for rST code directives before literal blocks. Directive lines
+        # also end in ``::``, but the directive itself is part of the protected
+        # block and should not be grouped with surrounding prose.
+        is_rst_code, rst_code_end_idx = is_rst_code_block(lines, current_idx)
+        if is_rst_code:
+            rst_code_lines = lines[current_idx:rst_code_end_idx]
+            segments.append((rst_code_lines, False))
+            current_idx = rst_code_end_idx
+            continue
+
         # Check for literal block following ::
-        is_literal, literal_end_idx = _is_literal_block_paragraph(
+        is_literal, literal_end_idx = is_literal_block_paragraph(
             lines, current_idx
         )
         if is_literal:
@@ -488,19 +586,55 @@ def segment_lines_by_wrappability(
             current_idx = literal_end_idx
             continue
 
+        # Check for doctest block (Google style only)
+        if style == 'google':
+            is_doctest, doctest_end_idx = is_google_doctest_block(
+                lines,
+                current_idx,
+            )
+            if is_doctest:
+                # Add doctest segment (not wrappable)
+                doctest_lines = lines[current_idx:doctest_end_idx]
+                segments.append((doctest_lines, False))
+                current_idx = doctest_end_idx
+                continue
+
+        # Protect fenced code before collecting prose so both wrappers keep
+        # backtick and tilde fence contents out of later wrapping passes.
+        is_fence, fence_end_idx = is_code_fence(lines, current_idx)
+        if is_fence:
+            # Add code fence segment (not wrappable)
+            fence_lines = lines[current_idx:fence_end_idx]
+            segments.append((fence_lines, False))
+            current_idx = fence_end_idx
+            continue
+
         # Neither table, list, nor literal block - collect wrappable content
         start_idx = current_idx
         current_idx += 1
 
         # Continue collecting wrappable lines until we hit a table/list/literal
-        # or end
+        # (or doctest/fence for Google style)
         while current_idx < len(lines):
             is_table, _ = is_rST_table(lines, current_idx)
             is_list, _ = is_bulleted_list(lines, current_idx)
-            is_literal, _ = _is_literal_block_paragraph(lines, current_idx)
+            is_rst_code, _ = is_rst_code_block(lines, current_idx)
+            is_literal, _ = is_literal_block_paragraph(lines, current_idx)
 
-            if is_table or is_list or is_literal:
+            if is_table or is_list or is_rst_code or is_literal:
                 break
+
+            is_fence, _ = is_code_fence(lines, current_idx)
+            if is_fence:
+                break
+
+            if style == 'google':
+                is_doctest, _ = is_google_doctest_block(
+                    lines,
+                    current_idx,
+                )
+                if is_doctest:
+                    break
 
             current_idx += 1
 
@@ -509,6 +643,223 @@ def segment_lines_by_wrappability(
         segments.append((wrappable_lines, True))
 
     return segments
+
+
+def is_examples_code_block(
+        lines: list[str],
+        start_idx: int,
+) -> tuple[bool, int]:
+    """
+    Return True for Python-like code blocks inside an Examples section.
+
+    Callers are responsible for invoking this only while already inside an
+    Examples section. The detector keeps plain prose wrappable but preserves
+    obvious code statements, comment lines, and same/deeper-indented output.
+    This is intentionally conservative because non-code prose in Examples
+    should still use normal paragraph wrapping when it is separated from code.
+    """
+    return _scan_examples_code_block(
+        lines,
+        start_idx,
+        is_boundary=_is_docstring_section_boundary,
+    )
+
+
+def is_google_examples_code_block(
+        lines: list[str],
+        start_idx: int,
+) -> tuple[bool, int]:
+    """
+    Return True for Python-like code blocks in Google ``Examples:``.
+
+    Google needs a stricter boundary predicate than the default detector:
+    indented ``Args:``-like output is example content, but peer or outer
+    ``Name:`` headers should end the protected block.
+    """
+    google_section_indent = _find_previous_google_section_indent(
+        lines,
+        start_idx,
+    )
+
+    def is_boundary(candidate_lines: list[str], idx: int) -> bool:
+        return _is_google_examples_section_boundary(
+            candidate_lines,
+            idx,
+            section_indent=google_section_indent,
+        )
+
+    return _scan_examples_code_block(
+        lines,
+        start_idx,
+        is_boundary=is_boundary,
+    )
+
+
+def _scan_examples_code_block(
+        lines: list[str],
+        start_idx: int,
+        *,
+        is_boundary: _SectionBoundaryPredicate,
+) -> tuple[bool, int]:
+    """
+    Scan one Examples code/output block using ``is_boundary``.
+
+    The first line must look like Python code or a Python comment. Once that
+    start is accepted, same/deeper-indented nonblank lines are preserved too so
+    repr output and plain output keep their original line breaks. The injected
+    boundary keeps this scanner style-neutral while allowing Google to use
+    indentation-aware section exits.
+    """
+    if start_idx >= len(lines):
+        return False, start_idx
+
+    if is_boundary(lines, start_idx):
+        return False, start_idx
+
+    first_line = lines[start_idx]
+    if not _looks_like_examples_code_start(first_line):
+        return False, start_idx
+
+    base_indent = _indent_width(first_line)
+    current_idx = start_idx
+
+    while current_idx < len(lines):
+        line = lines[current_idx]
+        stripped = line.strip()
+
+        if current_idx > start_idx:
+            if not stripped:
+                break
+
+            if is_boundary(lines, current_idx):
+                break
+
+            if _indent_width(line) < base_indent:
+                break
+
+        current_idx += 1
+
+    return True, current_idx
+
+
+def _looks_like_examples_code_start(line: str) -> bool:
+    """Return True when ``line`` starts a Python-like example statement."""
+    stripped = line.strip()
+    return (
+        bool(stripped)
+        and not stripped.startswith(('>>>', '...'))
+        and (
+            stripped.startswith('#')
+            or bool(_PYTHON_EXAMPLE_START_PATTERN.match(stripped))
+        )
+    )
+
+
+def is_code_fence(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
+    """
+    Check if lines starting at start_idx form a fenced code block.
+
+    Fenced code blocks are delimited by triple backticks (```) or tildes (~~~).
+    The opening fence can optionally include a language identifier.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The list of lines to check.
+    start_idx : int, default=0
+        The starting index to check from.
+
+    Returns
+    -------
+    tuple[bool, int]
+        A tuple of (is_code_fence, end_idx) where is_code_fence indicates if a
+        code fence was found starting at start_idx, and end_idx is the index
+        after the closing fence line (or start_idx if no code fence found).
+
+    Examples
+    --------
+    >>> lines = ['```python', 'def foo():', '    pass', '```', 'more text']
+    >>> is_code_fence(lines, 0)
+    (True, 4)
+    >>> is_code_fence(lines, 4)
+    (False, 4)
+    """
+    if start_idx >= len(lines):
+        return False, start_idx
+
+    line = lines[start_idx]
+    stripped = line.lstrip()
+
+    # Check for opening fence (``` or ~~~)
+    if not stripped.startswith(('```', '~~~')):
+        return False, start_idx
+
+    # Determine the fence character used
+    fence_char = stripped[0]  # Either ` or ~
+
+    # Find the closing fence
+    for i in range(start_idx + 1, len(lines)):
+        line_i = lines[i].lstrip()
+        if (
+            line_i.startswith(fence_char * 3)
+            and line_i.rstrip() == fence_char * 3
+        ):
+            # Found closing fence
+            return True, i + 1
+
+    # No closing fence found - treat the rest as code block
+    return True, len(lines)
+
+
+def _indent_width(line: str) -> int:
+    """Return the width of leading whitespace in ``line``."""
+    return len(line) - len(line.lstrip())
+
+
+def is_rst_code_block(
+        lines: list[str], start_idx: int = 0
+) -> tuple[bool, int]:
+    """
+    Check if lines starting at start_idx form an rST code directive block.
+
+    Common rST code directives are introduced by lines such as ``..
+    code-block:: python``. Their indented body is code-like content, so
+    wrapping and rST backtick normalization should preserve it.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The list of lines to check.
+    start_idx : int, default=0
+        The starting index to check from.
+
+    Returns
+    -------
+    tuple[bool, int]
+        A tuple of (is_rst_code_block, end_idx) where end_idx is the index
+        after the protected directive block.
+    """
+    if start_idx >= len(lines):
+        return False, start_idx
+
+    directive_line = lines[start_idx].rstrip()
+    if not _RST_CODE_DIRECTIVE_PATTERN.fullmatch(directive_line):
+        return False, start_idx
+
+    directive_indent = _indent_width(lines[start_idx])
+    current_idx = start_idx + 1
+    while current_idx < len(lines):
+        line = lines[current_idx]
+        if not line.strip():
+            current_idx += 1
+            continue
+
+        if _indent_width(line) <= directive_indent:
+            break
+
+        current_idx += 1
+
+    return True, current_idx
 
 
 def is_rST_table(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:  # noqa: N802
@@ -851,14 +1202,200 @@ def _is_continuation_line(line: str, list_item_indent: int) -> bool:
     return line_indent > list_item_indent
 
 
-def _is_literal_block_paragraph(
+def is_doctest_block(
+        lines: list[str],
+        start_idx: int,
+) -> tuple[bool, int]:
+    """
+    Check if lines starting at start_idx form a Python doctest block.
+
+    A doctest block starts with '>>>' and includes subsequent prompts,
+    continuation prompts, and their output. Once a prompt starts a doctest,
+    preserve following non-empty output lines until a blank line or another
+    docstring section boundary.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The list of lines to check.
+    start_idx : int
+        The starting index to check from.
+
+    Returns
+    -------
+    tuple[bool, int]
+        (is_doctest, end_idx)
+    """
+    return _scan_doctest_block(
+        lines,
+        start_idx,
+        is_boundary=_is_docstring_section_boundary,
+    )
+
+
+def is_google_doctest_block(
+        lines: list[str],
+        start_idx: int,
+) -> tuple[bool, int]:
+    """
+    Check if lines starting at ``start_idx`` form a Google doctest block.
+
+    Doctest output can be arbitrary text, including ``Args:`` or custom
+    ``Todo:`` labels. Google detection therefore anchors boundaries to the
+    active section indentation instead of treating every header-looking line as
+    a section exit.
+    """
+    google_section_indent = _find_previous_google_section_indent(
+        lines,
+        start_idx,
+    )
+
+    def is_boundary(candidate_lines: list[str], idx: int) -> bool:
+        return _is_google_examples_section_boundary(
+            candidate_lines,
+            idx,
+            section_indent=google_section_indent,
+        )
+
+    return _scan_doctest_block(
+        lines,
+        start_idx,
+        is_boundary=is_boundary,
+    )
+
+
+def _scan_doctest_block(
+        lines: list[str],
+        start_idx: int,
+        *,
+        is_boundary: _SectionBoundaryPredicate,
+) -> tuple[bool, int]:
+    """
+    Scan one doctest block using ``is_boundary``.
+
+    The scanner preserves prompts and nonblank output until a blank line or a
+    style-specific section boundary. Passing the boundary predicate in keeps
+    the prompt/output rules shared while isolating section syntax differences.
+    """
+    if start_idx >= len(lines):
+        return False, start_idx
+
+    line = lines[start_idx].strip()
+    if not line.startswith('>>>'):
+        return False, start_idx
+
+    current_idx = start_idx + 1
+    while current_idx < len(lines):
+        next_line = lines[current_idx].strip()
+        if not next_line:
+            break
+
+        # Doctest output can be arbitrary prose, not just repr-like values.
+        # Stop only at section boundaries so prose output stays byte-for-byte
+        # while the next docstring section can still be wrapped normally.
+        if is_boundary(lines, current_idx):
+            break
+
+        current_idx += 1
+
+    return True, current_idx
+
+
+def _find_previous_google_section_indent(
+        lines: list[str],
+        start_idx: int,
+) -> int | None:
+    """
+    Return the nearest previous Google section header indentation.
+
+    Doctest and example-code detection need this context because segmentation
+    can start in the middle of an ``Examples:`` section, after the header
+    itself has already been emitted in an earlier wrappable segment.
+    """
+    current_idx = start_idx - 1
+    while current_idx >= 0:
+        line = lines[current_idx]
+        stripped = line.strip()
+        if is_google_section_header(stripped):
+            return _indent_width(line)
+
+        current_idx -= 1
+
+    return None
+
+
+def _is_google_examples_section_boundary(
+        lines: list[str],
+        idx: int,
+        *,
+        section_indent: int | None,
+) -> bool:
+    """
+    Return True when ``idx`` starts a peer/outer Google section boundary.
+
+    Header-looking output indented inside an ``Examples:`` body is example
+    content, not a real section boundary. If no active section indent can be
+    recovered, fall back to the conservative generic boundary rules.
+    """
+    if idx >= len(lines):
+        return False
+
+    if section_indent is None:
+        stripped = lines[idx].strip()
+        return _is_docstring_section_boundary(
+            lines,
+            idx,
+        ) or is_google_unknown_section_header(stripped)
+
+    line = lines[idx]
+    if _indent_width(line) > section_indent:
+        return False
+
+    stripped = line.strip()
+    return is_google_section_header(
+        stripped
+    ) or is_google_unknown_section_header(stripped)
+
+
+def _is_docstring_section_boundary(lines: list[str], idx: int) -> bool:
+    """
+    Return True when ``idx`` starts a known docstring section.
+
+    Doctest preservation uses this as its only non-blank stopping point. That
+    keeps plain text output intact without swallowing the rest of the docstring
+    after an example block.
+    """
+    stripped = lines[idx].strip()
+    if not stripped:
+        return False
+
+    if (
+        stripped.endswith(':')
+        and not stripped.endswith('::')
+        and is_known_docstring_section_name(stripped)
+    ):
+        return True
+
+    next_idx = idx + 1
+    if next_idx >= len(lines):
+        return False
+
+    underline = lines[next_idx].strip()
+    return (
+        is_known_docstring_section_name(stripped)
+        and len(underline) >= _SECTION_UNDERLINE_MIN_LENGTH
+        and set(underline) <= {'-'}
+    )
+
+
+def is_literal_block_paragraph(
         lines: list[str], start_idx: int
 ) -> tuple[bool, int]:
     """
     Check if lines starting at start_idx form a literal block following ::.
 
-    A literal block is a paragraph that follows a line ending with ::
-    (double colon). The entire paragraph should not be wrapped.
+    A literal block is an indented block that follows a line ending with ::
+    (double colon). The entire block should not be wrapped.
 
     Parameters
     ----------
@@ -893,16 +1430,30 @@ def _is_literal_block_paragraph(
     if not prev_line.endswith('::'):
         return False, start_idx
 
-    # Current line starts a literal block - find its end
+    literal_indent = _indent_width(lines[prev_idx])
     current_idx = start_idx
+    has_literal_content = False
     while current_idx < len(lines):
-        line = lines[current_idx].strip()
+        line = lines[current_idx]
 
-        # Empty line ends the literal block
-        if not line:
+        if not line.strip():
+            current_idx += 1
+            continue
+
+        # Google compact-first-line formatting can remove the introducer's
+        # original docstring indent before segmentation. A real section header
+        # still ends that literal block; otherwise a summary ``::`` can swallow
+        # the later ``Args:`` section just because every body line is indented.
+        if _is_docstring_section_boundary(lines, current_idx):
             break
 
+        if _indent_width(line) <= literal_indent:
+            break
+
+        has_literal_content = True
         current_idx += 1
 
-    # Need at least one line to be a literal block
-    return current_idx > start_idx, current_idx
+    if not has_literal_content:
+        return False, start_idx
+
+    return True, current_idx

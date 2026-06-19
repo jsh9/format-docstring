@@ -11,8 +11,8 @@ def test_playground_empty_file_formats_to_empty() -> None:
     # Run the formatter on the playground file
     formatted = docstring_rewriter.fix_src(
         src,
-        line_length=79,
-        docstring_style='numpy',
+        line_length=10,
+        docstring_style='google',
     )
 
     # For this test suite, the expected output is an empty string

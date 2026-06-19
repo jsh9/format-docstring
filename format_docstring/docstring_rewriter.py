@@ -5,7 +5,7 @@ import io
 import operator
 import textwrap
 import tokenize
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from format_docstring.line_wrap_google import wrap_docstring_google
 from format_docstring.line_wrap_numpy import (
@@ -21,6 +21,9 @@ ModuleClassOrFunc = (
 )
 
 NO_FORMAT_DOCSTRING_MARKER = 'no-format-docstring'
+# ``None`` is a meaningful caller value, so use a sentinel to tell omitted
+# indentation apart from an explicit "do not add indentation" request.
+_LEADING_INDENT_UNSET = object()
 
 
 def _determine_newline(text: str) -> str:
@@ -238,6 +241,8 @@ def _collect_param_metadata(
 def _collect_class_metadata(
         node: ast.ClassDef,
         source_code: str,
+        *,
+        include_type_comments: bool = False,
 ) -> tuple[ParameterMetadata, ParameterMetadata]:
     """
     Build metadata for class docstrings using ``__init__`` and class attrs.
@@ -276,8 +281,24 @@ def _collect_class_metadata(
             if not isinstance(assign_target, ast.Name):
                 continue
 
-            # Record that this attribute explicitly has no annotation/default.
-            attribute_metadata[assign_target.id] = ('', None)
+            type_comment = (
+                getattr(stmt, 'type_comment', None)
+                if include_type_comments
+                else None
+            )
+            if type_comment:
+                # Type comments supply the annotation out-of-band, so keep the
+                # assignment value too. This lets class-attribute sync replace
+                # stale docstring defaults the same way function args do.
+                default = _render_signature_piece(stmt.value, source_code)
+                attribute_metadata[assign_target.id] = (
+                    type_comment,
+                    default,
+                )
+            else:
+                # Record that this attribute explicitly has no annotation or
+                # default that should be projected into the docstring.
+                attribute_metadata[assign_target.id] = ('', None)
 
     return init_metadata, attribute_metadata
 
@@ -423,7 +444,10 @@ def build_replacement_docstring(
     if docstring_obj is None:
         return None
 
-    val: ast.Constant = docstring_obj.value  # type: ignore[assignment]
+    val = docstring_obj.value
+    if not isinstance(val, ast.Constant):
+        return None
+
     if not hasattr(val, 'lineno') or not hasattr(val, 'end_lineno'):
         return None
 
@@ -453,16 +477,32 @@ def build_replacement_docstring(
     if doc is None:
         return None
 
+    # ``calc_abs_pos`` converts AST byte columns to character offsets for
+    # slicing. Derive the visible columns from those positions so single-line
+    # width checks treat non-ASCII text the same way as ``len(str)``.
+    start_col_offset = start - line_starts[val.lineno - 1]
+    end_col_offset_chars = end - line_starts[end_lineno - 1]
+
     # Use the docstring literal's column offset as the indentation level for
     # formatting. This lets the wrapper ensure leading/trailing newlines plus
     # matching spaces are present so closing quotes align with the parent's
     # indentation.
-    leading_indent: int = getattr(val, 'col_offset', 0)
+    leading_indent: int = start_col_offset
 
+    literal_exceeds_line = (
+        docstring_style.strip().lower() == 'google'
+        and val.lineno == end_lineno
+        and end_col_offset_chars > line_length
+    )
     # Only enforce leading/trailing newline+indent for multi-line docstrings
-    # or when wrapping will occur. Keep short single-line docstrings unchanged.
+    # or when wrapping will occur. For Google style, also account for cases
+    # where only the quotes and source indentation push a one-liner over the
+    # limit, because the Google wrapper keeps content beside the opening
+    # quotes and aligns the closing quotes itself.
     leading_indent_: int | None = (
-        leading_indent if ('\n' in doc or len(doc) > line_length) else None
+        leading_indent
+        if ('\n' in doc or len(doc) > line_length or literal_exceeds_line)
+        else None
     )
 
     param_metadata: ParameterMetadata | None = None
@@ -473,7 +513,9 @@ def build_replacement_docstring(
         return_annotation = _render_signature_piece(node.returns, source_code)
     elif isinstance(node, ast.ClassDef):
         init_metadata, class_attr_metadata = _collect_class_metadata(
-            node, source_code
+            node,
+            source_code,
+            include_type_comments=True,
         )
         if init_metadata:
             param_metadata = init_metadata
@@ -490,6 +532,8 @@ def build_replacement_docstring(
         function_param_metadata=param_metadata,
         function_return_annotation=return_annotation,
         class_attribute_metadata=attribute_metadata,
+        compact_google_docstring=True,
+        append_google_closing_indent=True,
     )
 
     new_literal: str | None = rebuild_literal(original_literal, wrapped)
@@ -497,8 +541,8 @@ def build_replacement_docstring(
     new_literal = handle_single_line_docstring(
         whole_docstring_literal=new_literal,
         docstring_content=wrapped,
-        docstring_starting_col=val.col_offset,
-        docstring_ending_col=val.end_col_offset,  # type: ignore[arg-type]
+        docstring_starting_col=start_col_offset,
+        docstring_ending_col=end_col_offset_chars,
         line_length=line_length,
     )
 
@@ -636,12 +680,14 @@ def wrap_docstring(
         docstring: str,
         line_length: int = 79,
         docstring_style: str = 'numpy',
-        leading_indent: int = 0,
+        leading_indent: int | object | None = _LEADING_INDENT_UNSET,
         *,
         fix_rst_backticks: bool = True,
         function_param_metadata: ParameterMetadata | None = None,
         function_return_annotation: str | None = None,
         class_attribute_metadata: ParameterMetadata | None = None,
+        compact_google_docstring: bool = False,
+        append_google_closing_indent: bool = False,
 ) -> str:
     """
     Wrap a docstring to the given line length (stub).
@@ -654,8 +700,10 @@ def wrap_docstring(
         Target maximum line length for wrapping logic.
     docstring_style : str, default='numpy'
         The docstring style to target ('numpy' or 'google').
-    leading_indent : int, default=0
-        The number of indentation spaces of this docstring.
+    leading_indent : int | object | None, default=_LEADING_INDENT_UNSET
+        The number of indentation spaces of this docstring. When omitted, the
+        style-specific default is used; explicit ``None`` means no indentation
+        should be added.
     fix_rst_backticks : bool, default=True
         If True, automatically fix single backticks to double backticks per rST
         syntax.
@@ -668,6 +716,12 @@ def wrap_docstring(
     class_attribute_metadata : ParameterMetadata | None, default=None
         Attribute metadata for class docstrings (names mapped to annotations
         and default values) collected from class-level assignments.
+    compact_google_docstring : bool, default=False
+        If True, Google-style wrapping may place the first summary line beside
+        the opening quotes when indentation allows it.
+    append_google_closing_indent : bool, default=False
+        If True, Google-style wrapping appends the indentation needed before
+        closing quotes in rebuilt docstring literals.
 
     Returns
     -------
@@ -681,21 +735,42 @@ def wrap_docstring(
     - 'google' -> wrap_docstring_google
     """
     style = (docstring_style or '').strip().lower()
+    # Normalize once so style-specific code can preserve the difference between
+    # omitted indentation, explicit module-level zero, and explicit ``None``.
+    leading_indent_was_unset = leading_indent is _LEADING_INDENT_UNSET
+    leading_indent_value = cast(
+        'int | None',
+        None if leading_indent_was_unset else leading_indent,
+    )
     if style == 'google':
+        effective_leading_indent = leading_indent_value
+        if leading_indent_was_unset:
+            # Direct wrapper calls historically inferred Google indentation
+            # from content, but AST rewrites pass an explicit source column.
+            for line in docstring.splitlines():
+                if line.strip():
+                    effective_leading_indent = len(line) - len(line.lstrip())
+                    break
+
         return wrap_docstring_google(
             docstring,
             line_length=line_length,
-            leading_indent=leading_indent,
+            leading_indent=effective_leading_indent,
+            append_closing_indent=append_google_closing_indent,
             fix_rst_backticks=fix_rst_backticks,
             parameter_metadata=function_param_metadata,
             return_annotation=function_return_annotation,
             attribute_metadata=class_attribute_metadata,
+            compact_first_line=compact_google_docstring,
         )
     # Default to NumPy-style for unknown/unspecified styles to be permissive.
     return wrap_docstring_numpy(
         docstring,
         line_length=line_length,
-        leading_indent=leading_indent,
+        # Preserve NumPy's previous default when callers omit indentation.
+        leading_indent=(
+            0 if leading_indent_was_unset else leading_indent_value
+        ),
         fix_rst_backticks=fix_rst_backticks,
         parameter_metadata=function_param_metadata,
         attribute_metadata=class_attribute_metadata,

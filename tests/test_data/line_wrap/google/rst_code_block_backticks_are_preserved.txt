@@ -1,0 +1,19 @@
+LINE_LENGTH: 79
+
+**********
+Examples:
+
+.. code-block:: python
+
+    value = `template`
+
+Back to prose with `identifier`.
+
+**********
+Examples:
+
+.. code-block:: python
+
+    value = `template`
+
+Back to prose with ``identifier``.

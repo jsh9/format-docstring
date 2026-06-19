@@ -26,6 +26,14 @@ def test_wrap_docstring(
         before: str,
         after: str,
 ) -> None:
+    """
+    Verify each NumPy line-wrap fixture rewrites BEFORE text to AFTER text.
+
+    The fixture inventory carries focused regressions for protected literal
+    content, plain doctest output, custom sections, return-description sync,
+    and Unicode width boundaries. Keeping these as data files makes the
+    formatter diff visible without duplicating near-identical test bodies.
+    """
     out = wrap_docstring(
         before, line_length=line_length, docstring_style='numpy'
     )
@@ -309,23 +317,78 @@ def test_standardize_default_value(line: str, expected: str) -> None:
         ),
         # --- should not fix (multi-line external links) ---
         (
-            "Here's another example where long URLs"
-            ' extend to the next line `Here is perhaps\n'
-            'the Link <https://www.this-is-a-url-that-is-long.com>`_'
-            ' and `Another One\n'
-            '<https://www.this-is-another-url-that-is-long.com>`_.',
-            "Here's another example where long URLs extend to"
-            ' the next line `Here is perhaps\n'
-            'the Link <https://www.this-is-a-url-that-is-long.com>`_'
-            ' and `Another One\n'
-            '<https://www.this-is-another-url-that-is-long.com>`_.',
+            (
+                "Here's another example where long URLs"
+                ' extend to the next line `Here is perhaps\n'
+                'the Link <https://www.this-is-a-url-that-is-long.com>`_'
+                ' and `Another One\n'
+                '<https://www.this-is-another-url-that-is-long.com>`_.'
+            ),
+            (
+                "Here's another example where long URLs extend to"
+                ' the next line `Here is perhaps\n'
+                'the Link <https://www.this-is-a-url-that-is-long.com>`_'
+                ' and `Another One\n'
+                '<https://www.this-is-another-url-that-is-long.com>`_.'
+            ),
         ),
         # --- should not fix (REPL lines with backticks) ---
         (
-            '>>> # Use `config` parameter to customize `mode`\n'
-            '... # and set the `threshold` value',
-            '>>> # Use `config` parameter to customize `mode`\n'
-            '... # and set the `threshold` value',
+            (
+                '>>> # Use `config` parameter to customize `mode`\n'
+                '... # and set the `threshold` value'
+            ),
+            (
+                '>>> # Use `config` parameter to customize `mode`\n'
+                '... # and set the `threshold` value'
+            ),
+        ),
+        # Examples prose still uses rST inline literals. This guards against
+        # over-masking the whole section while protecting nearby code rows.
+        (
+            'Examples:\n    Use `raw` in prose.',
+            'Examples:\n    Use ``raw`` in prose.',
+        ),
+        # NumPy plain Examples code is preserved byte-for-byte, including
+        # comment backticks, because these lines are source examples rather
+        # than rST prose.
+        (
+            (
+                'Examples\n'
+                '--------\n'
+                'value = 1  # use `raw` here\n'
+                '\n'
+                'Notes\n'
+                '-----\n'
+                'Use `raw` here'
+            ),
+            (
+                'Examples\n'
+                '--------\n'
+                'value = 1  # use `raw` here\n'
+                '\n'
+                'Notes\n'
+                '-----\n'
+                'Use ``raw`` here'
+            ),
+        ),
+        # Google plain Examples code uses indented rows under ``Examples:``.
+        # Keep code comment backticks while still normalizing later prose.
+        (
+            (
+                'Examples:\n'
+                '    value = 1  # use `raw` here\n'
+                '\n'
+                'Notes:\n'
+                '    Use `raw` here'
+            ),
+            (
+                'Examples:\n'
+                '    value = 1  # use `raw` here\n'
+                '\n'
+                'Notes:\n'
+                '    Use ``raw`` here'
+            ),
         ),
     ],
 )

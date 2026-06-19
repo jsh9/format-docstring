@@ -176,7 +176,7 @@ def test_cli_config_file_auto_discovery(tmp_path: Path) -> None:
     config_file = tmp_path / 'pyproject.toml'
     config_content = """
 [tool.format_docstring]
-line_length = 50
+line_length = 35
 """
     config_file.write_text(config_content)
 
@@ -185,7 +185,7 @@ line_length = 50
     subdir.mkdir()
     test_file = subdir / 'test.py'
     test_content = '''def foo():
-    """This is a very long docstring that should be wrapped at 50 chars."""
+    """This is a very long docstring that should use discovered config."""
     pass
 '''
     test_file.write_text(test_content)
@@ -197,7 +197,8 @@ line_length = 50
 
     # The docstring should be wrapped due to auto-discovered config
     output = test_file.read_text()
-    assert 'This is a very long docstring' in output
+    assert 'This is a very long docstring\n' in output
+    assert 'that should use discovered\n' in output
 
 
 def test_cli_option_overrides_config_file(tmp_path: Path) -> None:

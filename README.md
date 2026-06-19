@@ -1,6 +1,7 @@
 # format-docstring
 
-A Python formatter to automatically format numpy-style docstrings.
+A Python formatter to automatically format NumPy-style and Google-style
+docstrings.
 
 <!--TOC-->
 
@@ -10,22 +11,21 @@ ______________________________________________________________________
 
 - [1. Overview](#1-overview)
 - [2. Before vs After Examples](#2-before-vs-after-examples)
-  - [2.1. Long lines are wrapped to fit line length limit](#21-long-lines-are-wrapped-to-fit-line-length-limit)
-  - [2.2. One-line summaries are formatted to fit line length limit](#22-one-line-summaries-are-formatted-to-fit-line-length-limit)
-  - [2.3. Minor typos can be automatically fixed](#23-minor-typos-can-be-automatically-fixed)
-  - [2.4. Default value declarations are standardized](#24-default-value-declarations-are-standardized)
-  - [2.5. Single backticks are converted to double backticks (rST syntax)](#25-single-backticks-are-converted-to-double-backticks-rst-syntax)
-  - [2.6. Docstring parameters and returns stay in sync with signatures](#26-docstring-parameters-and-returns-stay-in-sync-with-signatures)
-- [3. Installation](#3-installation)
-- [4. Usage](#4-usage)
-  - [4.1. Command Line Interface](#41-command-line-interface)
-  - [4.2. Pre-commit Hook](#42-pre-commit-hook)
-  - [4.3. Opting Out of Formatting](#43-opting-out-of-formatting)
-- [5. Configuration](#5-configuration)
-  - [5.1. Command-Line Options](#51-command-line-options)
-  - [5.2. Usage Examples](#52-usage-examples)
-  - [5.3. `pyproject.toml` Configuration](#53-pyprojecttoml-configuration)
-- [6. Caveat](#6-caveat)
+  - [2.1. NumPy-style docstrings](#21-numpy-style-docstrings)
+  - [2.2. Google-style docstrings](#22-google-style-docstrings)
+- [3. Special Formatting Rules](#3-special-formatting-rules)
+  - [3.1. NumPy-style docstrings](#31-numpy-style-docstrings)
+  - [3.2. Google-style docstrings](#32-google-style-docstrings)
+- [4. Installation](#4-installation)
+- [5. Usage](#5-usage)
+  - [5.1. Command Line Interface](#51-command-line-interface)
+  - [5.2. Pre-commit Hook](#52-pre-commit-hook)
+  - [5.3. Opting Out of Formatting](#53-opting-out-of-formatting)
+- [6. Configuration](#6-configuration)
+  - [6.1. Command-Line Options](#61-command-line-options)
+  - [6.2. Usage Examples](#62-usage-examples)
+  - [6.3. `pyproject.toml` Configuration](#63-pyprojecttoml-configuration)
+- [7. Caveat](#7-caveat)
 
 ______________________________________________________________________
 
@@ -50,283 +50,435 @@ heuristics.
 
 ## 2. Before vs After Examples
 
-### 2.1. Long lines are wrapped to fit line length limit
+These examples show the same kinds of cleanup in the two supported docstring
+styles. Use `--docstring-style numpy` for NumPy-style docstrings and
+`--docstring-style google` for Google-style docstrings.
+
+### 2.1. NumPy-style docstrings
+
+NumPy-style docstrings use section titles followed by underline rows. Signature
+lines are written as `name : type`, and descriptions are indented under the
+signature line.
+
+**Long summaries and descriptions are wrapped.**
 
 ```diff
-def example_function(param1, param2, option='default'):
--    """This summary line is intentionally very long and exceeds the line length limit to demonstrate that format-docstring will automatically wrap it across multiple lines while preserving code structure.
+def load_records(path, limit=100):
+-    """Load records from disk and normalize every field before returning the resulting table.
 +    """
-+    This summary line is intentionally very long and exceeds the line length
-+    limit to demonstrate that format-docstring will automatically wrap it
-+    across multiple lines while preserving code structure.
++    Load records from disk and normalize every field before returning the
++    resulting table.
 
     Parameters
     ----------
--    param1 : str
--        This parameter description is also intentionally long to show how parameter descriptions get wrapped when they exceed the configured line length limit
--    param2 : int
--        Another long parameter description that demonstrates the wrapping behavior for parameter documentation in NumPy-style docstrings
-+    param1 : str
-+        This parameter description is also intentionally long to show how
-+        parameter descriptions get wrapped when they exceed the configured
-+        line length limit
-+    param2 : int
-+        Another long parameter description that demonstrates the wrapping
-+        behavior for parameter documentation in NumPy-style docstrings
-    option : str, optional
-        Short description (not wrapped)
+-    path : str
+-        Path to a CSV file that may be local or remote and may include query parameters that make the line too long.
+-    limit : int
+-        Maximum number of rows to read before validation and normalization run.
++    path : str
++        Path to a CSV file that may be local or remote and may include query
++        parameters that make the line too long.
++    limit : int
++        Maximum number of rows to read before validation and normalization
++        run.
 
     Returns
     -------
-    dict
--        The return value wrapped, because it is a very long line that exceeds line length limit by a lot.
-+        The return value wrapped, because it is a very long line that exceeds
-+        line length limit by a lot.
-
-    Examples
-    --------
-    Within the "Examples" section, code with >>> prompts are preserved without
-    wrapping:
-
-    >>> result = example_function('test', 42, option='custom_value_with_a_very_long_name_that_exceeds_line_length')
-    >>> print(result)
-    {'status': 'success'}
-
-    rST tables are preserved without wrapping:
-
-    ===========  ==================  ===============================
-    Format       Wrapped             Preserved
-    ===========  ==================  ===============================
-    Text         Yes                 No (in tables, code, lists)
-    Params       Yes                 Signature lines preserved
-    ===========  ==================  ===============================
-
-    Contents following double colons (`::`) are preserved::
-
-                  P(B|A) P(A)
-        P(A|B) = -------------
-                      P(B)
-
-    Even if there isn't an extra blank line after `::`, the contents are still
-    preserved::
-            _______
-       σ = √ Var(X)
-
-    Regular bullet lists are also preserved:
-
-    - First bullet point that is intentionally long but not wrapped
-    - Second point also stays on one line regardless of length
+    list[dict[str, str]]
+-        Normalized rows ready for downstream processing or serialization.
++        Normalized rows ready for downstream processing or serialization.
     """
 ```
 
-### 2.2. One-line summaries are formatted to fit line length limit
+**Known section names and signature spacing are canonicalized.**
 
 ```diff
-def my_function():
--    """Contents are short, but with quotation marks this exceeds length limit."""
-+    """
-+    Contents are short, but with quotation marks this exceeds length limit.
-+    """
-    pass
-```
-
-### 2.3. Minor typos can be automatically fixed
-
-```diff
-def mu_function():
+def resize(image):
     """
-    Minor typos in section titles or "signatures" can be fixed.
+    Resize an image.
 
--    Parameter
--    ----
+-    ParaMEter
+-    ---
 +    Parameters
 +    ----------
-    arg1 : str
-        Arg 1
-    arg2 : bool
-        Arg 2
--    arg3: int
-+    arg3 : int
-        Arg 3
--    arg4    : int
-+    arg4 : int
-        Arg 4
+    image : ArrayLike
+        Input image.
 
 -    ReTurn
 -    ----------
 +    Returns
 +    -------
-    int
-        The return value
+    ArrayLike
+        Resized image.
     """
-    pass
 ```
 
-or, Google-style section headers can be fixed:
+**Default value declarations are standardized.**
 
 ```diff
-def my_function():
+def connect():
     """
-    My function
+    Parameters
+    ----------
+-    retries : int default 3
++    retries : int, default=3
+        Number of attempts.
+-    timeout : float, default is 1.5
++    timeout : float, default=1.5
+        Timeout in seconds.
+    """
+```
 
--    Args:
--    ----
+**Single backticks in prose are converted to rST inline literals.**
+
+```diff
+def parse(payload):
+    """
+-    Parse `payload` into a normalized mapping.
++    Parse ``payload`` into a normalized mapping.
+
+    Parameters
+    ----------
+    payload : dict
+-        Input with `id` and `value` keys.
++        Input with ``id`` and ``value`` keys.
+    """
+```
+
+**Parameters and returns are synchronized from the real signature.**
+
+```diff
+def summarize(name: str, retries: int = 3) -> tuple[int, str]:
+    """
+    Summarize a job.
+
+    Parameters
+    ----------
+-    name : object
++    name : str
+        Job name.
+-    retries : int, optional
++    retries : int, default=3
+        Retry count.
+
+    Returns
+    -------
+-    float
++    int
+        Number of processed rows.
+    str
+        Human-readable status.
+    """
+```
+
+### 2.2. Google-style docstrings
+
+Google-style docstrings use colon-ended section headers. Signature lines keep
+the first description sentence inline as `name (type): description`, and
+continuation lines are indented below the description.
+
+**Long summaries and descriptions are wrapped.**
+
+```diff
+def load_records(path, limit=100):
+-    """Load records from disk and normalize every field before returning the resulting table.
++    """Load records from disk and normalize every field before returning the
++    resulting table.
+
+    Args:
+-        path (str): Path to a CSV file that may be local or remote and may include query parameters that make the line too long.
+-        limit (int): Maximum number of rows to read before validation and normalization run.
++        path (str): Path to a CSV file that may be local or remote and may
++            include query parameters that make the line too long.
++        limit (int): Maximum number of rows to read before validation and
++            normalization run.
+
+    Returns:
+-        list[dict[str, str]]: Normalized rows ready for downstream processing or serialization.
++        list[dict[str, str]]: Normalized rows ready for downstream processing
++            or serialization.
+    """
+```
+
+**Known section names and signature spacing are canonicalized.**
+
+```diff
+def resize(image):
+    """
+    Resize an image.
+
+-    ParaMEter:
+-        image(ArrayLike):Input image.
++    Args:
++        image (ArrayLike): Input image.
+
+-    ReTurn:
+-        ArrayLike: Resized image.
++    Returns:
++        ArrayLike: Resized image.
+    """
+```
+
+**Default value declarations are standardized.**
+
+```diff
+def connect():
+    """
+    Args:
+-        retries (int, default 3): Number of attempts.
+-        timeout (float, default is 1.5): Timeout in seconds.
++        retries (int, default=3): Number of attempts.
++        timeout (float, default=1.5): Timeout in seconds.
+    """
+```
+
+**Single backticks in prose are converted to rST inline literals.**
+
+```diff
+def parse(payload):
+    """
+-    Parse `payload` into a normalized mapping.
++    Parse ``payload`` into a normalized mapping.
+
+    Args:
+-        payload (dict): Input with `id` and `value` keys.
++        payload (dict): Input with ``id`` and ``value`` keys.
+-            Use `strict` mode for validation.
++            Use ``strict`` mode for validation.
+    """
+```
+
+**Parameters and returns are synchronized from the real signature.**
+
+```diff
+def summarize(name: str, retries: int = 3) -> tuple[int, str]:
+    """Summarize a job.
+
+    Args:
+-        name (object): Job name.
++        name (str): Job name.
+-        retries (int, optional): Retry count.
++        retries (int, default=3): Retry count.
+
+    Returns:
+-        status (float): Number of processed rows.
+-        label (str): Human-readable status.
++        tuple[int, str]: Number of processed rows. label (str):
++            Human-readable status.
+    """
+```
+
+## 3. Special Formatting Rules
+
+`format-docstring` assumes docstrings are already close to NumPy or Google
+style. These examples show the extra rules applied around structure, protected
+content, and source-signature sync.
+
+### 3.1. NumPy-style docstrings
+
+**Protected content keeps its shape.** Tables, doctest prompts, fenced code,
+literal blocks introduced by `::`, and bullet lists are not reflowed. Prose
+around those blocks still wraps normally.
+
+```diff
+"""
+-Use this formula before processing the records because the surrounding prose is long enough to wrap::
++Use this formula before processing the records because the surrounding prose
++is long enough to wrap::
+
+        total = alpha + beta
+        ratio = total / count
+
+Parameters
+----------
+records : list[dict[str, str]]
+    Input records.
+"""
+```
+
+**Known sections are parsed, and custom sections are kept.** Recognized section
+titles such as `Parameters`, `Returns`, `Yields`, `Raises`, `Examples`, and
+`Notes` are canonicalized. Unknown underlined sections remain custom sections,
+and their prose is wrapped instead of being parsed as parameter signatures.
+
+```diff
+def work():
+    """
+-    argument
+-    --------
 +    Parameters
 +    ----------
-    arg1 : str
-        Arg 1
+    value : int
+        Value to process.
 
-    ...
-    """
-    pass
-```
-
-### 2.4. Default value declarations are standardized
-
-```diff
-def example_function(arg1, arg2, arg3, arg4):
-    """
-    Parameters
-    ----------
--    arg1 : int default 10
-+    arg1 : int, default=10
-        First argument
--    arg2 : str, default "hello"
-+    arg2 : str, default="hello"
-        Second argument
--    arg3 : bool, default is True
-+    arg3 : bool, default=True
-        Third argument
--    arg4 : float default: 3.14
-+    arg4 : float, default=3.14
-        Fourth argument
-    """
-    pass
-```
-
-### 2.5. Single backticks are converted to double backticks (rST syntax)
-
-```diff
-def process_data(data):
-    """
--    Process data using the `transform` function.
-+    Process data using the ``transform`` function.
-
-    Parameters
-    ----------
-    data : dict
--        Input data with keys `id`, `value`, and `timestamp`.
-+        Input data with keys ``id``, ``value``, and ``timestamp``.
-
-    Returns
-    -------
-    dict
--        Processed data with key `result`.
-+        Processed data with key ``result``.
+-    Todo
+-    ----
+-    Keep this custom section, but wrap its prose normally when it exceeds the configured line length.
++    Todo
++    ----
++    Keep this custom section, but wrap its prose normally when it exceeds the
++    configured line length.
     """
 ```
 
-### 2.6. Docstring parameters and returns stay in sync with signatures
+**Tuple returns can stay split across multiple signature lines.** When the
+docstring already documents tuple elements as separate return entries, NumPy
+formatting syncs each element from the real return annotation.
 
 ```diff
-from typing import List, Optional
-
-
-def create_user(
-        user: Optional[str] = None,
-        roles: List["Role"] | None = None,
-        retries: int = 0,
-        serializer: "Serializer" | None = None,
-        something_else: tuple[int, ...] = (
-            "1",
-            '2',
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-            11,
-            12,
-        ),
-) -> None:
-    """
-    Parameters
-    ----------
--    user : str
-+    user : Optional[str], default=None
-        Login name.
--    roles : list
-+    roles : List["Role"] | None, default=None
-        Assigned roles.
--    retries : int
-+    retries : int, default=0
-        Number of retry attempts.
--    serializer : Serializer, optional
-+    serializer : "Serializer" | None, default=None
-        Custom serializer instance.
--    something_else : tuple[int, ...]
-+    something_else : tuple[int, ...], default=("1", '2', 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-    """
-    pass
-```
-
-And return type hint:
-
-```diff
-def build_mapping() -> dict[str, str]:
-    """
-    Returns
-    -------
--    str
-+    dict[str, str]
-        Mapping of values.
-    """
-```
-
-For tuple return annotations, tuple elements are split across multiple
-signature lines only when the docstring already adopted that layout:
-
-```diff
-def compute_values() -> tuple[int, str, list[str]]:
+def compute() -> tuple[int, str]:
     """
     Returns
     -------
 -    float
 +    int
-        First element.
--    str
-+    str
-        Second element.
--    List[str]
-+    list[str]
-        Third element.
+        Row count.
+    str
+        Status message.
     """
 ```
 
-Annotations and defaults are extracted from the actual function signature, so
-docstring signature lines reflect the ground truth. Defaulted parameters omit
-redundant `, optional`, forward references keep their original quoting, and
-return signatures track tuple splitting conventions already present in the
-docstring.
+**`Raises` entries are treated as signatures.** Exception names stay untouched;
+only their descriptions wrap.
 
-## 3. Installation
+```diff
+"""
+Raises
+------
+ValueError
+-    Raised when the payload is missing a required key and the caller asked for strict validation.
++    Raised when the payload is missing a required key and the caller asked for
++    strict validation.
+"""
+```
+
+**Class attributes can be synchronized too.** Class docstrings can use
+annotated assignments and type comments as the source of truth for
+`Attributes`.
+
+```diff
+class Config:
+    """
+    Attributes
+    ----------
+-    retries : int, optional
++    retries : int, default=3
+        Retry count.
+    """
+
+    retries = 3  # type: int
+```
+
+### 3.2. Google-style docstrings
+
+**Protected content keeps its shape.** Tables, doctest prompts, fenced code,
+literal blocks introduced by `::`, and Python-like code in `Examples:` are not
+reflowed. Prose around those blocks still wraps normally.
+
+```diff
+"""
+-Use this formula before processing the records because the surrounding prose is long enough to wrap::
++Use this formula before processing the records because the surrounding prose
++is long enough to wrap::
+
+        total = alpha + beta
+        ratio = total / count
+
+Args:
+    records (list[dict[str, str]]): Input records.
+"""
+```
+
+**Custom section boundaries are indentation-sensitive.** Known headers such as
+`Args:`, `Returns:`, `Raises:`, and `Examples:` are canonicalized. Unknown
+peer-level headers after summary content are treated as custom sections, so
+their body wraps as prose instead of as argument descriptions.
+
+```diff
+def work():
+    """
+    Do work.
+
+-    Arguments:
++    Args:
+        value: Value to process.
+
+    Todo:
+-        Keep this custom section, but wrap its prose normally when it exceeds the configured line length.
++        Keep this custom section, but wrap its prose normally when it exceeds
++        the configured line length.
+    """
+```
+
+If the first content line is an unknown `Name:` header, it is treated as
+summary text rather than promoted to a custom section. That protects compact
+Google summaries from being misclassified.
+
+**`Examples:` has special boundary rules.** Indented text that looks like a
+section header can be doctest output. A real section boundary must return to
+the same or lower indentation as the active `Examples:` header.
+
+```python
+"""
+Examples:
+    >>> print("Args:")
+    Args:
+    >>> print("done")
+    done
+
+Args:
+    value: Real argument description.
+"""
+```
+
+**Returns and yields describe one value.** Google style does not split tuple
+returns into separate return-variable rows. If a tuple annotation is present,
+the formatter syncs the tuple type into one `Returns:` entry and keeps the old
+text as description.
+
+```diff
+def compute() -> tuple[int, str]:
+    """
+    Returns:
+-        count (float): Row count.
+-        status (str): Status message.
++        tuple[int, str]: Row count. status (str): Status message.
+    """
+```
+
+**Class attributes can be synchronized too.** Google `Attributes:` entries use
+the same source-signature policy as `Args:`.
+
+```diff
+class Config:
+    """
+    Attributes:
+-        retries (int, optional): Retry count.
++        retries (int, default=3): Retry count.
+    """
+
+    retries = 3  # type: int
+```
+
+## 4. Installation
 
 ```bash
 pip install format-docstring
 ```
 
-## 4. Usage
+## 5. Usage
 
-### 4.1. Command Line Interface
+### 5.1. Command Line Interface
 
 **For Python files:**
 
 ```bash
 format-docstring path/to/file.py
 format-docstring path/to/directory/
+
+# Format Google-style docstrings
+format-docstring --docstring-style google path/to/file.py
+format-docstring --docstring-style google path/to/directory/
 ```
 
 **For Jupyter notebooks:**
@@ -334,9 +486,13 @@ format-docstring path/to/directory/
 ```bash
 format-docstring-jupyter path/to/notebook.ipynb
 format-docstring-jupyter path/to/directory/
+
+# Format Google-style docstrings in notebooks
+format-docstring-jupyter --docstring-style google path/to/notebook.ipynb
+format-docstring-jupyter --docstring-style google path/to/directory/
 ```
 
-### 4.2. Pre-commit Hook
+### 5.2. Pre-commit Hook
 
 To use `format-docstring` as a pre-commit hook, add this to your
 `.pre-commit-config.yaml`:
@@ -348,11 +504,13 @@ repos:
     hooks:
       - id: format-docstring
         name: Format docstrings in .py files
-        args: [--line-length=79]
+        args: [--docstring-style=numpy, --line-length=79]
       - id: format-docstring-jupyter
         name: Format docstrings in .ipynb files
-        args: [--line-length=79]
+        args: [--docstring-style=numpy, --line-length=79]
 ```
+
+For Google-style docstrings, use `--docstring-style=google` in the hook args.
 
 Then install the pre-commit hook:
 
@@ -360,7 +518,7 @@ Then install the pre-commit hook:
 pre-commit install
 ```
 
-### 4.3. Opting Out of Formatting
+### 5.3. Opting Out of Formatting
 
 Add a comment containing `no-format-docstring` on the same line as the closing
 triple quotes to prevent the formatter from touching that docstring:
@@ -373,16 +531,17 @@ first run `format-docstring`, accept the parts you like, revert the edits you
 dislike, and then add an inline `# no-format-docstring` comment so future runs
 leave that docstring untouched.
 
-## 5. Configuration
+## 6. Configuration
 
-### 5.1. Command-Line Options
+### 6.1. Command-Line Options
 
 - `--line-length INTEGER`: Maximum line length for wrapping docstrings
   (default: 79)
 - `--docstring-style CHOICE`: Docstring style to target (`numpy` or `google`,
-  default: `numpy`). Note: Currently only `numpy` style is fully supported.
+  default: `numpy`). This selects the style to format, not a converter between
+  styles.
 - `--fix-rst-backticks BOOL`: Automatically fix single backticks to double
-  backticks per rST syntax (default: True)
+  backticks per rST syntax (default: `True`). Pass `False` to disable this.
 - `--verbose CHOICE`: Logging detail level (`default` keeps the existing
   behaviour, `diff` prints unified diffs when rewrites happen)
 - `--exclude TEXT`: Regex pattern to exclude files/directories (default:
@@ -393,7 +552,7 @@ leave that docstring untouched.
 - `--version`: Show version information
 - `--help`: Show help message
 
-### 5.2. Usage Examples
+### 6.2. Usage Examples
 
 ```bash
 # Format a single file with default settings
@@ -402,8 +561,14 @@ format-docstring my_module.py
 # Format all Python files in a directory with custom line length
 format-docstring --line-length 72 src/
 
+# Format Google-style docstrings
+format-docstring --docstring-style google src/
+
 # Format Jupyter notebooks excluding certain directories
 format-docstring-jupyter --exclude "\.git|\.venv|__pycache__" notebooks/
+
+# Format Google-style docstrings in notebooks
+format-docstring-jupyter --docstring-style google notebooks/
 
 # Preview changes with unified diffs
 format-docstring --verbose diff src/
@@ -418,10 +583,12 @@ format-docstring --config pyproject.toml --line-length 100 src/
 format-docstring --fix-rst-backticks=False my_module.py
 ```
 
-### 5.3. `pyproject.toml` Configuration
+### 6.3. `pyproject.toml` Configuration
 
-You can configure default values in your `pyproject.toml`. CLI arguments will
-override these settings:
+You can configure default values under `[tool.format_docstring]` in
+`pyproject.toml`. CLI arguments override these settings. The config loader
+accepts either underscore keys, such as `line_length`, or hyphenated keys, such
+as `line-length`.
 
 ```toml
 [tool.format_docstring]
@@ -432,22 +599,32 @@ exclude = "\\.git|\\.venv|__pycache__"
 verbose = "default"  # or "diff" to print unified diffs
 ```
 
+For Google-style docstrings:
+
+```toml
+[tool.format_docstring]
+docstring_style = "google"
+line_length = 79
+fix_rst_backticks = true
+```
+
 **Available options:**
 
-- `line_length` (int): Maximum line length for wrapping docstrings (default:
-  79\)
-- `docstring_style` (str): Docstring style, either `"numpy"` or `"google"`
-  (default: `"numpy"`)
-- `fix_rst_backticks` (bool): Automatically fix single backticks to double
-  backticks per rST syntax (default: `true`)
-- `exclude` (str): Regex pattern to exclude files/directories (default:
-  `"\\.git|\\.tox|\\.pytest_cache"`)
-- `verbose` (str): Logging detail level (`"default"` or `"diff"`)
+- `line_length` / `line-length` (int): maximum line length for wrapping
+  docstrings. Default: `79`.
+- `docstring_style` / `docstring-style` (str): target docstring style, either
+  `"numpy"` or `"google"`. Default: `"numpy"`.
+- `fix_rst_backticks` / `fix-rst-backticks` (bool): whether to convert single
+  backticks in prose to double backticks per rST syntax. Default: `true`.
+- `exclude` (str): regex pattern used to skip files or directories. Default:
+  `"\\.git|\\.tox|\\.pytest_cache"`.
+- `verbose` (str): logging detail level, either `"default"` or `"diff"`. Use
+  `"diff"` to print unified diffs when rewrites happen.
 
 The tool searches for `pyproject.toml` starting from the target file/directory
 and walking up the parent directories until one is found.
 
-## 6. Caveat
+## 7. Caveat
 
 This tool assumes the docstrings are written in **mostly** the correct format,
 because it needs those formatting cues (such as section headers and `------`)

@@ -1,0 +1,11 @@
+LINE_LENGTH: 20
+
+**********
+def unicode_boundary():
+    """éééééééééé"""
+    return None
+
+**********
+def unicode_boundary():
+    """éééééééééé"""
+    return None

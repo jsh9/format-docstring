@@ -1,14 +1,26 @@
 from pathlib import Path
 from shutil import copy2
 
+import pytest
 from click.testing import CliRunner
 
 from format_docstring.main_py import main as cli_main_py
 
+DATA_DIR = Path(__file__).parent / 'test_data/integration_test'
 
-def test_integration_cli_py(tmp_path: Path) -> None:
+
+@pytest.mark.parametrize(
+    ('style', 'style_args'),
+    [
+        ('numpy', ['--docstring-style', 'numpy']),
+        ('google', ['--docstring-style', 'google']),
+    ],
+)
+def test_integration_cli_py(
+        tmp_path: Path, style: str, style_args: list[str]
+) -> None:
     """Run CLI on a copied file and compare to expected output."""
-    data_dir = Path(__file__).parent / 'test_data/integration_test/numpy'
+    data_dir = DATA_DIR / style
     before = data_dir / 'before.py'
     after = data_dir / 'after.py'
 
@@ -16,7 +28,7 @@ def test_integration_cli_py(tmp_path: Path) -> None:
     copy2(before, work_file)
 
     runner = CliRunner()
-    res = runner.invoke(cli_main_py, [str(work_file)])
+    res = runner.invoke(cli_main_py, [*style_args, str(work_file)])
     assert res.exit_code in {0, 1}, res.output
 
     actual = work_file.read_text()
@@ -24,9 +36,18 @@ def test_integration_cli_py(tmp_path: Path) -> None:
     assert actual == expected
 
 
-def test_integration_cli_py_len50(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ('style', 'style_args'),
+    [
+        ('numpy', ['--docstring-style', 'numpy']),
+        ('google', ['--docstring-style', 'google']),
+    ],
+)
+def test_integration_cli_py_len50(
+        tmp_path: Path, style: str, style_args: list[str]
+) -> None:
     """Run CLI with --line-length 50 and compare to expected output."""
-    data_dir = Path(__file__).parent / 'test_data/integration_test/numpy'
+    data_dir = DATA_DIR / style
     before = data_dir / 'before.py'
     after = data_dir / 'after_50.py'
 
@@ -34,7 +55,9 @@ def test_integration_cli_py_len50(tmp_path: Path) -> None:
     copy2(before, work_file)
 
     runner = CliRunner()
-    res = runner.invoke(cli_main_py, ['--line-length', '50', str(work_file)])
+    res = runner.invoke(
+        cli_main_py, [*style_args, '--line-length', '50', str(work_file)]
+    )
     assert res.exit_code in {0, 1}, res.output
 
     actual = work_file.read_text()
@@ -44,7 +67,7 @@ def test_integration_cli_py_len50(tmp_path: Path) -> None:
 
 def test_cli_verbose_diff_outputs_diff(tmp_path: Path) -> None:
     """Ensure that ``--verbose diff`` prints a unified diff when rewriting."""
-    data_dir = Path(__file__).parent / 'test_data/integration_test/numpy'
+    data_dir = DATA_DIR / 'numpy'
     before = data_dir / 'before.py'
     after = data_dir / 'after.py'
 

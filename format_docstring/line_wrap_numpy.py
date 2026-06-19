@@ -6,10 +6,22 @@ import textwrap
 
 from format_docstring.line_wrap_utils import (
     ParameterMetadata,
+    _is_labeled_return_prose,
     add_leading_indent,
     collect_to_temp_output,
     finalize_lines,
+    is_code_fence,
+    is_doctest_block,
+    is_examples_code_block,
+    is_google_doctest_block,
+    is_google_examples_code_block,
+    is_literal_block_paragraph,
+    is_rst_code_block,
     process_temp_output,
+)
+from format_docstring.section_utils import (
+    canonical_google_section_header,
+    is_google_unknown_section_header,
 )
 
 
@@ -33,8 +45,10 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
     - In "Returns"/"Yields" sections, treat the first-level lines (either
       ``name : type`` or just ``type``) as signatures and do not wrap them;
       wrap their indented descriptions.
-    - In the "Examples" section, do not wrap lines starting with ``>>> ``.
-    - Do not wrap any lines inside fenced code blocks (``` ... ```).
+    - In the "Examples" section, do not wrap doctest blocks or Python-like
+      code examples.
+    - Do not wrap any lines inside fenced code blocks (``` ... ``` or
+      ~~~ ... ~~~).
     - Outside these special cases, wrap only lines that exceed ``line_length``
       (keep existing intentional line breaks).
     """
@@ -98,7 +112,6 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
     }
 
     temp_out: list[str | list[str]] = []
-    in_code_fence: bool = False
     current_section: str = ''
     in_examples: bool = False
     return_annotation_str: str | None = (
@@ -125,34 +138,48 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
         stripped: str = line.lstrip(' ')
         indent_length: int = len(line) - len(stripped)
 
-        # Detect code fence start/end first; always preserve fence lines
-        if stripped.startswith('```'):
-            in_code_fence = not in_code_fence
-            temp_out.append(line)
-            i += 1
+        # Detect code fences before section parsing so their contents are not
+        # interpreted as docstring syntax or merged as prose later.
+        is_fence, fence_end_idx = is_code_fence(lines, i)
+        if is_fence:
+            temp_out.extend(lines[i:fence_end_idx])
+            i = fence_end_idx
             continue
 
         # Detect and pass-through section headings with underline
-        if not in_code_fence:
-            heading: str | None = _get_section_heading_title(lines, i)
-            if heading:
-                current_section = heading
-                in_examples = heading in section_examples
-                temp_out.extend((line, lines[i + 1]))
-                i += 2
+        heading: str | None = _get_section_heading_title(lines, i)
+        if heading:
+            current_section = heading
+            in_examples = heading in section_examples
+            temp_out.extend((line, lines[i + 1]))
+            i += 2
+            continue
+
+        if in_examples:
+            # Consume the whole doctest block, including repr output, because
+            # output lines often look like prose but must stay byte-for-byte.
+            is_doctest, doctest_end_idx = is_doctest_block(lines, i)
+            if is_doctest:
+                temp_out.extend(lines[i:doctest_end_idx])
+                i = doctest_end_idx
                 continue
 
-        # Inside fenced code blocks: pass through unchanged
-        if in_code_fence:
-            temp_out.append(line)
-            i += 1
-            continue
+            # Fallback for continuation prompts without a preceding prompt.
+            if stripped.startswith(('>>> ', '... ')):
+                temp_out.append(line)
+                i += 1
+                continue
 
-        # In Examples, skip wrapping and backtick fixing for REPL lines
-        if in_examples and stripped.startswith(('>>> ', '... ')):
-            temp_out.append(line)
-            i += 1
-            continue
+            # Plain Python examples have meaningful line breaks even when they
+            # are not fenced or prompted. Keep detected code out of the prose
+            # collector because that later merges and wraps paragraph lines.
+            is_examples_code, examples_code_end_idx = is_examples_code_block(
+                lines, i
+            )
+            if is_examples_code:
+                temp_out.extend(lines[i:examples_code_end_idx])
+                i = examples_code_end_idx
+                continue
 
         # Parameters-like sections
         section_lower_case: str = current_section.lower()
@@ -243,7 +270,9 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
                     line,
                     desired_annotation,
                 )
-                temp_out.append(rewritten)
+                # Prose-only return entries expand to a synced signature plus
+                # an indented description, so preserve both generated lines.
+                temp_out.extend(rewritten.splitlines())
                 i += 1
                 continue
 
@@ -259,7 +288,7 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
                 continue
 
             # Treat top-level lines as signatures
-            if indent_length <= leading_indent:  # type: ignore[operator]
+            if leading_indent is not None and indent_length <= leading_indent:
                 temp_out.append(line)
                 i += 1
                 continue
@@ -362,8 +391,10 @@ def _is_param_signature(text: str) -> bool:
     shapes that appear in real-world NumPy-style docs and avoid false
     negatives, while still rejecting obviously non-signature prose.
 
-    Accepted (examples)
-    -------------------
+    Notes
+    -----
+    Accepted examples:
+
     - ``name : type``
     - ``name: type``  (missing space is fine)
     - ``alpha, beta : list[str] | None``  (comma-separated names)
@@ -373,8 +404,8 @@ def _is_param_signature(text: str) -> bool:
     - ``*args, **kwargs : Any``  (mixed with other parameters)
     - Leading indentation allowed
 
-    Rejected (examples)
-    -------------------
+    Rejected examples:
+
     - Lines without a colon
     - Names that are not valid identifiers or comma-separated identifiers
       (e.g. ``1name : int``, ``alpha, beta gamma : int``)
@@ -692,12 +723,12 @@ def _name_of(node: ast.AST) -> str | None:
 def _unwrap_generator_annotation(annotation: str | None) -> str | None:
     """
     Return the first yield type when ``annotation`` is a Generator or
-    AsyncGenerator.
+    AsyncGenerator, or the item type when it is an Iterator or AsyncIterator.
 
     This is a small helper to keep ``Yields`` sections intuitive; Python
     signatures often annotate generator functions as ``Generator[T, None,
-    None]`` but docstrings should spell out the yielded type ``T`` instead of
-    the whole container.
+    None]`` or ``Iterator[T]`` but docstrings should spell out the yielded type
+    ``T`` instead of the whole container.
     """
     if annotation is None:
         return None
@@ -711,7 +742,23 @@ def _unwrap_generator_annotation(annotation: str | None) -> str | None:
         return None
 
     base_name = _name_of(expr.value)
-    if base_name is None or base_name.split('.')[-1] not in {
+    if base_name is None:
+        return None
+
+    base_short_name = base_name.split('.')[-1]
+    if base_short_name in {
+        'Iterator',
+        'AsyncIterator',
+    }:
+        # Iterator[T] has only the yielded item type in its subscript. Return
+        # that item so Yields sections document values, not iterator objects.
+        segment = ast.get_source_segment(annotation, expr.slice)
+        if segment is None:
+            segment = ast.unparse(expr.slice)
+
+        return segment.strip()
+
+    if base_short_name not in {
         'Generator',
         'AsyncGenerator',
     }:
@@ -751,6 +798,13 @@ def _detect_multiple_return_signatures(
 
         indent = len(candidate) - len(candidate.lstrip(' '))
         if indent <= indent_threshold:
+            # Labeled prose can sit at the same indent as a NumPy return
+            # signature. Skip it so tuple sync does not consume another
+            # annotation component for a description line.
+            if _is_numpy_labeled_return_prose(candidate.strip()):
+                j += 1
+                continue
+
             return True
 
         j += 1
@@ -761,6 +815,11 @@ def _detect_multiple_return_signatures(
 def _rewrite_return_signature(line: str, annotation: str) -> str:
     """
     Rewrite a return signature line to use the supplied annotation text.
+
+    If the existing line is prose rather than a type signature, keep that prose
+    as the return description and insert the real annotation above it. This
+    preserves author-written text while still syncing the signature section to
+    the function annotation.
     """
     indent_length = len(line) - len(line.lstrip(' '))
     indent = line[:indent_length]
@@ -769,22 +828,62 @@ def _rewrite_return_signature(line: str, annotation: str) -> str:
     colon_idx = stripped.find(':')
     if colon_idx != -1:
         name = stripped[:colon_idx].rstrip()
+        description = stripped[colon_idx + 1 :].strip()
         # Only treat the colon as a signature separator if something precedes
         # it. rST cross references such as ``:class:`Foo``` start with a colon,
         # in which case we just want to output the synced annotation.
         if not name:
             return f'{indent}{annotation}'
 
+        # Labels like ``Result:`` are description text, not return names. Keep
+        # the full line under the synced annotation so the label is preserved.
+        if _is_labeled_return_prose(name, description):
+            return f'{indent}{annotation}\n{indent}    {stripped}'
+
         return f'{indent}{name} : {annotation}'
 
+    if not _looks_like_return_annotation(stripped):
+        return f'{indent}{annotation}\n{indent}    {stripped}'
+
     return f'{indent}{annotation}'
+
+
+def _is_numpy_labeled_return_prose(stripped_line: str) -> bool:
+    """Return True when a colon-bearing NumPy return item is prose."""
+    colon_idx = stripped_line.find(':')
+    if colon_idx == -1:
+        return False
+
+    label = stripped_line[:colon_idx].rstrip()
+    description = stripped_line[colon_idx + 1 :].strip()
+    return _is_labeled_return_prose(label, description)
+
+
+def _looks_like_return_annotation(text: str) -> bool:
+    """
+    Return True when a NumPy return line looks like a type signature.
+
+    Multi-word plain text is treated as prose so return sync does not replace a
+    description like ``The mapping from keys to values.`` with only the type.
+    """
+    stripped = text.strip()
+    if not stripped:
+        return False
+
+    if stripped.endswith(('.', '!', '?')):
+        return False
+
+    if any(token in stripped for token in ('[', ']', '|', ',', '"', "'")):
+        return True
+
+    return not any(char.isspace() for char in stripped)
 
 
 def handle_single_line_docstring(
         whole_docstring_literal: str | None,
         docstring_content: str,
         docstring_starting_col: int,
-        docstring_ending_col: int,
+        docstring_ending_col: int,  # noqa: ARG001
         line_length: int = 79,
 ) -> str | None:
     """
@@ -798,7 +897,12 @@ def handle_single_line_docstring(
     if '\n' in whole_docstring_literal:  # multi-line: do not handle
         return whole_docstring_literal
 
-    if docstring_ending_col > line_length:  # whole docstring exceeds limit
+    # Re-check the rebuilt literal because normalizations can change its width
+    # after the AST end column was captured.
+    effective_ending_col = docstring_starting_col + len(
+        whole_docstring_literal
+    )
+    if effective_ending_col > line_length:  # whole docstring exceeds limit
         num_leading_indent: int = docstring_starting_col
         parts: list[str] = whole_docstring_literal.split(docstring_content)
         prefix: str = parts[0]
@@ -843,6 +947,138 @@ _DUNDER_LITERAL_PATTERN = re.compile(
 _DUNDER_LITERAL_REPLACEMENT = r'``\1``'
 
 
+def _mask_rst_backtick_protected_lines(  # noqa: C901, PLR0915
+        lines: list[str],
+) -> tuple[list[str], dict[int, str]]:
+    """
+    Replace example/code lines with placeholders before rST backtick fixing.
+
+    The caller restores lines by index after regex replacement. Placeholders
+    preserve line endings so ``splitlines(keepends=True)`` keeps the same
+    shape.
+
+    Plain prose in ``Examples`` still uses rST inline-literal syntax, but
+    detected Python-like code should be byte-for-byte preserved. Track section
+    state here because the regex fixer runs before the style-specific wrappers
+    decide which example lines are code.
+    """
+    protected_lines: dict[int, str] = {}
+    masked_lines: list[str] = []
+    current_idx = 0
+    in_examples = False
+    # The rST pass runs before style-specific wrapping, so it tracks the active
+    # Examples detector explicitly. That keeps code/output protected without
+    # applying Google indentation rules to NumPy sections.
+    doctest_detector = is_doctest_block
+    examples_code_detector = is_examples_code_block
+    numpy_examples = {'example', 'example:', 'examples', 'examples:'}
+
+    def mask(line: str) -> str:
+        # Keep one placeholder per original line so restoring by index remains
+        # stable after the regex replacement runs.
+        placeholder = '\x00RST_BACKTICK_PROTECTED_LINE\x00'
+        if line.endswith('\n'):
+            return placeholder + '\n'
+
+        return placeholder
+
+    def mask_span(start_idx: int, end_idx: int) -> None:
+        for idx in range(start_idx, end_idx):
+            protected_lines[idx] = lines[idx]
+            masked_lines.append(mask(lines[idx]))
+
+    while current_idx < len(lines):
+        # Backtick normalization runs before NumPy/Google section parsing, so
+        # this shared pre-pass maintains just enough section state to preserve
+        # detected examples code without shielding examples prose.
+        line = lines[current_idx]
+        stripped = line.strip()
+        numpy_heading = _get_section_heading_title(lines, current_idx)
+        if numpy_heading is not None:
+            in_examples = numpy_heading in numpy_examples
+            doctest_detector = is_doctest_block
+            examples_code_detector = is_examples_code_block
+        else:
+            google_header = canonical_google_section_header(stripped)
+            if google_header is not None:
+                in_examples = google_header == 'Examples:'
+                if in_examples:
+                    doctest_detector = is_google_doctest_block
+                    examples_code_detector = is_google_examples_code_block
+                else:
+                    doctest_detector = is_doctest_block
+                    examples_code_detector = is_examples_code_block
+            elif is_google_unknown_section_header(stripped):
+                in_examples = False
+                doctest_detector = is_doctest_block
+                examples_code_detector = is_examples_code_block
+
+        # Protect full spans first; doctest output and fenced code content
+        # should not be touched by rST backtick normalization.
+        is_fence, fence_end_idx = is_code_fence(lines, current_idx)
+        if is_fence:
+            mask_span(current_idx, fence_end_idx)
+            current_idx = fence_end_idx
+            continue
+
+        active_doctest_detector = (
+            doctest_detector if in_examples else is_doctest_block
+        )
+        is_doctest, doctest_end_idx = active_doctest_detector(
+            lines,
+            current_idx,
+        )
+        if is_doctest:
+            mask_span(current_idx, doctest_end_idx)
+            current_idx = doctest_end_idx
+            continue
+
+        # rST code directives are code blocks even without fence markers. Mask
+        # the directive and indented body so code backticks stay untouched
+        # while dedented prose after the block is still normalized.
+        is_rst_code, rst_code_end_idx = is_rst_code_block(lines, current_idx)
+        if is_rst_code:
+            mask_span(current_idx, rst_code_end_idx)
+            current_idx = rst_code_end_idx
+            continue
+
+        # ``::`` literal blocks are detected from the previous content line,
+        # so this check must happen before looking only at current-line text.
+        is_literal, literal_end_idx = is_literal_block_paragraph(
+            lines, current_idx
+        )
+        if is_literal:
+            # Backtick fixing is prose-only. Literal blocks may contain code or
+            # output where single backticks are meaningful, so mask the whole
+            # span and restore it after the regex replacement.
+            mask_span(current_idx, literal_end_idx)
+            current_idx = literal_end_idx
+            continue
+
+        if in_examples:
+            # Plain Python examples are intentionally preserved like fenced
+            # code. Otherwise comments such as ``# use `raw``` would be
+            # rewritten even though the surrounding example line is code.
+            is_examples_code, examples_code_end_idx = examples_code_detector(
+                lines,
+                current_idx,
+            )
+            if is_examples_code:
+                mask_span(current_idx, examples_code_end_idx)
+                current_idx = examples_code_end_idx
+                continue
+
+        if line.lstrip().startswith(('>>> ', '... ')):
+            protected_lines[current_idx] = line
+            masked_lines.append(mask(line))
+        else:
+            masked_lines.append(line)
+
+        current_idx += 1
+
+    return masked_lines, protected_lines
+
+
 def _fix_rst_backticks(docstring: str) -> str:
     """
     Fix inline-literal single backticks to double backticks per rST syntax.
@@ -852,18 +1088,22 @@ def _fix_rst_backticks(docstring: str) -> str:
     It deliberately **does not** modify other rST constructs that require
     single backticks.
 
-    What stays untouched
-    --------------------
+    Notes
+    -----
+    The following forms stay untouched:
+
     - Existing double-backtick literals: ````code````.
     - Roles: ``:role:`text``` (e.g., ``:emphasis:`word```).
     - Cross-references: `` `text`_ `` and anonymous refs `` `text`__ ``.
     - Inline external links: `` `text <https://example.com>`_ ``.
     - Explicit hyperlink targets: ``.. _`Label`: https://example.com``.
     - REPL lines: Lines starting with ``>>> `` or ``... `` (Python examples).
+    - Python-like code detected inside ``Examples`` sections.
 
-    How it works (regex guards)
-    ---------------------------
+    Regex guards:
+
     The pattern only upgrades a match when **all** these are true:
+
     - Opening backtick is not part of an existing ````...```` (``(?<!`)``).
     - Opening backtick is not immediately preceded by ``:`` (to avoid roles).
     - Opening backtick is not immediately preceded by ``_`` (to avoid
@@ -873,7 +1113,8 @@ def _fix_rst_backticks(docstring: str) -> str:
     - Closing backtick is not part of ````...```` (``(?!`)``).
     - Closing backtick is not followed by ``__`` or ``_`` (to avoid
       anonymous/named references).
-    - The line does not start with ``>>> `` or ``... `` (Python REPL).
+    - The line is not protected as REPL or examples code before regex
+      replacement runs.
 
     Parameters
     ----------
@@ -937,30 +1178,10 @@ def _fix_rst_backticks(docstring: str) -> str:
         prefix = match.group(0)[: match.group(0).index('`')]
         return f'{prefix}``{content}``'
 
-    # Protect REPL lines (>>> and ...) from backtick fixing by temporarily
-    # replacing them with placeholders, then restoring after processing.
-    # This allows multi-line backtick pairs (such as external links spanning
-    # lines) to be handled correctly while still preserving backticks in REPL
-    # comments.
     lines = docstring.splitlines(keepends=True)
-    repl_lines: dict[int, str] = {}
-    protected_lines: list[str] = []
+    protected_lines, original_lines = _mask_rst_backtick_protected_lines(lines)
 
-    for i, line in enumerate(lines):
-        stripped = line.lstrip()
-        # Protect REPL lines (>>> or ...) - don't fix backticks in these
-        if stripped.startswith(('>>> ', '... ')):
-            repl_lines[i] = line
-            # Use a placeholder that won't be matched by the regex
-            protected_lines.append(
-                '\x00REPL_LINE\x00\n'
-                if line.endswith('\n')
-                else '\x00REPL_LINE\x00'
-            )
-        else:
-            protected_lines.append(line)
-
-    # Process the entire docstring (with REPL lines protected)
+    # Process the docstring with examples/code temporarily hidden.
     protected_docstring = ''.join(protected_lines)
     processed = _RST_BACKTICK_PATTERN.sub(replace_func, protected_docstring)
     # Upgrade remaining single-backtick ``__dunder__`` literals to double
@@ -969,9 +1190,9 @@ def _fix_rst_backticks(docstring: str) -> str:
         _DUNDER_LITERAL_REPLACEMENT, processed
     )
 
-    # Restore REPL lines
+    # Restore protected example/code lines.
     result_lines = processed.splitlines(keepends=True)
-    for i, original_line in repl_lines.items():
+    for i, original_line in original_lines.items():
         if i < len(result_lines):
             result_lines[i] = original_line
 

@@ -1,0 +1,43 @@
+LINE_LENGTH: 79
+
+**********
+# Regression: type-commented class attributes should sync assigned defaults so
+# Attributes matches the function-argument default policy.
+class Config:
+    """
+    Config object.
+
+    Attributes
+    ----------
+    prefix : str | None, default='old'
+        Prefix text.
+    retries : int, optional
+        Retry count.
+    labels : list[str], default=[]
+        Labels.
+    """
+
+    prefix = 'x'  # type: str | None
+    retries = 3  # type: int
+    labels = ['a', 'b']  # type: list[str]
+
+**********
+# Regression: type-commented class attributes should sync assigned defaults so
+# Attributes matches the function-argument default policy.
+class Config:
+    """
+    Config object.
+
+    Attributes
+    ----------
+    prefix : str | None, default='x'
+        Prefix text.
+    retries : int, default=3
+        Retry count.
+    labels : list[str], default=['a', 'b']
+        Labels.
+    """
+
+    prefix = 'x'  # type: str | None
+    retries = 3  # type: int
+    labels = ['a', 'b']  # type: list[str]

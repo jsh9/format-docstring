@@ -1,0 +1,27 @@
+LINE_LENGTH: 79
+
+**********
+def f():
+    """
+    Example::
+
+        first = `template`
+
+        second = `name`
+
+    Back to prose with `identifier`.
+    """
+    pass
+
+**********
+def f():
+    """
+    Example::
+
+        first = `template`
+
+        second = `name`
+
+    Back to prose with ``identifier``.
+    """
+    pass

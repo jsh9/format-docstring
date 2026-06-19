@@ -1,0 +1,22 @@
+LINE_LENGTH: 79
+
+**********
+def build_mapping() -> dict[str, str]:
+    """
+    Build mapping.
+
+    Returns:
+        str
+            Mapping description that is long enough to wrap but should remain attached to the return signature.
+    """
+    return {}
+
+**********
+def build_mapping() -> dict[str, str]:
+    """Build mapping.
+
+    Returns:
+        dict[str, str]: Mapping description that is long enough to wrap but
+            should remain attached to the return signature.
+    """
+    return {}

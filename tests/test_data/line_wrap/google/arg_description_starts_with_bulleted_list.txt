@@ -1,0 +1,14 @@
+LINE_LENGTH: 60
+
+**********
+Args:
+    x:
+        - first item with a very long description that should preserve list indentation
+        - second item
+
+**********
+
+Args:
+    x:
+        - first item with a very long description that should preserve list indentation
+        - second item

@@ -1,0 +1,17 @@
+LINE_LENGTH: 60
+
+**********
+Examples:
+    ~~~
+    Args:
+        x: first line inside a literal fence
+            second line inside the same literal fence that should not be joined
+    ~~~
+
+**********
+Examples:
+    ~~~
+    Args:
+        x: first line inside a literal fence
+            second line inside the same literal fence that should not be joined
+    ~~~

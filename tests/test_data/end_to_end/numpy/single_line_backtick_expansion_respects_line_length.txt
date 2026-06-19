@@ -1,0 +1,13 @@
+LINE_LENGTH: 44
+
+**********
+def uses_backticks():
+    """Use `x` and `y` in this sentence."""
+    pass
+
+**********
+def uses_backticks():
+    """
+    Use ``x`` and ``y`` in this sentence.
+    """
+    pass

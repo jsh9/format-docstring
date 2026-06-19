@@ -1,0 +1,53 @@
+LINE_LENGTH: 79
+
+**********
+from typing import Generator
+
+
+def build_label() -> str:
+    """
+    Build label.
+
+    Returns
+    -------
+    Result.
+    """
+    return 'ok'
+
+
+def iter_labels() -> Generator[str, None, None]:
+    """
+    Iterate labels.
+
+    Yields
+    ------
+    Result.
+    """
+    yield 'ok'
+
+**********
+from typing import Generator
+
+
+def build_label() -> str:
+    """
+    Build label.
+
+    Returns
+    -------
+    str
+        Result.
+    """
+    return 'ok'
+
+
+def iter_labels() -> Generator[str, None, None]:
+    """
+    Iterate labels.
+
+    Yields
+    ------
+    str
+        Result.
+    """
+    yield 'ok'

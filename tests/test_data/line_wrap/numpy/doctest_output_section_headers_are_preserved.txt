@@ -1,0 +1,31 @@
+LINE_LENGTH: 60
+
+**********
+Examples
+--------
+>>> print("Parameters")
+Parameters
+>>> print("Returns")
+Returns
+>>> print("done")
+done
+
+Parameters
+----------
+value : str
+    Real section after the doctest.
+
+**********
+Examples
+--------
+>>> print("Parameters")
+Parameters
+>>> print("Returns")
+Returns
+>>> print("done")
+done
+
+Parameters
+----------
+value : str
+    Real section after the doctest.

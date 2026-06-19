@@ -6,6 +6,30 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-06-19
+
+- Added
+  - Google-style docstring formatting for Python files and Jupyter notebooks
+    via `--docstring-style google` or `docstring_style = "google"` under
+    `[tool.format_docstring]`
+  - Google `Args:`, `Attributes:`, `Returns:`, and `Yields:` signature
+    synchronization from source annotations, defaults, class attributes, and
+    generator yield annotations
+  - Fixture coverage for Google line wrapping, end-to-end rewrites, notebook
+    rewrites, protected blocks, custom sections, and signature synchronization
+- Changed
+  - Shared section and protected-block parsing so NumPy and Google formatting
+    preserve doctests, Python example code, fenced code, rST code blocks,
+    literal blocks, tables, and bullet lists more consistently
+  - README examples and configuration docs now describe NumPy and Google
+    behavior separately
+  - Development type checking now uses `ty` instead of `mypy`
+- Fixed
+  - CLI config discovery now applies `pyproject.toml` settings found by walking
+    up from the target file or directory
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.2.7...0.3.0
+
 ## [0.2.7] - 2025-12-04
 
 - Fixed

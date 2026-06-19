@@ -1,0 +1,16 @@
+LINE_LENGTH: 60
+
+**********
+Parameters
+----------
+x : object
+    - first item with a very long description that should preserve list indentation
+    - second item
+
+**********
+
+Parameters
+----------
+x : object
+    - first item with a very long description that should preserve list indentation
+    - second item

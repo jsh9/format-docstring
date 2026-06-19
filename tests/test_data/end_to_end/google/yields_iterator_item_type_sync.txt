@@ -1,0 +1,30 @@
+LINE_LENGTH: 79
+
+**********
+# Regression: Iterator[T] Yields sections should document T, not the iterator
+# container, so generated docs describe values produced by iteration.
+from collections.abc import Iterator
+
+
+def iter_names() -> Iterator[str]:
+    """
+    Iterate names.
+
+    Yields:
+        bytes: Name emitted by the iterator.
+    """
+    yield 'name'
+
+**********
+# Regression: Iterator[T] Yields sections should document T, not the iterator
+# container, so generated docs describe values produced by iteration.
+from collections.abc import Iterator
+
+
+def iter_names() -> Iterator[str]:
+    """Iterate names.
+
+    Yields:
+        str: Name emitted by the iterator.
+    """
+    yield 'name'

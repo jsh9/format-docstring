@@ -1,0 +1,49 @@
+LINE_LENGTH: 2
+
+**********
+This line contains several words and we intentionally set a very small
+line length to demonstrate aggressive wrapping without any internal
+minimum width. Words will wrap to the next line as needed while keeping
+tokens intact (no mid-word splitting).
+
+**********
+
+This
+line
+contains
+several
+words
+and
+we
+intentionally
+set
+a
+very
+small
+line
+length
+to
+demonstrate
+aggressive
+wrapping
+without
+any
+internal
+minimum
+width.
+Words
+will
+wrap
+to
+the
+next
+line
+as
+needed
+while
+keeping
+tokens
+intact
+(no
+mid-word
+splitting).

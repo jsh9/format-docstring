@@ -1,0 +1,41 @@
+LINE_LENGTH: 60
+
+**********
+Examples:
+    >>> print("Args:")
+    Args:
+    >>> print("Returns:")
+    Returns:
+    >>> print("Return:")
+    Return:
+    >>> print("Notes:")
+    Notes:
+    >>> print("Warnings:")
+    Warnings:
+    >>> print("Todo:")
+    Todo:
+    >>> print("done")
+    done
+
+Args:
+    value: Real section after the doctest.
+
+**********
+Examples:
+    >>> print("Args:")
+    Args:
+    >>> print("Returns:")
+    Returns:
+    >>> print("Return:")
+    Return:
+    >>> print("Notes:")
+    Notes:
+    >>> print("Warnings:")
+    Warnings:
+    >>> print("Todo:")
+    Todo:
+    >>> print("done")
+    done
+
+Args:
+    value: Real section after the doctest.

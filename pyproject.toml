@@ -4,7 +4,7 @@ requires = ["setuptools-scm[toml]>=6.2", "setuptools>=45"]
 
 [project]
 name = "format-docstring"
-version = "0.2.7"
+version = "0.3.0"
 dependencies = [
   "click>=8.0",
   "jupyter-notebook-parser>=0.1.4",
@@ -40,19 +40,15 @@ format-docstring = "format_docstring.main_py:main"
 format-docstring-jupyter = "format_docstring.main_jupyter:main"
 
 [project.urls]
-Homepage = "https://github.com/your/repo"
-Issues = "https://github.com/your/repo/issues"
-Repository = "https://github.com/your/repo.git"
-
-[tool.mypy]
-strict = true
-
-[[tool.mypy.overrides]]
-ignore_missing_imports = true
-module = "jupyter_notebook_parser"
+Homepage = "https://github.com/jsh9/format-docstring"
+Issues = "https://github.com/jsh9/format-docstring/issues"
+Repository = "https://github.com/jsh9/format-docstring.git"
 
 [tool.setuptools.package-data]
 "*" = ["py.typed"]
 
 [tool.setuptools.packages.find]
 exclude = ["testing*", "tests*"]
+
+[tool.ty.analysis]
+allowed-unresolved-imports = ["tomli"]

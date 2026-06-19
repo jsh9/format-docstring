@@ -1,0 +1,35 @@
+LINE_LENGTH: 60
+
+**********
+def show_fence():
+    """
+    Show fenced example.
+
+    Examples
+    --------
+    ~~~
+    Parameters
+    ----------
+    x : int
+        first line inside a literal fence
+            second line inside the same literal fence that should not be joined
+    ~~~
+    """
+    pass
+
+**********
+def show_fence():
+    """
+    Show fenced example.
+
+    Examples
+    --------
+    ~~~
+    Parameters
+    ----------
+    x : int
+        first line inside a literal fence
+            second line inside the same literal fence that should not be joined
+    ~~~
+    """
+    pass

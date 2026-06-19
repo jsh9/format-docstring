@@ -1,0 +1,20 @@
+LINE_LENGTH: 50
+
+**********
+Returns:
+    list[dict[str, tuple[int, str]]] | tuple[str, str, str, int, float] | dict[str, Any | tuple[str, int, bool]] | None: A very long description that should be wrapped properly while the type line remains unwrapped and short, and it should demonstrate wrapping.
+Yields:
+    :class:`Widget`: A long description that should wrap across the line length and keep the return type as a signature.
+
+**********
+
+Returns:
+    list[dict[str, tuple[int, str]]] | tuple[str, str, str, int, float] | dict[str, Any | tuple[str, int, bool]] | None:
+        A very long description that should be
+        wrapped properly while the type line
+        remains unwrapped and short, and it should
+        demonstrate wrapping.
+Yields:
+    :class:`Widget`: A long description that
+        should wrap across the line length and
+        keep the return type as a signature.

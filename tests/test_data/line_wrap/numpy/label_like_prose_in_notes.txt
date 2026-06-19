@@ -1,0 +1,13 @@
+LINE_LENGTH: 79
+
+**********
+Notes
+-----
+Warning: this is a very long note that should wrap like prose under the Notes section rather than as a parameter-style signature with extra continuation indentation.
+
+**********
+Notes
+-----
+Warning: this is a very long note that should wrap like prose under the Notes
+section rather than as a parameter-style signature with extra continuation
+indentation.

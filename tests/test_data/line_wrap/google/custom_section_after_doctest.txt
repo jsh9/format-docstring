@@ -1,0 +1,17 @@
+LINE_LENGTH: 60
+
+**********
+Examples:
+    >>> setup()
+    ok
+Custom:
+    This custom section line is long enough that it should be wrapped by the formatter when it is not doctest output and should not stay unchanged.
+
+**********
+Examples:
+    >>> setup()
+    ok
+Custom:
+    This custom section line is long enough that it should
+    be wrapped by the formatter when it is not doctest
+    output and should not stay unchanged.

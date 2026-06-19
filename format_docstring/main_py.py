@@ -8,18 +8,16 @@ import click
 import format_docstring.docstring_rewriter as rewriter
 from format_docstring import __version__
 from format_docstring.base_fixer import BaseFixer
-from format_docstring.config import inject_config_from_file
+from format_docstring.config import ConfigFileCommand
 
 
-@click.command()
+@click.command(cls=ConfigFileCommand)
 @click.version_option(version=__version__)
 @click.argument('paths', nargs=-1, type=click.Path())
 @click.option(
     '--config',
     type=click.Path(exists=False, file_okay=True, dir_okay=False),
-    is_eager=True,
-    callback=inject_config_from_file,
-    default='pyproject.toml',
+    default=None,
     help=(
         'Path to a pyproject.toml config file. '
         'If not specified, searches for pyproject.toml in parent directories. '
@@ -61,7 +59,7 @@ from format_docstring.config import inject_config_from_file
 )
 def main(
         paths: tuple[str, ...],
-        config: str | None,  # noqa: ARG001 (used by Click callback)
+        config: str | None,  # noqa: ARG001 (exposed for Click)
         *,
         exclude: str,
         line_length: int,
@@ -72,8 +70,8 @@ def main(
     """Format .py files."""
     ret = 0
 
-    if docstring_style.lower() != 'numpy':
-        raise ValueError('Only "numpy" style is supported for now.')
+    # Validating style is handled by the rewriter or Click choice. We no longer
+    # need to block non-numpy here because the rewriter supports Google.
 
     for path in paths:
         fixer = PythonFileFixer(
@@ -122,8 +120,7 @@ class PythonFileFixer(BaseFixer):
                 print(msg, file=sys.stderr)
                 return 0
 
-            with Path(filename).open('rb') as fb:
-                source_bytes = fb.read()
+            source_bytes = Path(filename).read_bytes()
 
         try:
             source_text: str = source_bytes.decode()
@@ -145,8 +142,7 @@ class PythonFileFixer(BaseFixer):
         elif source_text != source_text_orig:
             print(f'Rewriting {filename}', file=sys.stderr)
             self.print_diff(filename, source_text_orig, source_text)
-            with Path(filename).open('wb') as f:
-                f.write(source_text.encode())
+            Path(filename).write_bytes(source_text.encode())
 
         return int(source_text != source_text_orig)
 

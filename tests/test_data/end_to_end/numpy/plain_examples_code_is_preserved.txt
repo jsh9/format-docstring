@@ -1,0 +1,27 @@
+LINE_LENGTH: 79
+
+**********
+def run_example():
+    """
+    Run an example.
+
+    Examples
+    --------
+    result = call_function_with_a_really_long_argument_name(first_argument, second_argument, third_argument)
+    # Keep `raw` as code comment text.
+    print(result)
+    """
+    return None
+
+**********
+def run_example():
+    """
+    Run an example.
+
+    Examples
+    --------
+    result = call_function_with_a_really_long_argument_name(first_argument, second_argument, third_argument)
+    # Keep `raw` as code comment text.
+    print(result)
+    """
+    return None

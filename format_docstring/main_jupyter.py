@@ -16,18 +16,16 @@ from jupyter_notebook_parser import (
 import format_docstring.docstring_rewriter as doc_rewriter
 from format_docstring import __version__
 from format_docstring.base_fixer import BaseFixer
-from format_docstring.config import inject_config_from_file
+from format_docstring.config import ConfigFileCommand
 
 
-@click.command()
+@click.command(cls=ConfigFileCommand)
 @click.version_option(version=__version__)
 @click.argument('paths', nargs=-1, type=click.Path())
 @click.option(
     '--config',
     type=click.Path(exists=False, file_okay=True, dir_okay=False),
-    is_eager=True,
-    callback=inject_config_from_file,
-    default='pyproject.toml',
+    default=None,
     help=(
         'Path to a pyproject.toml config file. '
         'If not specified, searches for pyproject.toml in parent directories. '
@@ -69,7 +67,7 @@ from format_docstring.config import inject_config_from_file
 )
 def main(
         paths: tuple[str, ...],
-        config: str | None,  # noqa: ARG001 (used by Click callback)
+        config: str | None,  # noqa: ARG001 (exposed for Click)
         *,
         exclude: str,
         line_length: int,
@@ -163,7 +161,7 @@ class JupyterNotebookFixer(BaseFixer):
                 index: int = code_cell_indices[i]
                 source: SourceCodeContainer = code_cell_sources[i]
                 source_without_magic: str = source.source_without_magic
-                magics: dict[str, str] = source.magics
+                magics: dict[int, str] = source.magics
                 fixed: str = doc_rewriter.fix_src(
                     source_code=source_without_magic,
                     line_length=self.line_length,
@@ -183,8 +181,7 @@ class JupyterNotebookFixer(BaseFixer):
                 new_text = json.dumps(parsed.notebook_content, indent=1) + '\n'
                 print(f'Rewriting {filename}', file=sys.stderr)
                 self.print_diff(filename, original_text, new_text)
-                with Path(filename).open('w', encoding='utf-8') as fp:
-                    fp.write(new_text)
+                Path(filename).write_text(new_text, encoding='utf-8')
 
             return ret_val
 
