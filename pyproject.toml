@@ -40,9 +40,9 @@ format-docstring = "format_docstring.main_py:main"
 format-docstring-jupyter = "format_docstring.main_jupyter:main"
 
 [project.urls]
-Homepage = "https://github.com/your/repo"
-Issues = "https://github.com/your/repo/issues"
-Repository = "https://github.com/your/repo.git"
+Homepage = "https://github.com/jsh9/format-docstring"
+Issues = "https://github.com/jsh9/format-docstring/issues"
+Repository = "https://github.com/jsh9/format-docstring.git"
 
 [tool.setuptools.package-data]
 "*" = ["py.typed"]
