@@ -4,15 +4,124 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    import click
+import click
 
 if sys.version_info >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
+
+
+_VALUE_OPTIONS = frozenset({
+    '--config',
+    '--docstring-style',
+    '--exclude',
+    '--fix-rst-backticks',
+    '--line-length',
+    '--verbose',
+})
+
+
+class ConfigFileCommand(click.Command):
+    """Click command that loads pyproject defaults before parsing options."""
+
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        """
+        Parse command-line arguments after injecting config-file defaults.
+
+        Parameters
+        ----------
+        ctx : click.Context
+            Click context used for parsing.
+        args : list[str]
+            Raw command-line arguments.
+
+        Returns
+        -------
+        list[str]
+            Remaining arguments from Click's standard parser.
+        """
+        config_file = _find_config_for_raw_args(args)
+        if config_file and config_file.exists():
+            config = load_config_from_file(config_file)
+            update_click_context(ctx, config)
+
+        return super().parse_args(ctx, args)
+
+
+def _find_config_for_raw_args(args: list[str]) -> Path | None:
+    """
+    Resolve the config file implied by raw CLI arguments.
+
+    Parameters
+    ----------
+    args : list[str]
+        Raw command-line arguments before Click parses them.
+
+    Returns
+    -------
+    Path | None
+        Explicit config path, discovered config path, or None.
+    """
+    config_value, paths = _split_config_and_paths(args)
+    if config_value:
+        return Path(config_value)
+
+    return find_config_file(paths)
+
+
+def _split_config_and_paths(
+        args: list[str],
+) -> tuple[str | None, tuple[str, ...]]:
+    """
+    Extract the config option and positional paths from raw CLI args.
+
+    Parameters
+    ----------
+    args : list[str]
+        Raw command-line arguments before Click parses them.
+
+    Returns
+    -------
+    tuple[str | None, tuple[str, ...]]
+        Config option value and positional paths.
+    """
+    paths: list[str] = []
+    config_value: str | None = None
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == '--':
+            paths.extend(args[i + 1 :])
+            break
+
+        if arg == '--config':
+            if i + 1 < len(args):
+                config_value = args[i + 1]
+
+            i += 2
+            continue
+
+        if arg.startswith('--config='):
+            config_value = arg.split('=', 1)[1]
+            i += 1
+            continue
+
+        option = arg.split('=', 1)[0]
+        if option in _VALUE_OPTIONS:
+            i += 1 if '=' in arg else 2
+            continue
+
+        if arg.startswith('-') and arg != '-':
+            i += 1
+            continue
+
+        paths.append(arg)
+        i += 1
+
+    return config_value, tuple(paths)
 
 
 def find_config_file(paths: list[str] | tuple[str, ...] | None) -> Path | None:
@@ -176,9 +285,10 @@ def inject_config_from_file(
         value: str | None,
 ) -> str | None:
     """
-    Click callback to inject configuration from a config file.
+    Inject configuration from a file for callback-based Click integrations.
 
-    This is used as a callback for the --config option.
+    ``ConfigFileCommand`` is preferred for the built-in CLIs because it loads
+    defaults before Click parses option values.
 
     Parameters
     ----------

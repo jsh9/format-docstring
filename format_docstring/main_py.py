@@ -8,18 +8,16 @@ import click
 import format_docstring.docstring_rewriter as rewriter
 from format_docstring import __version__
 from format_docstring.base_fixer import BaseFixer
-from format_docstring.config import inject_config_from_file
+from format_docstring.config import ConfigFileCommand
 
 
-@click.command()
+@click.command(cls=ConfigFileCommand)
 @click.version_option(version=__version__)
 @click.argument('paths', nargs=-1, type=click.Path())
 @click.option(
     '--config',
     type=click.Path(exists=False, file_okay=True, dir_okay=False),
-    is_eager=True,
-    callback=inject_config_from_file,
-    default='pyproject.toml',
+    default=None,
     help=(
         'Path to a pyproject.toml config file. '
         'If not specified, searches for pyproject.toml in parent directories. '
@@ -61,7 +59,7 @@ from format_docstring.config import inject_config_from_file
 )
 def main(
         paths: tuple[str, ...],
-        config: str | None,  # noqa: ARG001 (used by Click callback)
+        config: str | None,  # noqa: ARG001 (exposed for Click)
         *,
         exclude: str,
         line_length: int,
