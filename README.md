@@ -475,6 +475,10 @@ pip install format-docstring
 ```bash
 format-docstring path/to/file.py
 format-docstring path/to/directory/
+
+# Format Google-style docstrings
+format-docstring --docstring-style google path/to/file.py
+format-docstring --docstring-style google path/to/directory/
 ```
 
 **For Jupyter notebooks:**
@@ -482,6 +486,10 @@ format-docstring path/to/directory/
 ```bash
 format-docstring-jupyter path/to/notebook.ipynb
 format-docstring-jupyter path/to/directory/
+
+# Format Google-style docstrings in notebooks
+format-docstring-jupyter --docstring-style google path/to/notebook.ipynb
+format-docstring-jupyter --docstring-style google path/to/directory/
 ```
 
 ### 5.2. Pre-commit Hook
@@ -496,11 +504,13 @@ repos:
     hooks:
       - id: format-docstring
         name: Format docstrings in .py files
-        args: [--line-length=79]
+        args: [--docstring-style=numpy, --line-length=79]
       - id: format-docstring-jupyter
         name: Format docstrings in .ipynb files
-        args: [--line-length=79]
+        args: [--docstring-style=numpy, --line-length=79]
 ```
+
+For Google-style docstrings, use `--docstring-style=google` in the hook args.
 
 Then install the pre-commit hook:
 
@@ -528,9 +538,10 @@ leave that docstring untouched.
 - `--line-length INTEGER`: Maximum line length for wrapping docstrings
   (default: 79)
 - `--docstring-style CHOICE`: Docstring style to target (`numpy` or `google`,
-  default: `numpy`)
+  default: `numpy`). This selects the style to format, not a converter between
+  styles.
 - `--fix-rst-backticks BOOL`: Automatically fix single backticks to double
-  backticks per rST syntax (default: True)
+  backticks per rST syntax (default: `True`). Pass `False` to disable this.
 - `--verbose CHOICE`: Logging detail level (`default` keeps the existing
   behaviour, `diff` prints unified diffs when rewrites happen)
 - `--exclude TEXT`: Regex pattern to exclude files/directories (default:
@@ -550,8 +561,14 @@ format-docstring my_module.py
 # Format all Python files in a directory with custom line length
 format-docstring --line-length 72 src/
 
+# Format Google-style docstrings
+format-docstring --docstring-style google src/
+
 # Format Jupyter notebooks excluding certain directories
 format-docstring-jupyter --exclude "\.git|\.venv|__pycache__" notebooks/
+
+# Format Google-style docstrings in notebooks
+format-docstring-jupyter --docstring-style google notebooks/
 
 # Preview changes with unified diffs
 format-docstring --verbose diff src/
@@ -568,8 +585,10 @@ format-docstring --fix-rst-backticks=False my_module.py
 
 ### 6.3. `pyproject.toml` Configuration
 
-You can configure default values in your `pyproject.toml`. CLI arguments will
-override these settings:
+You can configure default values under `[tool.format_docstring]` in
+`pyproject.toml`. CLI arguments override these settings. The config loader
+accepts either underscore keys, such as `line_length`, or hyphenated keys, such
+as `line-length`.
 
 ```toml
 [tool.format_docstring]
@@ -580,17 +599,27 @@ exclude = "\\.git|\\.venv|__pycache__"
 verbose = "default"  # or "diff" to print unified diffs
 ```
 
+For Google-style docstrings:
+
+```toml
+[tool.format_docstring]
+docstring_style = "google"
+line_length = 79
+fix_rst_backticks = true
+```
+
 **Available options:**
 
-- `line_length` (int): Maximum line length for wrapping docstrings (default:
-  79\)
-- `docstring_style` (str): Docstring style, either `"numpy"` or `"google"`
-  (default: `"numpy"`)
-- `fix_rst_backticks` (bool): Automatically fix single backticks to double
-  backticks per rST syntax (default: `true`)
-- `exclude` (str): Regex pattern to exclude files/directories (default:
-  `"\\.git|\\.tox|\\.pytest_cache"`)
-- `verbose` (str): Logging detail level (`"default"` or `"diff"`)
+- `line_length` / `line-length` (int): maximum line length for wrapping
+  docstrings. Default: `79`.
+- `docstring_style` / `docstring-style` (str): target docstring style,
+  either `"numpy"` or `"google"`. Default: `"numpy"`.
+- `fix_rst_backticks` / `fix-rst-backticks` (bool): whether to convert single
+  backticks in prose to double backticks per rST syntax. Default: `true`.
+- `exclude` (str): regex pattern used to skip files or directories. Default:
+  `"\\.git|\\.tox|\\.pytest_cache"`.
+- `verbose` (str): logging detail level, either `"default"` or `"diff"`.
+  Use `"diff"` to print unified diffs when rewrites happen.
 
 The tool searches for `pyproject.toml` starting from the target file/directory
 and walking up the parent directories until one is found.
