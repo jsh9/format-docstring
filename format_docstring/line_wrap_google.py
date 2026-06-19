@@ -743,7 +743,7 @@ def _join_paragraph_lines(
         The lines from a wrappable segment.
     leading_indent : int | None
         The leading indentation level.
-    initial_in_examples_section : bool
+    initial_in_examples_section : bool, default=False
         Whether this segment starts inside an ``Examples:`` section.
 
     Returns

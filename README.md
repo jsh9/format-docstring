@@ -56,9 +56,9 @@ styles. Use `--docstring-style numpy` for NumPy-style docstrings and
 
 ### 2.1. NumPy-style docstrings
 
-NumPy-style docstrings use section titles followed by underline rows.
-Signature lines are written as `name : type`, and descriptions are indented
-under the signature line.
+NumPy-style docstrings use section titles followed by underline rows. Signature
+lines are written as `name : type`, and descriptions are indented under the
+signature line.
 
 **Long summaries and descriptions are wrapped.**
 
@@ -612,14 +612,14 @@ fix_rst_backticks = true
 
 - `line_length` / `line-length` (int): maximum line length for wrapping
   docstrings. Default: `79`.
-- `docstring_style` / `docstring-style` (str): target docstring style,
-  either `"numpy"` or `"google"`. Default: `"numpy"`.
+- `docstring_style` / `docstring-style` (str): target docstring style, either
+  `"numpy"` or `"google"`. Default: `"numpy"`.
 - `fix_rst_backticks` / `fix-rst-backticks` (bool): whether to convert single
   backticks in prose to double backticks per rST syntax. Default: `true`.
 - `exclude` (str): regex pattern used to skip files or directories. Default:
   `"\\.git|\\.tox|\\.pytest_cache"`.
-- `verbose` (str): logging detail level, either `"default"` or `"diff"`.
-  Use `"diff"` to print unified diffs when rewrites happen.
+- `verbose` (str): logging detail level, either `"default"` or `"diff"`. Use
+  `"diff"` to print unified diffs when rewrites happen.
 
 The tool searches for `pyproject.toml` starting from the target file/directory
 and walking up the parent directories until one is found.
