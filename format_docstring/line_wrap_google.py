@@ -1,5 +1,6 @@
 import re
 import textwrap
+from dataclasses import dataclass
 from typing import Final
 
 from format_docstring.line_wrap_numpy import (
@@ -34,6 +35,77 @@ GOOGLE_OPENING_QUOTES_WIDTH: Final[int] = 5
 GOOGLE_COMPACT_OPENING_QUOTES_WIDTH: Final[int] = 5
 GOOGLE_MIN_SIGNATURE_DESC_WIDTH: Final[int] = 10
 GOOGLE_SIGNATURE_MAX_TOKENS: Final[int] = 2
+
+
+@dataclass(slots=True)
+class _GooglePass1State:
+    """Mutable state for pass-one Google section scanning."""
+
+    output: list[str]
+    current_section: str = ''
+    current_section_indent: int = 0
+
+
+@dataclass(slots=True)
+class _GoogleSignatureSectionInfo:
+    """Normalized facts about the active Google signature section."""
+
+    section_lower: str
+    is_return_section: bool
+    is_yields_section: bool
+    metadata: ParameterMetadata | None
+
+
+@dataclass(slots=True)
+class _GoogleSignatureCandidate:
+    """Standardized candidate line and its signature classification."""
+
+    line: str
+    is_signature: bool
+
+
+@dataclass(slots=True)
+class _GoogleUnwrappedSignatureItem:
+    """Pass-one output for one consumed Google signature item."""
+
+    lines: list[str]
+    next_index: int
+
+
+@dataclass(slots=True)
+class _GoogleLineParts:
+    """A line split into indentation and stripped text."""
+
+    line: str
+    stripped: str
+    indent_str: str
+    indent_level: int
+
+
+@dataclass(slots=True)
+class _GoogleParagraphJoinState:
+    """Mutable state for joining ordinary Google prose paragraphs."""
+
+    result: list[str]
+    paragraph_lines: list[str]
+    paragraph_indent: str
+    leading_indent: int | None
+    in_examples_section: bool
+
+
+@dataclass(slots=True)
+class _GoogleWrapState:
+    """Mutable state for pass-two Google wrapping."""
+
+    output: list[str]
+    leading_indent: int
+    line_length: int
+    compact_first_line: bool
+    opening_quotes_on_own_line: bool
+    is_first_line: bool = True
+    in_signature_section: bool = False
+    custom_section_indent: int | None = None
+    in_examples_section: bool = False
 
 
 def wrap_docstring_google(
@@ -112,7 +184,7 @@ def _should_compact_google_first_line(
     return True
 
 
-def _pass1_unwrap_google_docstring(  # noqa: C901, PLR0915
+def _pass1_unwrap_google_docstring(
         docstring: str,
         *,
         # Kept for parity with the NumPy pass signature.
@@ -134,396 +206,523 @@ def _pass1_unwrap_google_docstring(  # noqa: C901, PLR0915
     - Identifies signature lines.
     - Unwraps descriptions onto the signature line.
     """
-    # 1. Base indentation
-    # For Google style, check if content already has proper indentation
-    # before adding a leading indent prefix
-    if leading_indent is not None and leading_indent > 0:
-        if docstring.startswith('\n'):
-            docstring_ = docstring
-        else:
-            needs_leading_indent = True
-            for line in docstring.splitlines():
-                if line.strip():
-                    existing_indent = len(line) - len(line.lstrip())
-                    needs_leading_indent = existing_indent < leading_indent
-                    break
-
-            if needs_leading_indent:
-                docstring_ = add_leading_indent(docstring, leading_indent)
-            else:
-                docstring_ = docstring
-    else:
-        docstring_ = add_leading_indent(docstring, leading_indent)
-
+    docstring_ = _normalize_google_docstring_indent(
+        docstring,
+        leading_indent,
+    )
     lines: list[str] = docstring_.splitlines()
     if not lines:
         return docstring_
 
-    temp_out: list[str] = []
-    i: int = 0
-    current_section: str = ''
-    current_section_indent = 0
+    state = _GooglePass1State(output=[])
+    line_idx: int = 0
     return_annotation_str: str | None = (
         return_annotation.strip() if return_annotation else None
     )
 
-    def compact_pending_summary() -> None:
-        """
-        Compact buffered summary text before a section boundary or final
-        output.
+    while line_idx < len(lines):
+        parts = _split_google_line(lines[line_idx])
 
-        Google end-to-end formatting can put the first summary sentence beside
-        the opening quotes. Once a real or custom section starts, later lines
-        must keep section structure instead of being merged into the summary.
-        """
-        if not (compact_first_line and not current_section and temp_out):
-            return
-
-        _compact_google_summary_output(
-            temp_out,
-            leading_indent=leading_indent,
-        )
-
-    while i < len(lines):
-        line = lines[i]
-        stripped = line.lstrip()
-        indent_length = len(line) - len(stripped)
-
-        if not line.strip():
-            if not current_section:
-                # Preserve blank summary lines before segmentation.
-                temp_out.append(line)
-            else:
-                temp_out.append(line)
-
-            i += 1
+        if not parts.line.strip():
+            state.output.append(parts.line)
+            line_idx += 1
             continue
 
-        # Preserve fenced code blocks before section/signature parsing. This
-        # keeps fenced sample code out of Google section parsing.
-        is_fence, fence_end_idx = is_code_fence(lines, i)
-        if is_fence:
-            temp_out.extend(lines[i:fence_end_idx])
-            i = fence_end_idx
+        protected_end_idx = _consume_google_protected_block(lines, line_idx)
+        if protected_end_idx is not None:
+            state.output.extend(lines[line_idx:protected_end_idx])
+            line_idx = protected_end_idx
             continue
 
-        # Doctests must be protected before section parsing because their
-        # output can be indistinguishable from an ``Args:``-style header.
-        # The Google detector only exits on peer/outer section indentation.
-        is_doctest, doctest_end_idx = is_google_doctest_block(
-            lines,
-            i,
-        )
-        if is_doctest:
-            temp_out.extend(lines[i:doctest_end_idx])
-            i = doctest_end_idx
-            continue
-
-        canonical = canonical_google_section_header(stripped)
+        canonical = canonical_google_section_header(parts.stripped)
         if canonical is not None:
-            # A section header freezes summary parsing; compact the buffered
-            # prose first so later section content cannot move beside quotes.
-            compact_pending_summary()
-
-            current_section = canonical.lower()
-            current_section_indent = indent_length
-            # Normalize section header to canonical Google-style form
-            # e.g., "parameter:" -> "Args:", "return:" -> "Returns:"
-            indent = line[: len(line) - len(stripped)]
-            temp_out.append(indent + canonical)
-
-            i += 1
+            _compact_pending_google_summary(
+                state,
+                compact_first_line=compact_first_line,
+                leading_indent=leading_indent,
+            )
+            _emit_google_section_header(state, parts, canonical)
+            line_idx += 1
             continue
 
-        if _is_google_unknown_section_header(stripped) and (
-            (not current_section and _has_summary_content(temp_out))
-            or indent_length <= current_section_indent
-        ):
-            # Unknown bare headers end signature parsing without becoming
-            # canonical Google sections. This preserves custom sections such as
-            # ``Todo:`` while keeping following prose out of ``Args:`` parsing.
-            compact_pending_summary()
-            current_section = stripped.lower()
-            current_section_indent = indent_length
-            temp_out.append(line)
-            i += 1
+        if _is_google_unknown_section_boundary(state, parts):
+            _compact_pending_google_summary(
+                state,
+                compact_first_line=compact_first_line,
+                leading_indent=leading_indent,
+            )
+            _emit_google_unknown_section_header(state, parts)
+            line_idx += 1
             continue
 
-        if is_google_signature_section_header(current_section):
-            section_lower = current_section.lower()
-            is_return_section = is_google_returns_or_yields_section_header(
-                section_lower
+        if is_google_signature_section_header(state.current_section):
+            section_info = _google_signature_section_info(
+                state.current_section,
+                parameter_metadata,
+                attribute_metadata,
             )
-            is_yields_section = is_google_yields_section_header(section_lower)
-            metadata_for_section = parameter_metadata
-            if is_google_attribute_section_header(section_lower):
-                metadata_for_section = attribute_metadata
-
-            # Check if this line is a signature line.
-            # Google style items look like:
-            # "  name (type): description" or "  name: description".
-            # They must be indented relative to the section header.
-            # We rely on the regex instead of strictly checking relative
-            # indentation here.
-            # Simplistic detection: "word ... :" or "word ( ... ) :".
-            # It must not be a continuation line, but strict detection is hard
-            # without lookbehind.
-            # Heuristic: a signature starts with a word, may have parens, and
-            # ends with a colon.
-
-            # Normalize loose Google signatures before detection so forms like
-            # `arg(type):text` are parsed like well-formed `arg (type): text`.
-            # Without this, malformed spacing is preserved as part of the
-            # signature and the wrapping pass cannot repair it later.
-            standardized_line = _normalize_google_signature_spacing(
-                _standardize_default_value(line)
+            signature_item = _unwrap_google_signature_item(
+                lines,
+                line_idx,
+                parts,
+                section_info,
+                return_annotation_str,
             )
-            standardized_stripped = standardized_line.lstrip()
-
-            if is_return_section:
-                desired_annotation = return_annotation_str
-                if desired_annotation is not None and is_yields_section:
-                    desired_annotation = (
-                        _unwrap_generator_annotation(desired_annotation)
-                        or desired_annotation
-                    )
-
-                rewritten_named_return = (
-                    _rewrite_google_named_return_signature(
-                        standardized_line,
-                        desired_annotation,
-                    )
-                )
-                if rewritten_named_return is not None:
-                    standardized_line = rewritten_named_return
-                    standardized_stripped = standardized_line.lstrip()
-                elif (
-                    desired_annotation is not None
-                    and _is_google_return_signature(standardized_stripped)
-                ):
-                    standardized_line = _rewrite_google_return_signature(
-                        standardized_line,
-                        desired_annotation,
-                    )
-                    standardized_stripped = standardized_line.lstrip()
-                elif (
-                    desired_annotation is not None
-                    and _is_google_return_description(standardized_stripped)
-                ):
-                    # A prose-only Returns entry still needs the real
-                    # annotation. Merge them now so pass two can wrap it like a
-                    # normal Google return signature with an inline
-                    # description.
-                    indent = standardized_line[
-                        : len(standardized_line) - len(standardized_stripped)
-                    ]
-                    standardized_line = (
-                        f'{indent}{desired_annotation}: '
-                        f'{standardized_stripped.strip()}'
-                    )
-                    standardized_stripped = standardized_line.lstrip()
-
-            is_signature = _is_google_signature(standardized_stripped)
-            if is_return_section:
-                # Return and yield rows can be type signatures that the
-                # generic Google item detector rejects, especially rST roles
-                # such as ``:class:`Widget`:``. Classify them here so
-                # line-wrap-only calls get signature continuation indentation
-                # even when no source annotation is available for sync.
-                is_signature = is_signature or (
-                    _is_google_return_signature(standardized_stripped)
-                )
-
-            if is_signature:
-                # Detected a signature line.
-                # Now we need to gobble up the description lines that follow.
-                # The description block consists of subsequent lines that are
-                # indented more than the current line, or loose-format lines
-                # until the next item starts.
-                # Standard Google style: description lines are indented.
-
-                # Unwrap the first wrappable description segment onto the
-                # signature line:
-                # 1. Split signature and inline description.
-                #    "arg1 (int): description" -> "arg1 (int):" + description.
-                # 2. Collect subsequent indented lines.
-                # 3. Segment the full description, including inline text.
-                # 4. Merge a wrappable first segment into the signature.
-                # 5. Keep others as is.
-
-                signature_part, inline_desc = _split_google_signature(
-                    standardized_line
-                )
-                if is_google_parameter_section_header(
-                    section_lower
-                ) or is_google_attribute_section_header(section_lower):
-                    signature_part = _rewrite_google_parameter_signature(
-                        signature_part,
-                        metadata_for_section,
-                    )
-
-                current_item_indent = indent_length
-                description_lines: list[str] = []
-                if inline_desc:
-                    description_lines.append(inline_desc)
-
-                # Consume following lines
-                j = i + 1
-                while j < len(lines):
-                    next_line = lines[j]
-                    next_stripped = next_line.lstrip()
-                    next_indent = len(next_line) - len(next_stripped)
-
-                    if not next_line.strip():
-                        # Empty lines might be part of the description
-                        # (e.g. paragraph breaks within the item).
-                        # Keep them; if we hit the next signature, stop.
-                        # Empty lines are ambiguous, so consume them for now.
-                        description_lines.append('')
-                        j += 1
-                        continue
-
-                    if is_return_section:
-                        # Google returns/yields describe one value, so later
-                        # same-indent rows are preserved as raw description
-                        # text instead of becoming separate return entries.
-                        if (
-                            _is_google_section_header(next_stripped)
-                            or _is_google_unknown_section_header(next_stripped)
-                            or next_indent < current_item_indent
-                        ):
-                            break
-                    elif next_indent <= current_item_indent:
-                        # New items appear at the same indentation level.
-                        # Sections ending would be less indentation (usually).
-                        # Stop if indent returns to the current item level.
-                        # Assume continuations must be indented.
-                        break
-
-                    description_lines.append(
-                        next_line
-                    )  # We might need to dedent this for processing?
-                    j += 1
-
-                if (
-                    is_return_section
-                    and inline_desc is None
-                    and any(
-                        desc_line.strip() for desc_line in description_lines
-                    )
-                    and not signature_part.rstrip().endswith(':')
-                ):
-                    # Bare return types need a delimiter once pass one pulls
-                    # their indented description inline; otherwise pass two
-                    # would emit words as ``type description`` instead of
-                    # preserving the Google ``type: description`` shape.
-                    signature_part = f'{signature_part.rstrip()}:'
-
-                # Description lines use two coordinate systems: inline text is
-                # already dedented, while following lines still carry source
-                # indentation. Normalize before segmentation so preserved
-                # blocks are later re-indented exactly once.
-                processed_desc_lines = _dedent_lines(
-                    description_lines,
-                    current_item_indent,
-                    has_inline_description=inline_desc is not None,
-                )
-
-                # Segment
-                segments = segment_lines_by_wrappability(
-                    processed_desc_lines, style='google'
-                )
-
-                new_signature_line = signature_part
-                remaining_lines_to_append: list[str] = []
-
-                if segments:
-                    first_seg_lines, is_wrappable = segments[0]
-                    if is_wrappable:
-                        trailing_empty_lines = []
-                        while (
-                            first_seg_lines and not first_seg_lines[-1].strip()
-                        ):
-                            trailing_empty_lines.append(first_seg_lines.pop())
-                        # Restore order (popped from end)
-                        trailing_empty_lines.reverse()
-
-                        merged_text = merge_lines_and_strip(
-                            '\n'.join(first_seg_lines)
-                        )
-
-                        if merged_text:
-                            merged_lines = merged_text.splitlines()
-
-                            sig_combined = (
-                                f'{signature_part} {merged_lines[0]}'
-                            )
-
-                            if len(merged_lines) > 1:
-                                parts = [sig_combined]
-                                indent_pad = ' ' * (current_item_indent + 4)
-
-                                for ml in merged_lines[1:]:
-                                    if ml.strip():
-                                        parts.append(indent_pad + ml)
-                                    else:
-                                        parts.append('')
-
-                                new_signature_line = '\n'.join(parts)
-                            else:
-                                new_signature_line = sig_combined
-                        else:
-                            new_signature_line = signature_part
-
-                        indent_str = ' ' * (current_item_indent + 4)
-                        remaining_lines_to_append.extend(
-                            '' for _ in trailing_empty_lines
-                        )
-
-                        for seg_lines, _ in segments[1:]:
-                            # Pass one dedents description blocks before
-                            # segmentation, so preserved blocks must be shifted
-                            # back to Google's continuation indent here.
-                            remaining_lines_to_append.extend(
-                                indent_str + line if line.strip() else ''
-                                for line in seg_lines
-                            )
-
-                    else:
-                        # Tables and literal blocks cannot be merged inline.
-                        # Keep them under the item after restoring indent.
-                        new_signature_line = signature_part
-                        indent_str = ' ' * (current_item_indent + 4)
-                        remaining_lines_to_append.extend(
-                            indent_str + line if line.strip() else ''
-                            for line in first_seg_lines
-                        )
-
-                        for seg_lines, _ in segments[1:]:
-                            remaining_lines_to_append.extend(
-                                indent_str + line if line.strip() else ''
-                                for line in seg_lines
-                            )
-
-                else:
-                    new_signature_line = signature_part.rstrip()
-
-                temp_out.append(new_signature_line)
-                temp_out.extend(remaining_lines_to_append)
-
-                i = j
+            if signature_item is not None:
+                state.output.extend(signature_item.lines)
+                line_idx = signature_item.next_index
                 continue
 
-        # Default behaviour for non-signature lines or unknown sections
-        temp_out.append(line)
-        i += 1
+        state.output.append(parts.line)
+        line_idx += 1
 
-    compact_pending_summary()
+    _compact_pending_google_summary(
+        state,
+        compact_first_line=compact_first_line,
+        leading_indent=leading_indent,
+    )
 
-    return finalize_lines(temp_out, closing_indent)
+    return finalize_lines(state.output, closing_indent)
 
 
-def _join_paragraph_lines(  # noqa: C901, PLR0915
+def _normalize_google_docstring_indent(
+        docstring: str,
+        leading_indent: int | None,
+) -> str:
+    """
+    Add leading indentation only when Google content needs it.
+
+    Google formatting preserves deliberately over-indented or already-aligned
+    first content lines. This mirrors the prior pass-one setup before any
+    section parsing occurs.
+    """
+    if leading_indent is None or leading_indent <= 0:
+        return add_leading_indent(docstring, leading_indent)
+
+    if docstring.startswith('\n'):
+        return docstring
+
+    if _google_docstring_needs_leading_indent(docstring, leading_indent):
+        return add_leading_indent(docstring, leading_indent)
+
+    return docstring
+
+
+def _google_docstring_needs_leading_indent(
+        docstring: str,
+        leading_indent: int,
+) -> bool:
+    """Return True if the first content line is under-indented."""
+    for line in docstring.splitlines():
+        if line.strip():
+            existing_indent = len(line) - len(line.lstrip())
+            return existing_indent < leading_indent
+
+    return True
+
+
+def _split_google_line(line: str) -> _GoogleLineParts:
+    """Split a line into commonly reused Google parser fields."""
+    stripped = line.lstrip()
+    indent_str = line[: len(line) - len(stripped)]
+    return _GoogleLineParts(
+        line=line,
+        stripped=stripped,
+        indent_str=indent_str,
+        indent_level=len(indent_str),
+    )
+
+
+def _consume_google_protected_block(
+        lines: list[str],
+        line_idx: int,
+) -> int | None:
+    """
+    Return the exclusive end index for protected code or doctest blocks.
+
+    These blocks must be consumed before section/signature parsing because
+    their content can look like Google section headers.
+    """
+    is_fence, fence_end_idx = is_code_fence(lines, line_idx)
+    if is_fence:
+        return fence_end_idx
+
+    is_doctest, doctest_end_idx = is_google_doctest_block(lines, line_idx)
+    if is_doctest:
+        return doctest_end_idx
+
+    return None
+
+
+def _compact_pending_google_summary(
+        state: _GooglePass1State,
+        *,
+        compact_first_line: bool,
+        leading_indent: int | None,
+) -> None:
+    """
+    Compact buffered summary text before sections or final output.
+
+    Once a real or custom section starts, later content must keep section
+    structure instead of moving beside opening quotes.
+    """
+    if not (compact_first_line and not state.current_section and state.output):
+        return
+
+    _compact_google_summary_output(
+        state.output,
+        leading_indent=leading_indent,
+    )
+
+
+def _emit_google_section_header(
+        state: _GooglePass1State,
+        parts: _GoogleLineParts,
+        canonical: str,
+) -> None:
+    """Emit a canonical Google section header and update pass-one state."""
+    state.current_section = canonical.lower()
+    state.current_section_indent = parts.indent_level
+    state.output.append(parts.indent_str + canonical)
+
+
+def _is_google_unknown_section_boundary(
+        state: _GooglePass1State,
+        parts: _GoogleLineParts,
+) -> bool:
+    """Return True if an unknown header should end signature parsing."""
+    if not _is_google_unknown_section_header(parts.stripped):
+        return False
+
+    return (
+        not state.current_section and _has_summary_content(state.output)
+    ) or parts.indent_level <= state.current_section_indent
+
+
+def _emit_google_unknown_section_header(
+        state: _GooglePass1State,
+        parts: _GoogleLineParts,
+) -> None:
+    """Emit an unknown section boundary without canonicalizing its text."""
+    state.current_section = parts.stripped.lower()
+    state.current_section_indent = parts.indent_level
+    state.output.append(parts.line)
+
+
+def _google_signature_section_info(
+        current_section: str,
+        parameter_metadata: ParameterMetadata | None,
+        attribute_metadata: ParameterMetadata | None,
+) -> _GoogleSignatureSectionInfo:
+    """Collect facts needed while parsing one Google signature section."""
+    section_lower = current_section.lower()
+    metadata = parameter_metadata
+    if is_google_attribute_section_header(section_lower):
+        metadata = attribute_metadata
+
+    return _GoogleSignatureSectionInfo(
+        section_lower=section_lower,
+        is_return_section=is_google_returns_or_yields_section_header(
+            section_lower
+        ),
+        is_yields_section=is_google_yields_section_header(section_lower),
+        metadata=metadata,
+    )
+
+
+def _unwrap_google_signature_item(
+        lines: list[str],
+        line_idx: int,
+        parts: _GoogleLineParts,
+        section_info: _GoogleSignatureSectionInfo,
+        return_annotation: str | None,
+) -> _GoogleUnwrappedSignatureItem | None:
+    """Unwrap one Google signature item, if the current line is an item."""
+    candidate = _standardize_google_signature_candidate(
+        parts.line,
+        section_info,
+        return_annotation,
+    )
+    if not candidate.is_signature:
+        return None
+
+    signature_part, inline_desc = _split_google_signature(candidate.line)
+    if is_google_parameter_section_header(
+        section_info.section_lower
+    ) or is_google_attribute_section_header(section_info.section_lower):
+        signature_part = _rewrite_google_parameter_signature(
+            signature_part,
+            section_info.metadata,
+        )
+
+    description_lines, next_index = _collect_google_description_lines(
+        lines,
+        line_idx,
+        current_item_indent=parts.indent_level,
+        inline_desc=inline_desc,
+        section_info=section_info,
+    )
+    signature_part = _ensure_google_return_signature_delimiter(
+        signature_part,
+        inline_desc,
+        description_lines,
+        is_return_section=section_info.is_return_section,
+    )
+    processed_desc_lines = _dedent_lines(
+        description_lines,
+        parts.indent_level,
+        has_inline_description=inline_desc is not None,
+    )
+    segments = segment_lines_by_wrappability(
+        processed_desc_lines,
+        style='google',
+    )
+
+    return _GoogleUnwrappedSignatureItem(
+        lines=_merge_google_signature_description_segments(
+            signature_part,
+            segments,
+            parts.indent_level,
+        ),
+        next_index=next_index,
+    )
+
+
+def _standardize_google_signature_candidate(
+        line: str,
+        section_info: _GoogleSignatureSectionInfo,
+        return_annotation: str | None,
+) -> _GoogleSignatureCandidate:
+    """Normalize a possible signature and decide if it is parseable."""
+    standardized_line = _normalize_google_signature_spacing(
+        _standardize_default_value(line)
+    )
+    standardized_stripped = standardized_line.lstrip()
+
+    if section_info.is_return_section:
+        standardized_line, standardized_stripped = (
+            _sync_google_return_signature_candidate(
+                standardized_line,
+                standardized_stripped,
+                section_info,
+                return_annotation,
+            )
+        )
+
+    is_signature = _is_google_signature(standardized_stripped)
+    if section_info.is_return_section:
+        is_signature = is_signature or _is_google_return_signature(
+            standardized_stripped
+        )
+
+    return _GoogleSignatureCandidate(
+        line=standardized_line,
+        is_signature=is_signature,
+    )
+
+
+def _sync_google_return_signature_candidate(
+        line: str,
+        stripped: str,
+        section_info: _GoogleSignatureSectionInfo,
+        return_annotation: str | None,
+) -> tuple[str, str]:
+    """Apply return/yield annotation sync to one candidate line."""
+    desired_annotation = _desired_google_return_annotation(
+        section_info,
+        return_annotation,
+    )
+    rewritten_named_return = _rewrite_google_named_return_signature(
+        line,
+        desired_annotation,
+    )
+    if rewritten_named_return is not None:
+        return rewritten_named_return, rewritten_named_return.lstrip()
+
+    if desired_annotation is None:
+        return line, stripped
+
+    if _is_google_return_signature(stripped):
+        rewritten = _rewrite_google_return_signature(line, desired_annotation)
+        return rewritten, rewritten.lstrip()
+
+    if _is_google_return_description(stripped):
+        indent = line[: len(line) - len(stripped)]
+        rewritten = f'{indent}{desired_annotation}: {stripped.strip()}'
+        return rewritten, rewritten.lstrip()
+
+    return line, stripped
+
+
+def _desired_google_return_annotation(
+        section_info: _GoogleSignatureSectionInfo,
+        return_annotation: str | None,
+) -> str | None:
+    """Return the source annotation to sync into a return/yield section."""
+    if return_annotation is None:
+        return None
+
+    if section_info.is_yields_section:
+        return (
+            _unwrap_generator_annotation(return_annotation)
+            or return_annotation
+        )
+
+    return return_annotation
+
+
+def _collect_google_description_lines(
+        lines: list[str],
+        line_idx: int,
+        *,
+        current_item_indent: int,
+        inline_desc: str | None,
+        section_info: _GoogleSignatureSectionInfo,
+) -> tuple[list[str], int]:
+    """Collect raw description lines belonging to one signature item."""
+    description_lines: list[str] = []
+    if inline_desc:
+        description_lines.append(inline_desc)
+
+    next_idx = line_idx + 1
+    while next_idx < len(lines):
+        next_parts = _split_google_line(lines[next_idx])
+        if not next_parts.line.strip():
+            description_lines.append('')
+            next_idx += 1
+            continue
+
+        if _is_google_description_boundary(
+            next_parts,
+            current_item_indent=current_item_indent,
+            is_return_section=section_info.is_return_section,
+        ):
+            break
+
+        description_lines.append(next_parts.line)
+        next_idx += 1
+
+    return description_lines, next_idx
+
+
+def _is_google_description_boundary(
+        parts: _GoogleLineParts,
+        *,
+        current_item_indent: int,
+        is_return_section: bool,
+) -> bool:
+    """Return True if ``parts`` starts a new section or item."""
+    if is_return_section:
+        return (
+            _is_google_section_header(parts.stripped)
+            or _is_google_unknown_section_header(parts.stripped)
+            or parts.indent_level < current_item_indent
+        )
+
+    return parts.indent_level <= current_item_indent
+
+
+def _ensure_google_return_signature_delimiter(
+        signature_part: str,
+        inline_desc: str | None,
+        description_lines: list[str],
+        *,
+        is_return_section: bool,
+) -> str:
+    """Add a delimiter to bare return types before merging descriptions."""
+    if not is_return_section or inline_desc is not None:
+        return signature_part
+
+    if not any(desc_line.strip() for desc_line in description_lines):
+        return signature_part
+
+    if signature_part.rstrip().endswith(':'):
+        return signature_part
+
+    return f'{signature_part.rstrip()}:'
+
+
+def _merge_google_signature_description_segments(
+        signature_part: str,
+        segments: list[tuple[list[str], bool]],
+        current_item_indent: int,
+) -> list[str]:
+    """Merge the first wrappable description segment into a signature."""
+    if not segments:
+        return [signature_part.rstrip()]
+
+    first_seg_lines, is_wrappable = segments[0]
+    indent_str = ' ' * (current_item_indent + 4)
+    if not is_wrappable:
+        return [
+            signature_part,
+            *_reindent_google_description_segments(
+                segments,
+                indent_str=indent_str,
+            ),
+        ]
+
+    trailing_empty_lines = _pop_trailing_blank_lines(first_seg_lines)
+    merged_text = merge_lines_and_strip('\n'.join(first_seg_lines))
+    output = [
+        _combine_google_signature_description(
+            signature_part,
+            merged_text,
+            current_item_indent=current_item_indent,
+        ),
+        *('' for _ in trailing_empty_lines),
+    ]
+    output.extend(
+        _reindent_google_description_segments(
+            segments[1:],
+            indent_str=indent_str,
+        )
+    )
+    return output
+
+
+def _combine_google_signature_description(
+        signature_part: str,
+        merged_text: str,
+        *,
+        current_item_indent: int,
+) -> str:
+    """Return a signature line with merged prose when available."""
+    if not merged_text:
+        return signature_part
+
+    merged_lines = merged_text.splitlines()
+    sig_combined = f'{signature_part} {merged_lines[0]}'
+    if len(merged_lines) == 1:
+        return sig_combined
+
+    indent_pad = ' ' * (current_item_indent + 4)
+    parts = [sig_combined]
+    for merged_line in merged_lines[1:]:
+        if merged_line.strip():
+            parts.append(indent_pad + merged_line)
+        else:
+            parts.append('')
+
+    return '\n'.join(parts)
+
+
+def _reindent_google_description_segments(
+        segments: list[tuple[list[str], bool]],
+        *,
+        indent_str: str,
+) -> list[str]:
+    """Restore Google continuation indentation to preserved segments."""
+    output: list[str] = []
+    for seg_lines, _ in segments:
+        output.extend(
+            indent_str + line if line.strip() else '' for line in seg_lines
+        )
+
+    return output
+
+
+def _join_paragraph_lines(
         lines: list[str],
         leading_indent: int | None,
         *,
@@ -544,7 +743,7 @@ def _join_paragraph_lines(  # noqa: C901, PLR0915
         The lines from a wrappable segment.
     leading_indent : int | None
         The leading indentation level.
-    initial_in_examples_section : bool, default=False
+    initial_in_examples_section : bool
         Whether this segment starts inside an ``Examples:`` section.
 
     Returns
@@ -555,94 +754,118 @@ def _join_paragraph_lines(  # noqa: C901, PLR0915
     if not lines:
         return lines
 
-    result: list[str] = []
-    paragraph_lines: list[str] = []
-    paragraph_indent: str = ''
-    # Wrappability segmentation can split an Examples section around a doctest
-    # block. Preserve the caller's section state so later plain code is not
-    # joined as prose after the protected doctest segment.
-    in_examples_section = initial_in_examples_section
-
-    def flush_paragraph() -> None:
-        """Join accumulated paragraph lines and add to result."""
-        nonlocal paragraph_lines, paragraph_indent
-        if paragraph_lines:
-            # Join stripped content with spaces
-            joined_content = ' '.join(
-                line.lstrip() for line in paragraph_lines
-            )
-            # Re-apply the original paragraph indent
-            result.append(paragraph_indent + joined_content)
-            paragraph_lines = []
-            paragraph_indent = ''
+    state = _GoogleParagraphJoinState(
+        result=[],
+        paragraph_lines=[],
+        paragraph_indent='',
+        leading_indent=leading_indent,
+        in_examples_section=initial_in_examples_section,
+    )
 
     line_idx = 0
     while line_idx < len(lines):
-        line = lines[line_idx]
-        if not line.strip():
-            # Empty line - flush current paragraph and preserve empty line
-            flush_paragraph()
-            result.append(line)
+        parts = _split_google_line(lines[line_idx])
+        if not parts.line.strip():
+            _flush_google_paragraph(state)
+            state.result.append(parts.line)
             line_idx += 1
             continue
 
-        stripped = line.lstrip()
-        indent_str = line[: len(line) - len(stripped)]
-        indent_level = len(indent_str)
+        _update_google_paragraph_examples_state(state, parts)
+        examples_end_idx = _consume_google_paragraph_examples_code(
+            state,
+            lines,
+            line_idx,
+        )
+        if examples_end_idx is not None:
+            line_idx = examples_end_idx
+            continue
 
-        canonical = canonical_google_section_header(stripped)
-        if canonical is not None:
-            in_examples_section = canonical == 'Examples:'
-        elif _is_google_unknown_section_header(stripped) and indent_level <= (
-            leading_indent or 0
-        ):
-            in_examples_section = False
-
-        if in_examples_section:
-            # Protect plain code before paragraph joining. This pass is the
-            # last point where the original line boundaries are still intact.
-            is_examples_code, examples_code_end_idx = (
-                is_google_examples_code_block(
-                    lines,
-                    line_idx,
-                )
-            )
-            if is_examples_code:
-                flush_paragraph()
-                result.extend(lines[line_idx:examples_code_end_idx])
-                line_idx = examples_code_end_idx
-                continue
-
-        # Check if this is a signature line
-        is_sig = False
-        if not stripped.startswith(('"""', "'''")):
-            if leading_indent and len(indent_str) < (leading_indent or 0):
-                is_sig = False
-            else:
-                is_sig = _is_google_signature(stripped)
-
-        if is_sig:
-            # Signature line - flush accumulated paragraph and add signature.
-            flush_paragraph()
-            result.append(line)
+        if _is_google_paragraph_signature(parts, state.leading_indent):
+            _flush_google_paragraph(state)
+            state.result.append(parts.line)
         else:
-            # Non-signature line - accumulate for paragraph joining
-            if not paragraph_lines:
-                # First line of new paragraph - capture indent
-                paragraph_indent = indent_str
-            elif indent_str != paragraph_indent:
-                # Indent changed - flush previous paragraph and start new one
-                flush_paragraph()
-                paragraph_indent = indent_str
-
-            paragraph_lines.append(line)
+            _queue_google_paragraph_line(state, parts)
 
         line_idx += 1
 
-    # Flush any remaining paragraph
-    flush_paragraph()
+    _flush_google_paragraph(state)
 
-    return result
+    return state.result
+
+
+def _flush_google_paragraph(state: _GoogleParagraphJoinState) -> None:
+    """Join and emit the pending ordinary prose paragraph."""
+    if not state.paragraph_lines:
+        return
+
+    joined_content = ' '.join(line.lstrip() for line in state.paragraph_lines)
+    state.result.append(state.paragraph_indent + joined_content)
+    state.paragraph_lines = []
+    state.paragraph_indent = ''
+
+
+def _update_google_paragraph_examples_state(
+        state: _GoogleParagraphJoinState,
+        parts: _GoogleLineParts,
+) -> None:
+    """Track whether paragraph joining is currently inside Examples."""
+    canonical = canonical_google_section_header(parts.stripped)
+    if canonical is not None:
+        state.in_examples_section = canonical == 'Examples:'
+    elif _is_google_unknown_section_header(
+        parts.stripped
+    ) and parts.indent_level <= (state.leading_indent or 0):
+        state.in_examples_section = False
+
+
+def _consume_google_paragraph_examples_code(
+        state: _GoogleParagraphJoinState,
+        lines: list[str],
+        line_idx: int,
+) -> int | None:
+    """Preserve Examples code before paragraph joining destroys boundaries."""
+    if not state.in_examples_section:
+        return None
+
+    is_examples_code, examples_code_end_idx = is_google_examples_code_block(
+        lines,
+        line_idx,
+    )
+    if not is_examples_code:
+        return None
+
+    _flush_google_paragraph(state)
+    state.result.extend(lines[line_idx:examples_code_end_idx])
+    return examples_code_end_idx
+
+
+def _is_google_paragraph_signature(
+        parts: _GoogleLineParts,
+        leading_indent: int | None,
+) -> bool:
+    """Return True if paragraph joining should keep this line separate."""
+    if parts.stripped.startswith(('"""', "'''")):
+        return False
+
+    if leading_indent and len(parts.indent_str) < leading_indent:
+        return False
+
+    return _is_google_signature(parts.stripped)
+
+
+def _queue_google_paragraph_line(
+        state: _GoogleParagraphJoinState,
+        parts: _GoogleLineParts,
+) -> None:
+    """Add a line to the pending paragraph, flushing on indent changes."""
+    if not state.paragraph_lines:
+        state.paragraph_indent = parts.indent_str
+    elif parts.indent_str != state.paragraph_indent:
+        _flush_google_paragraph(state)
+        state.paragraph_indent = parts.indent_str
+
+    state.paragraph_lines.append(parts.line)
 
 
 def _append_google_summary_merged(
@@ -703,16 +926,8 @@ def _compact_google_summary_output(
             first_segment_processed = True
             continue
 
-        trailing_empty_lines = []
-        while seg_lines and not seg_lines[-1].strip():
-            trailing_empty_lines.append(seg_lines.pop())
-
-        trailing_empty_lines.reverse()
-
-        leading_empty_lines = []
-        while seg_lines and not seg_lines[0].strip():
-            leading_empty_lines.append(seg_lines.pop(0))
-
+        trailing_empty_lines = _pop_trailing_blank_lines(seg_lines)
+        leading_empty_lines = _pop_leading_blank_lines(seg_lines)
         merged = merge_lines_and_strip('\n'.join(seg_lines))
         if first_segment_processed:
             output.extend('' for _ in leading_empty_lines)
@@ -731,12 +946,31 @@ def _compact_google_summary_output(
         output.extend('' for _ in trailing_empty_lines)
 
 
+def _pop_leading_blank_lines(lines: list[str]) -> list[str]:
+    """Remove and return leading blank lines from ``lines``."""
+    blank_lines = []
+    while lines and not lines[0].strip():
+        blank_lines.append(lines.pop(0))
+
+    return blank_lines
+
+
+def _pop_trailing_blank_lines(lines: list[str]) -> list[str]:
+    """Remove and return trailing blanks from ``lines`` in source order."""
+    blank_lines = []
+    while lines and not lines[-1].strip():
+        blank_lines.append(lines.pop())
+
+    blank_lines.reverse()
+    return blank_lines
+
+
 def _has_summary_content(items: list[str]) -> bool:
     """Return True when buffered pre-section lines contain nonblank text."""
     return any(item.strip() for item in items)
 
 
-def _pass2_wrap_google_docstring(  # noqa: C901, PLR0915
+def _pass2_wrap_google_docstring(
         docstring: str,
         *,
         line_length: int,
@@ -752,194 +986,265 @@ def _pass2_wrap_google_docstring(  # noqa: C901, PLR0915
     - Segments by wrappability (Literal blocks, etc.).
     - Wraps wrappable segments.
     """
-    leading_indent = leading_indent or 0
-
-    # Split into lines
-    lines = docstring.splitlines()
-
-    # Segment
-    segments = segment_lines_by_wrappability(lines, style='google')
-
-    final_output: list[str] = []
-    is_first_line = True
-    # ``_is_google_signature`` is intentionally broad. Track section state so
-    # labels in Notes/Examples/custom sections wrap as prose instead of taking
-    # Args-style continuation indentation.
-    in_signature_section = False
-    # Track custom bare sections only for wrapping width. Pass one already
-    # stopped signature parsing; pass two still needs to wrap custom-section
-    # prose without treating the source indentation as part of the text budget.
-    custom_section_indent: int | None = None
-    in_examples_section = False
+    state = _GoogleWrapState(
+        output=[],
+        leading_indent=leading_indent or 0,
+        line_length=line_length,
+        compact_first_line=compact_first_line,
+        opening_quotes_on_own_line=opening_quotes_on_own_line,
+    )
+    segments = segment_lines_by_wrappability(
+        docstring.splitlines(),
+        style='google',
+    )
 
     for seg_lines, is_wrappable in segments:
         if not is_wrappable:
-            # Code blocks, tables, etc. Keep as is.
-            final_output.extend(seg_lines)
-            is_first_line = False  # Segments are non-empty
+            _append_google_unwrappable_segment(state, seg_lines)
             continue
 
-        # Wrappable text
-        # It consists of lines Pass 1 merged (signature + inline desc)
-        # or separate paragraphs.
+        _wrap_google_wrappable_segment(state, seg_lines)
 
-        # Pre-process segment: Group consecutive non-signature lines into
-        # joined paragraphs to prevent breaking URLs and inline elements.
-        # The Examples state is tracked outside the segment loop because code
-        # fences and doctests are separate non-wrappable segments.
-        processed_lines = _join_paragraph_lines(
-            seg_lines,
-            leading_indent,
-            initial_in_examples_section=in_examples_section,
+    return finalize_lines(state.output, closing_indent)
+
+
+def _append_google_unwrappable_segment(
+        state: _GoogleWrapState,
+        seg_lines: list[str],
+) -> None:
+    """Append protected pass-two content without wrapping it."""
+    state.output.extend(seg_lines)
+    state.is_first_line = False
+
+
+def _wrap_google_wrappable_segment(
+        state: _GoogleWrapState,
+        seg_lines: list[str],
+) -> None:
+    """Wrap one pass-two segment that may contain ordinary prose."""
+    processed_lines = _join_paragraph_lines(
+        seg_lines,
+        state.leading_indent,
+        initial_in_examples_section=state.in_examples_section,
+    )
+
+    line_idx = 0
+    while line_idx < len(processed_lines):
+        line_idx = _wrap_google_processed_line(
+            state,
+            processed_lines,
+            line_idx,
         )
 
-        line_idx = 0
-        while line_idx < len(processed_lines):
-            line = processed_lines[line_idx]
-            if not line.strip():
-                final_output.append(line)
-                if opening_quotes_on_own_line and is_first_line:
-                    is_first_line = False
 
-                line_idx += 1
-                continue
+def _wrap_google_processed_line(
+        state: _GoogleWrapState,
+        processed_lines: list[str],
+        line_idx: int,
+) -> int:
+    """Wrap or preserve one already-joined pass-two line."""
+    parts = _split_google_line(processed_lines[line_idx])
+    if not parts.line.strip():
+        _append_google_blank_wrapped_line(state, parts.line)
+        return line_idx + 1
 
-            stripped = line.lstrip()
-            indent_str = line[: len(line) - len(stripped)]
-            indent_level = len(indent_str)
-            if _is_google_section_header(stripped):
-                custom_section_indent = None
-                in_examples_section = (
-                    canonical_google_section_header(stripped) == 'Examples:'
-                )
-                in_signature_section = _is_google_signature_section_header(
-                    stripped
-                )
-            elif (
-                _is_google_unknown_section_header(stripped)
-                and indent_level <= leading_indent
-            ):
-                custom_section_indent = indent_level
-                in_examples_section = False
-                in_signature_section = False
-            elif (
-                custom_section_indent is not None
-                and indent_level <= custom_section_indent
-            ):
-                custom_section_indent = None
+    _update_google_wrap_section_state(state, parts)
+    examples_end_idx = _consume_google_wrap_examples_code(
+        state,
+        processed_lines,
+        line_idx,
+    )
+    if examples_end_idx is not None:
+        return examples_end_idx
 
-            if in_examples_section:
-                # Check again after paragraph joining so code blocks that were
-                # kept intact above do not fall through to ``textwrap.fill``.
-                is_examples_code, examples_code_end_idx = (
-                    is_google_examples_code_block(
-                        processed_lines,
-                        line_idx,
-                    )
-                )
-                if is_examples_code:
-                    final_output.extend(
-                        processed_lines[line_idx:examples_code_end_idx]
-                    )
-                    is_first_line = False
-                    line_idx = examples_code_end_idx
-                    continue
+    effective_indent = _google_effective_signature_indent(state, parts)
+    if _is_google_signature_line_in_context(state, parts, effective_indent):
+        state.output.extend(
+            _wrap_google_signature_line(
+                parts.line,
+                line_length=state.line_length,
+                indent_str=parts.indent_str,
+            )
+        )
+    else:
+        prose_parts = _normalize_google_label_like_prose(state, parts)
+        _wrap_google_prose_line(state, prose_parts)
 
-            if is_first_line:
-                # For the first line, calculate width for textwrap:
-                # - The line's own indentation (already in indent_level)
-                # - Extra leading_indent if line indent < leading_indent
-                # - +5 for the opening """ and its quote
-                base_indent = leading_indent or 0
-                if indent_level < base_indent:
-                    # Line has less indent than expected, add the difference
-                    indent_level += base_indent - indent_level
-                # Add 5 for the opening """ position (3 quotes + space + 1)
-                indent_level += 5
+    state.is_first_line = False
+    return line_idx + 1
 
-            # Check if signature
-            # Exclude lines starting with quotes (Summary start)
-            if (
-                not in_signature_section
-                or stripped.startswith(('"""', "'''"))
-                or (leading_indent and indent_level < leading_indent)
-            ):
-                is_sig = False
-            else:
-                is_sig = _is_google_signature(stripped)
 
-            if is_sig:
-                final_output.extend(
-                    _wrap_google_signature_line(
-                        line,
-                        line_length=line_length,
-                        indent_str=indent_str,
-                    )
-                )
+def _append_google_blank_wrapped_line(
+        state: _GoogleWrapState,
+        line: str,
+) -> None:
+    """Append a blank line and update opening-line state if needed."""
+    state.output.append(line)
+    if state.opening_quotes_on_own_line and state.is_first_line:
+        state.is_first_line = False
 
-            # Normal text paragraph, including failed description detection.
-            # Just wrap it respecting current indent.
 
-            elif (
-                not in_signature_section
-                and not _is_google_section_header(stripped)
-                and not stripped.rstrip().endswith('::')
-                and _is_google_signature(stripped)
-            ):
-                # Preserve existing colon-spacing cleanup for label-like
-                # prose, but keep it on the normal prose wrapping path so
-                # sections such as Notes do not gain signature indents.
-                line = _normalize_google_signature_spacing(line)
-                stripped = line.lstrip()
-                indent_str = line[: len(line) - len(stripped)]
-                indent_level = len(indent_str)
+def _update_google_wrap_section_state(
+        state: _GoogleWrapState,
+        parts: _GoogleLineParts,
+) -> None:
+    """Track Google section context while pass two wraps prose."""
+    if _is_google_section_header(parts.stripped):
+        state.custom_section_indent = None
+        state.in_examples_section = (
+            canonical_google_section_header(parts.stripped) == 'Examples:'
+        )
+        state.in_signature_section = _is_google_signature_section_header(
+            parts.stripped
+        )
+    elif (
+        _is_google_unknown_section_header(parts.stripped)
+        and parts.indent_level <= state.leading_indent
+    ):
+        state.custom_section_indent = parts.indent_level
+        state.in_examples_section = False
+        state.in_signature_section = False
+    elif (
+        state.custom_section_indent is not None
+        and parts.indent_level <= state.custom_section_indent
+    ):
+        state.custom_section_indent = None
 
-            if not is_sig and is_first_line:
-                actual_indent_str = indent_str
-                subsequent_indent_str = ' ' * (leading_indent or 0)
-                opening_width = (
-                    GOOGLE_COMPACT_OPENING_QUOTES_WIDTH
-                    if compact_first_line
-                    else GOOGLE_OPENING_QUOTES_WIDTH
-                )
-                first_line_width = max(
-                    1,
-                    line_length - (leading_indent or 0) - opening_width,
-                )
-                wrapped_lines = _wrap_first_line_shorter(
-                    line.strip(),
-                    first_line_width=first_line_width,
-                    subsequent_width=line_length,
-                    initial_indent=actual_indent_str,
-                    subsequent_indent=subsequent_indent_str,
-                )
-                final_output.extend(wrapped_lines)
 
-            elif not is_sig:
-                # Existing logic for other lines
-                subsequent_indent = indent_str
-                wrap_width = line_length
-                if (
-                    not opening_quotes_on_own_line
-                    and leading_indent is not None
-                    and len(indent_str) < leading_indent
-                ):
-                    subsequent_indent = ' ' * leading_indent
+def _consume_google_wrap_examples_code(
+        state: _GoogleWrapState,
+        processed_lines: list[str],
+        line_idx: int,
+) -> int | None:
+    """Preserve Examples code that survived paragraph joining."""
+    if not state.in_examples_section:
+        return None
 
-                wrapped = textwrap.fill(
-                    line.strip(),
-                    width=wrap_width,
-                    initial_indent=indent_str,
-                    subsequent_indent=subsequent_indent,
-                    break_long_words=False,
-                    break_on_hyphens=False,
-                )
-                final_output.extend(wrapped.splitlines())
+    is_examples_code, examples_code_end_idx = is_google_examples_code_block(
+        processed_lines,
+        line_idx,
+    )
+    if not is_examples_code:
+        return None
 
-            is_first_line = False
-            line_idx += 1
+    state.output.extend(processed_lines[line_idx:examples_code_end_idx])
+    state.is_first_line = False
+    return examples_code_end_idx
 
-    return finalize_lines(final_output, closing_indent)
+
+def _google_effective_signature_indent(
+        state: _GoogleWrapState,
+        parts: _GoogleLineParts,
+) -> int:
+    """Return indent used by pass-two signature context checks."""
+    if not state.is_first_line:
+        return parts.indent_level
+
+    if parts.indent_level < state.leading_indent:
+        return state.leading_indent + GOOGLE_OPENING_QUOTES_WIDTH
+
+    return parts.indent_level + GOOGLE_OPENING_QUOTES_WIDTH
+
+
+def _is_google_signature_line_in_context(
+        state: _GoogleWrapState,
+        parts: _GoogleLineParts,
+        effective_indent: int,
+) -> bool:
+    """Return True when a line should receive signature wrapping."""
+    if not state.in_signature_section:
+        return False
+
+    if parts.stripped.startswith(('"""', "'''")):
+        return False
+
+    if state.leading_indent and effective_indent < state.leading_indent:
+        return False
+
+    return _is_google_signature(parts.stripped)
+
+
+def _normalize_google_label_like_prose(
+        state: _GoogleWrapState,
+        parts: _GoogleLineParts,
+) -> _GoogleLineParts:
+    """Normalize signature-like labels that should still wrap as prose."""
+    if not _should_normalize_google_label_like_prose(state, parts):
+        return parts
+
+    return _split_google_line(_normalize_google_signature_spacing(parts.line))
+
+
+def _should_normalize_google_label_like_prose(
+        state: _GoogleWrapState,
+        parts: _GoogleLineParts,
+) -> bool:
+    """Return True for colon labels outside signature sections."""
+    return (
+        not state.in_signature_section
+        and not _is_google_section_header(parts.stripped)
+        and not parts.stripped.rstrip().endswith('::')
+        and _is_google_signature(parts.stripped)
+    )
+
+
+def _wrap_google_prose_line(
+        state: _GoogleWrapState,
+        parts: _GoogleLineParts,
+) -> None:
+    """Wrap one pass-two prose line using first-line rules when needed."""
+    if state.is_first_line:
+        _wrap_google_first_prose_line(state, parts)
+    else:
+        _wrap_google_normal_prose_line(state, parts)
+
+
+def _wrap_google_first_prose_line(
+        state: _GoogleWrapState,
+        parts: _GoogleLineParts,
+) -> None:
+    """Wrap the first physical docstring line with opening-quote budget."""
+    opening_width = (
+        GOOGLE_COMPACT_OPENING_QUOTES_WIDTH
+        if state.compact_first_line
+        else GOOGLE_OPENING_QUOTES_WIDTH
+    )
+    first_line_width = max(
+        1,
+        state.line_length - state.leading_indent - opening_width,
+    )
+    state.output.extend(
+        _wrap_first_line_shorter(
+            parts.line.strip(),
+            first_line_width=first_line_width,
+            subsequent_width=state.line_length,
+            initial_indent=parts.indent_str,
+            subsequent_indent=' ' * state.leading_indent,
+        )
+    )
+
+
+def _wrap_google_normal_prose_line(
+        state: _GoogleWrapState,
+        parts: _GoogleLineParts,
+) -> None:
+    """Wrap a non-initial Google prose line."""
+    subsequent_indent = parts.indent_str
+    if (
+        not state.opening_quotes_on_own_line
+        and len(parts.indent_str) < state.leading_indent
+    ):
+        subsequent_indent = ' ' * state.leading_indent
+
+    wrapped = textwrap.fill(
+        parts.line.strip(),
+        width=state.line_length,
+        initial_indent=parts.indent_str,
+        subsequent_indent=subsequent_indent,
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+    state.output.extend(wrapped.splitlines())
 
 
 def _wrap_google_signature_line(
@@ -1523,69 +1828,46 @@ def _normalize_google_signature_spacing(line: str) -> str:
     return f'{signature}: {description}'
 
 
-def _is_google_signature(stripped_line: str) -> bool:  # noqa: C901
+def _is_google_signature(stripped_line: str) -> bool:
     """
     Check if a line looks like a Google style parameter signature. Examples:
     arg1 (int): Description arg2: Description arg3 (list[int] | None):
     Description *args: Description **kwargs: Description
     """
-    # Regex:
-    # Start of string
-    # Optional stars (* or **)
-    # Identifier
-    # Optional space
-    # Optional parens enclosing type
-    # Colon
-    # (Descripion can follow)
-
-    # Very permissive match on identifiers and types to catch complex types
-    # Must end with colon, or colon followed by text.
-
-    # Note: This might match "Note:", "Returns:", etc. if we aren't careful.
-    # Callers check section headers or indentation before using this result.
-    # Also "Returns:" usually has no type in parens in the header itself.
-
-    # Matches:
-    # word:
-    # word (type):
-    # *word:
-    # **word:
-    # complex[type]:  (for Returns)
-
-    # We want to match anything signature-like followed by a colon.
-    # But we must avoid matching simple text that happens to have a colon,
-    # though that is a signature at Google item indentation.
-
-    # We'll use a broader pattern:
-    # Start, any chars not containing newline (non-greedy), colon, end.
-    # But we want to ensure it's not JUST a colon.
-
-    if ':' not in stripped_line:
-        return False
-
-    # Reject lines that look like URLs or inline links
-    # - Starting with < (likely an inline URL like <https://...)
-    # - Starting with http: or https:
-    if stripped_line.startswith(('<', 'http:', 'https:')):
+    if not _has_google_signature_delimiter(stripped_line):
         return False
 
     sig, _ = _split_google_signature(stripped_line)
-
-    # Remove the trailing colon
-    sig_body = sig.rsplit(':', 1)[0].strip()
-
+    sig_body = _google_signature_body(sig)
     if not sig_body:
         return False
 
-    # Validation Logic:
-    # 1. Check for top-level commas (must be inside parens/brackets).
-    # 2. Check for number of top-level whitespace-separated tokens.
-    #    - Max 2 tokens.
-    #    - If 2 tokens, the second must start with '('.
+    tokens = _tokenize_google_signature_body(sig_body)
+    if tokens is None:
+        return False
 
+    return _google_signature_tokens_are_valid(sig_body, tokens)
+
+
+def _has_google_signature_delimiter(stripped_line: str) -> bool:
+    """Return True if ``stripped_line`` may contain a signature delimiter."""
+    return ':' in stripped_line and not stripped_line.startswith((
+        '<',
+        'http:',
+        'https:',
+    ))
+
+
+def _google_signature_body(signature_part: str) -> str:
+    """Return the signature text before the trailing delimiter colon."""
+    return signature_part.rsplit(':', 1)[0].strip()
+
+
+def _tokenize_google_signature_body(sig_body: str) -> list[str] | None:
+    """Tokenize a signature body, rejecting invalid top-level commas."""
     nesting = 0
-    tokens = []
-    current_token = []
+    tokens: list[str] = []
+    current_token: list[str] = []
 
     for char in sig_body:
         if char in '([{':
@@ -1595,8 +1877,7 @@ def _is_google_signature(stripped_line: str) -> bool:  # noqa: C901
             nesting -= 1
             current_token.append(char)
         elif char == ',' and nesting == 0:
-            # Top-level comma is only valid inside parentheses.
-            return False
+            return None
         elif char.isspace() and nesting == 0:
             if current_token:
                 tokens.append(''.join(current_token))
@@ -1608,37 +1889,26 @@ def _is_google_signature(stripped_line: str) -> bool:  # noqa: C901
         tokens.append(''.join(current_token))
 
     if nesting != 0:
-        return False  # Unbalanced
+        return None
 
-    # Filter out pipe operators (|) which are used for type unions
-    # e.g., "list[int] | None" -> tokens = ["list[int]", "|", "None"]
-    # We want meaningful tokens only for validation
+    return tokens
+
+
+def _google_signature_tokens_are_valid(
+        sig_body: str,
+        tokens: list[str],
+) -> bool:
+    """Return True if tokenized signature text is not prose."""
     meaningful_tokens = [t for t in tokens if t != '|']
 
     if not meaningful_tokens:
         return False
 
-    # Type hint detection: recognize type hints by their structural patterns
-    # Type hints typically:
-    # 1. Contain brackets [] (e.g., list[int], dict[str, Any])
-    # 2. Contain pipe operators | (e.g., str | None)
-    # 3. Are single identifiers (e.g., int, str, MyType)
-    # 4. Follow the pattern "name (type)" for Args
-    #
-    # In contrast, prose text is multiple plain words without brackets.
-
-    has_brackets = '[' in sig_body
-    has_pipe = '|' in tokens
-
-    if has_brackets or has_pipe:
-        # Contains type hint patterns - this is a valid signature
-        # Don't validate further; type annotations can be arbitrarily complex.
+    if '[' in sig_body or '|' in tokens:
         return True
 
-    # No brackets or pipes - use original logic for simple patterns
-    # like "arg_name" or "arg_name (type)"
     if len(meaningful_tokens) > GOOGLE_SIGNATURE_MAX_TOKENS:
-        return False  # Too many parts (likely a sentence)
+        return False
 
     return not (
         len(meaningful_tokens) == GOOGLE_SIGNATURE_MAX_TOKENS
