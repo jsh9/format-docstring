@@ -1,6 +1,7 @@
 # format-docstring
 
-A Python formatter to automatically format numpy-style docstrings.
+A Python formatter to automatically format NumPy-style and Google-style
+docstrings.
 
 <!--TOC-->
 
@@ -10,16 +11,11 @@ ______________________________________________________________________
 
 - [1. Overview](#1-overview)
 - [2. Before vs After Examples](#2-before-vs-after-examples)
-  - [2.1. Long lines are wrapped to fit line length limit](#21-long-lines-are-wrapped-to-fit-line-length-limit)
-  - [2.2. One-line summaries are formatted to fit line length limit](#22-one-line-summaries-are-formatted-to-fit-line-length-limit)
-  - [2.3. Minor typos can be automatically fixed](#23-minor-typos-can-be-automatically-fixed)
-  - [2.4. Default value declarations are standardized](#24-default-value-declarations-are-standardized)
-  - [2.5. Single backticks are converted to double backticks (rST syntax)](#25-single-backticks-are-converted-to-double-backticks-rst-syntax)
-  - [2.6. Docstring parameters and returns stay in sync with signatures](#26-docstring-parameters-and-returns-stay-in-sync-with-signatures)
+  - [2.1. NumPy-style docstrings](#21-numpy-style-docstrings)
+  - [2.2. Google-style docstrings](#22-google-style-docstrings)
 - [3. Special Formatting Rules](#3-special-formatting-rules)
-  - [3.1. Section handling](#31-section-handling)
-  - [3.2. Content that is preserved](#32-content-that-is-preserved)
-  - [3.3. Signature synchronization](#33-signature-synchronization)
+  - [3.1. NumPy-style docstrings](#31-numpy-style-docstrings)
+  - [3.2. Google-style docstrings](#32-google-style-docstrings)
 - [4. Installation](#4-installation)
 - [5. Usage](#5-usage)
   - [5.1. Command Line Interface](#51-command-line-interface)
@@ -54,267 +50,223 @@ heuristics.
 
 ## 2. Before vs After Examples
 
-### 2.1. Long lines are wrapped to fit line length limit
+These examples show the same kinds of cleanup in the two supported docstring
+styles. Use `--docstring-style numpy` for NumPy-style docstrings and
+`--docstring-style google` for Google-style docstrings.
+
+### 2.1. NumPy-style docstrings
+
+NumPy-style docstrings use section titles followed by underline rows.
+Signature lines are written as `name : type`, and descriptions are indented
+under the signature line.
+
+**Long summaries and descriptions are wrapped.**
 
 ```diff
-def example_function(param1, param2, option='default'):
--    """This summary line is intentionally very long and exceeds the line length limit to demonstrate that format-docstring will automatically wrap it across multiple lines while preserving code structure.
+def load_records(path, limit=100):
+-    """Load records from disk and normalize every field before returning the resulting table.
 +    """
-+    This summary line is intentionally very long and exceeds the line length
-+    limit to demonstrate that format-docstring will automatically wrap it
-+    across multiple lines while preserving code structure.
++    Load records from disk and normalize every field before returning the
++    resulting table.
 
     Parameters
     ----------
--    param1 : str
--        This parameter description is also intentionally long to show how parameter descriptions get wrapped when they exceed the configured line length limit
--    param2 : int
--        Another long parameter description that demonstrates the wrapping behavior for parameter documentation in NumPy-style docstrings
-+    param1 : str
-+        This parameter description is also intentionally long to show how
-+        parameter descriptions get wrapped when they exceed the configured
-+        line length limit
-+    param2 : int
-+        Another long parameter description that demonstrates the wrapping
-+        behavior for parameter documentation in NumPy-style docstrings
-    option : str, optional
-        Short description (not wrapped)
+-    path : str
+-        Path to a CSV file that may be local or remote and may include query parameters that make the line too long.
+-    limit : int
+-        Maximum number of rows to read before validation and normalization run.
++    path : str
++        Path to a CSV file that may be local or remote and may include query
++        parameters that make the line too long.
++    limit : int
++        Maximum number of rows to read before validation and normalization
++        run.
 
     Returns
     -------
-    dict
--        The return value wrapped, because it is a very long line that exceeds line length limit by a lot.
-+        The return value wrapped, because it is a very long line that exceeds
-+        line length limit by a lot.
-
-    Examples
-    --------
-    Within the "Examples" section, code with >>> prompts are preserved without
-    wrapping:
-
-    >>> result = example_function('test', 42, option='custom_value_with_a_very_long_name_that_exceeds_line_length')
-    >>> print(result)
-    {'status': 'success'}
-
-    rST tables are preserved without wrapping:
-
-    ===========  ==================  ===============================
-    Format       Wrapped             Preserved
-    ===========  ==================  ===============================
-    Text         Yes                 No (in tables, code, lists)
-    Params       Yes                 Signature lines preserved
-    ===========  ==================  ===============================
-
-    Contents following double colons (`::`) are preserved::
-
-                  P(B|A) P(A)
-        P(A|B) = -------------
-                      P(B)
-
-    Even if there isn't an extra blank line after `::`, the contents are still
-    preserved::
-            _______
-       σ = √ Var(X)
-
-    Regular bullet lists are also preserved:
-
-    - First bullet point that is intentionally long but not wrapped
-    - Second point also stays on one line regardless of length
+    list[dict[str, str]]
+-        Normalized rows ready for downstream processing or serialization.
++        Normalized rows ready for downstream processing or serialization.
     """
 ```
 
-### 2.2. One-line summaries are formatted to fit line length limit
+**Known section names and signature spacing are canonicalized.**
 
 ```diff
-def my_function():
--    """Contents are short, but with quotation marks this exceeds length limit."""
-+    """
-+    Contents are short, but with quotation marks this exceeds length limit.
-+    """
-    pass
-```
-
-### 2.3. Minor typos can be automatically fixed
-
-```diff
-def mu_function():
+def resize(image):
     """
-    Minor typos in section titles or "signatures" can be fixed.
+    Resize an image.
 
--    Parameter
--    ----
+-    ParaMEter
+-    ---
 +    Parameters
 +    ----------
-    arg1 : str
-        Arg 1
-    arg2 : bool
-        Arg 2
--    arg3: int
-+    arg3 : int
-        Arg 3
--    arg4    : int
-+    arg4 : int
-        Arg 4
+    image : ArrayLike
+        Input image.
 
 -    ReTurn
 -    ----------
 +    Returns
 +    -------
-    int
-        The return value
+    ArrayLike
+        Resized image.
     """
-    pass
 ```
 
-or, Google-style section headers can be fixed:
+**Default value declarations are standardized.**
 
 ```diff
-def my_function():
-    """
-    My function
-
--    Args:
--    ----
-+    Parameters
-+    ----------
-    arg1 : str
-        Arg 1
-
-    ...
-    """
-    pass
-```
-
-### 2.4. Default value declarations are standardized
-
-```diff
-def example_function(arg1, arg2, arg3, arg4):
+def connect():
     """
     Parameters
     ----------
--    arg1 : int default 10
-+    arg1 : int, default=10
-        First argument
--    arg2 : str, default "hello"
-+    arg2 : str, default="hello"
-        Second argument
--    arg3 : bool, default is True
-+    arg3 : bool, default=True
-        Third argument
--    arg4 : float default: 3.14
-+    arg4 : float, default=3.14
-        Fourth argument
+-    retries : int default 3
++    retries : int, default=3
+        Number of attempts.
+-    timeout : float, default is 1.5
++    timeout : float, default=1.5
+        Timeout in seconds.
     """
-    pass
 ```
 
-### 2.5. Single backticks are converted to double backticks (rST syntax)
+**Single backticks in prose are converted to rST inline literals.**
 
 ```diff
-def process_data(data):
+def parse(payload):
     """
--    Process data using the `transform` function.
-+    Process data using the ``transform`` function.
+-    Parse `payload` into a normalized mapping.
++    Parse ``payload`` into a normalized mapping.
 
     Parameters
     ----------
-    data : dict
--        Input data with keys `id`, `value`, and `timestamp`.
-+        Input data with keys ``id``, ``value``, and ``timestamp``.
-
-    Returns
-    -------
-    dict
--        Processed data with key `result`.
-+        Processed data with key ``result``.
+    payload : dict
+-        Input with `id` and `value` keys.
++        Input with ``id`` and ``value`` keys.
     """
 ```
 
-### 2.6. Docstring parameters and returns stay in sync with signatures
+**Parameters and returns are synchronized from the real signature.**
 
 ```diff
-from typing import List, Optional
-
-
-def create_user(
-        user: Optional[str] = None,
-        roles: List["Role"] | None = None,
-        retries: int = 0,
-        serializer: "Serializer" | None = None,
-        something_else: tuple[int, ...] = (
-            "1",
-            '2',
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-            11,
-            12,
-        ),
-) -> None:
+def summarize(name: str, retries: int = 3) -> tuple[int, str]:
     """
+    Summarize a job.
+
     Parameters
     ----------
--    user : str
-+    user : Optional[str], default=None
-        Login name.
--    roles : list
-+    roles : List["Role"] | None, default=None
-        Assigned roles.
--    retries : int
-+    retries : int, default=0
-        Number of retry attempts.
--    serializer : Serializer, optional
-+    serializer : "Serializer" | None, default=None
-        Custom serializer instance.
--    something_else : tuple[int, ...]
-+    something_else : tuple[int, ...], default=("1", '2', 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-    """
-    pass
-```
+-    name : object
++    name : str
+        Job name.
+-    retries : int, optional
++    retries : int, default=3
+        Retry count.
 
-And return type hint:
-
-```diff
-def build_mapping() -> dict[str, str]:
-    """
-    Returns
-    -------
--    str
-+    dict[str, str]
-        Mapping of values.
-    """
-```
-
-For tuple return annotations, tuple elements are split across multiple
-signature lines only when the docstring already adopted that layout:
-
-```diff
-def compute_values() -> tuple[int, str, list[str]]:
-    """
     Returns
     -------
 -    float
 +    int
-        First element.
--    str
-+    str
-        Second element.
--    List[str]
-+    list[str]
-        Third element.
+        Number of processed rows.
+    str
+        Human-readable status.
     """
 ```
 
-Annotations and defaults are extracted from the actual function signature, so
-docstring signature lines reflect the ground truth. Defaulted parameters omit
-redundant `, optional`, forward references keep their original quoting, and
-return signatures track tuple splitting conventions already present in the
-docstring.
+### 2.2. Google-style docstrings
+
+Google-style docstrings use colon-ended section headers. Signature lines keep
+the first description sentence inline as `name (type): description`, and
+continuation lines are indented below the description.
+
+**Long summaries and descriptions are wrapped.**
+
+```diff
+def load_records(path, limit=100):
+-    """Load records from disk and normalize every field before returning the resulting table.
++    """Load records from disk and normalize every field before returning the
++    resulting table.
+
+    Args:
+-        path (str): Path to a CSV file that may be local or remote and may include query parameters that make the line too long.
+-        limit (int): Maximum number of rows to read before validation and normalization run.
++        path (str): Path to a CSV file that may be local or remote and may
++            include query parameters that make the line too long.
++        limit (int): Maximum number of rows to read before validation and
++            normalization run.
+
+    Returns:
+-        list[dict[str, str]]: Normalized rows ready for downstream processing or serialization.
++        list[dict[str, str]]: Normalized rows ready for downstream processing
++            or serialization.
+    """
+```
+
+**Known section names and signature spacing are canonicalized.**
+
+```diff
+def resize(image):
+    """
+    Resize an image.
+
+-    ParaMEter:
+-        image(ArrayLike):Input image.
++    Args:
++        image (ArrayLike): Input image.
+
+-    ReTurn:
+-        ArrayLike: Resized image.
++    Returns:
++        ArrayLike: Resized image.
+    """
+```
+
+**Default value declarations are standardized.**
+
+```diff
+def connect():
+    """
+    Args:
+-        retries (int, default 3): Number of attempts.
+-        timeout (float, default is 1.5): Timeout in seconds.
++        retries (int, default=3): Number of attempts.
++        timeout (float, default=1.5): Timeout in seconds.
+    """
+```
+
+**Single backticks in prose are converted to rST inline literals.**
+
+```diff
+def parse(payload):
+    """
+-    Parse `payload` into a normalized mapping.
++    Parse ``payload`` into a normalized mapping.
+
+    Args:
+-        payload (dict): Input with `id` and `value` keys.
++        payload (dict): Input with ``id`` and ``value`` keys.
+-            Use `strict` mode for validation.
++            Use ``strict`` mode for validation.
+    """
+```
+
+**Parameters and returns are synchronized from the real signature.**
+
+```diff
+def summarize(name: str, retries: int = 3) -> tuple[int, str]:
+    """Summarize a job.
+
+    Args:
+-        name (object): Job name.
++        name (str): Job name.
+-        retries (int, optional): Retry count.
++        retries (int, default=3): Retry count.
+
+    Returns:
+-        status (float): Number of processed rows.
+-        label (str): Human-readable status.
++        tuple[int, str]: Number of processed rows. label (str):
++            Human-readable status.
+    """
+```
 
 ## 3. Special Formatting Rules
 
@@ -322,91 +274,149 @@ docstring.
 style. These examples show the extra rules applied around structure, protected
 content, and source-signature sync.
 
-### 3.1. Section handling
+### 3.1. NumPy-style docstrings
 
-Known sections are parsed and common aliases are canonicalized. Custom sections
-stay custom, and their body is wrapped as prose.
+**Protected content keeps its shape.** Tables, doctest prompts, fenced code,
+literal blocks introduced by `::`, and bullet lists are not reflowed. Prose
+around those blocks still wraps normally.
 
-Before:
-
-```python
-# `Arguments:` is a supported Google alias. `Todo:` is custom.
+```diff
 """
-Do work.
+-Use this formula before processing the records because the surrounding prose is long enough to wrap::
++Use this formula before processing the records because the surrounding prose
++is long enough to wrap::
 
-Arguments:
-    name: Person to greet.
+        total = alpha + beta
+        ratio = total / count
 
-Todo:
-    Keep this custom section, but wrap its prose normally.
+Parameters
+----------
+records : list[dict[str, str]]
+    Input records.
 """
 ```
 
-After:
+**Known sections are parsed, and custom sections are kept.** Recognized section
+titles such as `Parameters`, `Returns`, `Yields`, `Raises`, `Examples`, and
+`Notes` are canonicalized. Unknown underlined sections remain custom sections,
+and their prose is wrapped instead of being parsed as parameter signatures.
 
-```python
+```diff
+def work():
+    """
+-    argument
+-    --------
++    Parameters
++    ----------
+    value : int
+        Value to process.
+
+-    Todo
+-    ----
+-    Keep this custom section, but wrap its prose normally when it exceeds the configured line length.
++    Todo
++    ----
++    Keep this custom section, but wrap its prose normally when it exceeds the
++    configured line length.
+    """
+```
+
+**Tuple returns can stay split across multiple signature lines.** When the
+docstring already documents tuple elements as separate return entries, NumPy
+formatting syncs each element from the real return annotation.
+
+```diff
+def compute() -> tuple[int, str]:
+    """
+    Returns
+    -------
+-    float
++    int
+        Row count.
+    str
+        Status message.
+    """
+```
+
+**`Raises` entries are treated as signatures.** Exception names stay untouched;
+only their descriptions wrap.
+
+```diff
 """
-Do work.
+Raises
+------
+ValueError
+-    Raised when the payload is missing a required key and the caller asked for strict validation.
++    Raised when the payload is missing a required key and the caller asked for
++    strict validation.
+"""
+```
+
+**Class attributes can be synchronized too.** Class docstrings can use
+annotated assignments and type comments as the source of truth for
+`Attributes`.
+
+```diff
+class Config:
+    """
+    Attributes
+    ----------
+-    retries : int, optional
++    retries : int, default=3
+        Retry count.
+    """
+
+    retries = 3  # type: int
+```
+
+### 3.2. Google-style docstrings
+
+**Protected content keeps its shape.** Tables, doctest prompts, fenced code,
+literal blocks introduced by `::`, and Python-like code in `Examples:` are not
+reflowed. Prose around those blocks still wraps normally.
+
+```diff
+"""
+-Use this formula before processing the records because the surrounding prose is long enough to wrap::
++Use this formula before processing the records because the surrounding prose
++is long enough to wrap::
+
+        total = alpha + beta
+        ratio = total / count
 
 Args:
-    name: Person to greet.
-
-Todo:
-    Keep this custom section, but wrap its prose normally.
+    records (list[dict[str, str]]): Input records.
 """
 ```
 
-NumPy signature sections such as `Parameters`, `Other Parameters`,
-`Attributes`, `Returns`, `Yields`, `Raises`, and `Examples` get the same kind
-of section-aware parsing.
+**Custom section boundaries are indentation-sensitive.** Known headers such as
+`Args:`, `Returns:`, `Raises:`, and `Examples:` are canonicalized. Unknown
+peer-level headers after summary content are treated as custom sections, so
+their body wraps as prose instead of as argument descriptions.
 
-For Google-style docstrings, custom section headers are recognized only after
-summary content has been seen, or after another section has already started at
-the same or lower indentation. If the first content line is an unknown `Name:`
-header, it is treated as summary text rather than promoted to a custom section.
-In compact Google output, that first line may therefore stay beside the opening
-triple quotes.
-
-Before:
-
-```python
+```diff
 def work():
     """
+    Do work.
+
+-    Arguments:
++    Args:
+        value: Value to process.
+
     Todo:
-        Keep this custom section as the leading content.
+-        Keep this custom section, but wrap its prose normally when it exceeds the configured line length.
++        Keep this custom section, but wrap its prose normally when it exceeds
++        the configured line length.
     """
 ```
 
-After:
+If the first content line is an unknown `Name:` header, it is treated as
+summary text rather than promoted to a custom section. That protects compact
+Google summaries from being misclassified.
 
-```python
-def work():
-    """Todo: Keep this custom section as the leading content.
-    """
-```
-
-### 3.2. Content that is preserved
-
-Tables, bullet lists, fenced code blocks, doctest blocks, Python-like code in
-`Examples` sections, and literal blocks introduced by `::` are preserved. Prose
-still gets normal rST literal fixes.
-
-The formatter expects docstrings to be structurally recognizable. Section
-headers must use the target style's syntax and indentation: Google sections use
-peer-level `Name:` headers, while NumPy sections use a title followed by an
-underline. The formatter fixes local formatting issues such as wrapping,
-spacing, and stale signature metadata, but it does not infer intent from
-misindented sections or unstructured prose.
-
-Within Google `Examples:` sections, indented text that looks like a section
-header, such as `Args:` or `Returns:`, is treated as example output rather than
-as a new section. A real section boundary must be at the same or lower
-indentation as the active `Examples:` header. Python comments and output lines
-inside example code are preserved; explanatory prose that should be wrapped
-should be written as prose and separated from code/output by a blank line.
-
-For example, the indented `Args:` below is doctest output, while the peer-level
-`Args:` that follows the blank line is a real section boundary:
+**`Examples:` has special boundary rules.** Indented text that looks like a
+section header can be doctest output. A real section boundary must return to
+the same or lower indentation as the active `Examples:` header.
 
 ```python
 """
@@ -421,118 +431,33 @@ Args:
 """
 ```
 
-Before:
+**Returns and yields describe one value.** Google style does not split tuple
+returns into separate return-variable rows. If a tuple annotation is present,
+the formatter syncs the tuple type into one `Returns:` entry and keeps the old
+text as description.
 
-```python
-"""
-Notes
------
-Use `value` in prose.
-
-Example::
-
-    print(`raw`)  # Literal blocks are protected.
-"""
-```
-
-After:
-
-```python
-"""
-Notes
------
-Use ``value`` in prose.
-
-Example::
-
-    print(`raw`)  # This protected line is left unchanged.
-"""
-```
-
-### 3.3. Signature synchronization
-
-When formatting complete Python source, parameter and return signature lines
-are synchronized from the actual function or class signature. Function
-annotations and default values are treated as the source of truth, class
-docstrings can use `__init__` and class attribute metadata.
-
-Before:
-
-```python
-# The function signature is the source of truth.
-def parse(value: int = 3) -> tuple[int, str]:
+```diff
+def compute() -> tuple[int, str]:
     """
-    Parse a value.
-
-    Parameters
-    ----------
-    value : str, optional
-        Value to parse.
-
-    Returns
-    -------
-    float
-        Parsed number.
-    str
-        Parsed label.
-    """
-```
-
-After:
-
-```python
-def parse(value: int = 3) -> tuple[int, str]:
-    """Parse a value.
-
-    Parameters
-    ----------
-    value : int = 3
-        Value to parse.
-
-    Returns
-    -------
-    int
-        Parsed number.
-    str
-        Parsed label.
-    """
-```
-
-**Google-style users:** this rule is intentionally strict. `Returns:` and
-`Yields:` describe one returned value; they do not declare return variable
-names. If the input lists several return variables, `format-docstring` keeps
-the text but rewrites it into one Google return description. The result can
-look awkward, but it avoids preserving a shape that Google style does not
-support. This is also true when the function annotation is a tuple: unlike the
-NumPy formatter, the Google formatter does not split tuple elements across
-multiple `Returns:` or `Yields:` rows.
-
-Google return and yield types should use Python annotation syntax. Free-form
-multi-word type descriptions such as `list of str` are treated as prose rather
-than type signatures; write `list[str]` when the line should be formatted as a
-return or yield signature.
-
-Before:
-
-```python
-def render() -> tuple[str, int]:
-    """Render a value.
-
     Returns:
-        result (OldType): First value.
-        status (int): Second value.
+-        count (float): Row count.
+-        status (str): Status message.
++        tuple[int, str]: Row count. status (str): Status message.
     """
 ```
 
-After:
+**Class attributes can be synchronized too.** Google `Attributes:` entries use
+the same source-signature policy as `Args:`.
 
-```python
-def render() -> tuple[str, int]:
-    """Render a value.
-
-    Returns:
-        tuple[str, int]: First value. status (int): Second value.
+```diff
+class Config:
     """
+    Attributes:
+-        retries (int, optional): Retry count.
++        retries (int, default=3): Retry count.
+    """
+
+    retries = 3  # type: int
 ```
 
 ## 4. Installation
