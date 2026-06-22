@@ -328,6 +328,10 @@ Examples
 
 DATA_DIR_NUMPY: Path = Path(__file__).parent / 'test_data/end_to_end/numpy'
 DATA_DIR_GOOGLE: Path = Path(__file__).parent / 'test_data/end_to_end/google'
+DATA_DIR_CLI_OPTIONS: Path = (
+    Path(__file__).parent / 'test_data/end_to_end/cli_options'
+)
+OptionTestCase = tuple[str, str, str, str, int, bool, bool]
 
 
 def _load_end_to_end_test_cases(
@@ -395,6 +399,38 @@ def _load_test_case(filepath: Path) -> tuple[str, str, str, int] | None:
     return test_case_name, before_content, after_content, line_length
 
 
+def _load_option_test_cases() -> list[OptionTestCase]:
+    """Load end-to-end include option test cases."""
+    raw_cases = [
+        ('numpy', 'include_arg_types_and_defaults_true.txt', True, True),
+        ('numpy', 'include_arg_types_false.txt', False, True),
+        ('numpy', 'include_arg_defaults_false.txt', True, False),
+        ('numpy', 'include_arg_types_and_defaults_false.txt', False, False),
+        ('google', 'include_arg_types_and_defaults_true.txt', True, True),
+        ('google', 'include_arg_types_false.txt', False, True),
+        ('google', 'include_arg_defaults_false.txt', True, False),
+        ('google', 'include_arg_types_and_defaults_false.txt', False, False),
+    ]
+    test_cases: list[OptionTestCase] = []
+    for style, filename, include_arg_types, include_arg_defaults in raw_cases:
+        loaded = _load_test_case(DATA_DIR_CLI_OPTIONS / style / filename)
+        if loaded is None:
+            raise AssertionError(f'Malformed option fixture: {filename}')
+
+        name, input_src, expected_src, line_length = loaded
+        test_cases.append((
+            f'{style}_{name}',
+            style,
+            input_src,
+            expected_src,
+            line_length,
+            include_arg_types,
+            include_arg_defaults,
+        ))
+
+    return test_cases
+
+
 @pytest.mark.parametrize(
     ('test_name', 'input_src', 'expected_src', 'line_length'),
     _load_end_to_end_test_cases(DATA_DIR_NUMPY),
@@ -438,6 +474,40 @@ def test_fix_src_end_to_end_google(
     """
     result = docstring_rewriter.fix_src(
         input_src, line_length=line_length, docstring_style='google'
+    )
+    assert result == expected_src
+
+
+@pytest.mark.parametrize(
+    (
+        'test_name',
+        'style',
+        'input_src',
+        'expected_src',
+        'line_length',
+        'include_arg_types',
+        'include_arg_defaults',
+    ),
+    _load_option_test_cases(),
+    ids=lambda case: case[0] if isinstance(case, tuple) else str(case),
+)
+def test_fix_src_include_arg_options_end_to_end(
+        test_name: str,  # noqa: ARG001
+        style: str,
+        input_src: str,
+        expected_src: str,
+        line_length: int,
+        *,
+        include_arg_types: bool,
+        include_arg_defaults: bool,
+) -> None:
+    """Verify include arg options with full-source AST metadata rewrites."""
+    result = docstring_rewriter.fix_src(
+        input_src,
+        line_length=line_length,
+        docstring_style=style,
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
     )
     assert result == expected_src
 

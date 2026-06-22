@@ -309,6 +309,8 @@ def fix_src(
         line_length: int = 79,
         docstring_style: str = 'numpy',
         fix_rst_backticks: bool = True,
+        include_arg_types: bool = True,
+        include_arg_defaults: bool = True,
 ) -> str:
     """
     Return code with only docstrings updated to wrapped content.
@@ -324,6 +326,10 @@ def fix_src(
     fix_rst_backticks : bool, default=True
         If True, automatically fix single backticks to double backticks per rST
         syntax.
+    include_arg_types : bool, default=True
+        If True, include argument type hints in parameter docstrings.
+    include_arg_defaults : bool, default=True
+        If True, include argument defaults in parameter docstrings.
 
     Returns
     -------
@@ -351,6 +357,8 @@ def fix_src(
         line_length=line_length,
         docstring_style=docstring_style,
         fix_rst_backticks=fix_rst_backticks,
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
     )
     if replacement is not None:
         replacements.append(replacement)
@@ -367,6 +375,8 @@ def fix_src(
                 line_length=line_length,
                 docstring_style=docstring_style,
                 fix_rst_backticks=fix_rst_backticks,
+                include_arg_types=include_arg_types,
+                include_arg_defaults=include_arg_defaults,
             )
             if replacement is not None:
                 replacements.append(replacement)
@@ -414,6 +424,8 @@ def build_replacement_docstring(
         line_length: int,
         docstring_style: str = 'numpy',
         fix_rst_backticks: bool = True,
+        include_arg_types: bool = True,
+        include_arg_defaults: bool = True,
 ) -> tuple[int, int, str] | None:
     """
     Compute a single docstring replacement for the given node.
@@ -433,6 +445,10 @@ def build_replacement_docstring(
     fix_rst_backticks : bool, default=True
         If True, automatically fix single backticks to double backticks per rST
         syntax.
+    include_arg_types : bool, default=True
+        If True, include argument type hints in parameter docstrings.
+    include_arg_defaults : bool, default=True
+        If True, include argument defaults in parameter docstrings.
 
     Returns
     -------
@@ -532,6 +548,8 @@ def build_replacement_docstring(
         function_param_metadata=param_metadata,
         function_return_annotation=return_annotation,
         class_attribute_metadata=attribute_metadata,
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
         compact_google_docstring=True,
         append_google_closing_indent=True,
     )
@@ -686,6 +704,8 @@ def wrap_docstring(
         function_param_metadata: ParameterMetadata | None = None,
         function_return_annotation: str | None = None,
         class_attribute_metadata: ParameterMetadata | None = None,
+        include_arg_types: bool = True,
+        include_arg_defaults: bool = True,
         compact_google_docstring: bool = False,
         append_google_closing_indent: bool = False,
 ) -> str:
@@ -716,6 +736,10 @@ def wrap_docstring(
     class_attribute_metadata : ParameterMetadata | None, default=None
         Attribute metadata for class docstrings (names mapped to annotations
         and default values) collected from class-level assignments.
+    include_arg_types : bool, default=True
+        If True, include argument type hints in parameter docstrings.
+    include_arg_defaults : bool, default=True
+        If True, include argument defaults in parameter docstrings.
     compact_google_docstring : bool, default=False
         If True, Google-style wrapping may place the first summary line beside
         the opening quotes when indentation allows it.
@@ -761,6 +785,8 @@ def wrap_docstring(
             parameter_metadata=function_param_metadata,
             return_annotation=function_return_annotation,
             attribute_metadata=class_attribute_metadata,
+            include_arg_types=include_arg_types,
+            include_arg_defaults=include_arg_defaults,
             compact_first_line=compact_google_docstring,
         )
     # Default to NumPy-style for unknown/unspecified styles to be permissive.
@@ -775,4 +801,6 @@ def wrap_docstring(
         parameter_metadata=function_param_metadata,
         attribute_metadata=class_attribute_metadata,
         return_annotation=function_return_annotation,
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
     )

@@ -19,6 +19,8 @@ _VALUE_OPTIONS = frozenset({
     '--docstring-style',
     '--exclude',
     '--fix-rst-backticks',
+    '--include-arg-defaults',
+    '--include-arg-types',
     '--line-length',
     '--verbose',
 })

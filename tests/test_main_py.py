@@ -1,5 +1,6 @@
 from pathlib import Path
 from shutil import copy2
+from textwrap import dedent
 
 import pytest
 from click.testing import CliRunner
@@ -109,3 +110,41 @@ def test_cli_config_verbose_diff(tmp_path: Path) -> None:
     # Ensure the file was rewritten
     output = test_file.read_text()
     assert output.count('"""') == 2
+
+
+def test_cli_include_arg_options_strip_google_signature(
+        tmp_path: Path,
+) -> None:
+    """CLI include options strip Google arg metadata when disabled."""
+    test_file = tmp_path / 'doc.py'
+    test_file.write_text(
+        dedent(
+            '''
+            def foo(x: int = 3):
+                """Do it.
+
+                Args:
+                    x (float, default=9): Value. The default is automatic.
+                """
+                return x
+            '''
+        ).lstrip()
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_py,
+        [
+            '--docstring-style',
+            'google',
+            '--include-arg-types=False',
+            '--include-arg-defaults=False',
+            str(test_file),
+        ],
+    )
+    assert result.exit_code in {0, 1}, result.output
+
+    output = test_file.read_text()
+    assert 'x: Value. The default is automatic.' in output
+    assert 'x (float' not in output
+    assert 'default=9' not in output

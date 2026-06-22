@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from shutil import copy2
+from textwrap import dedent
 
 import pytest
 from click.testing import CliRunner
@@ -109,3 +110,55 @@ def test_cli_ipynb_config_verbose_diff(tmp_path: Path) -> None:
 
     # Ensure contents changed after formatting.
     assert json.loads(work_file.read_text()) != json.loads(fixture.read_text())
+
+
+def test_cli_ipynb_include_arg_options_strip_google_signature(
+        tmp_path: Path,
+) -> None:
+    """Notebook CLI include options strip Google arg metadata when disabled."""
+    source = dedent(
+        '''
+        def foo(x: int = 3):
+            """Do it.
+
+            Args:
+                x (float, default=9): Value. The default is automatic.
+            """
+            return x
+        '''
+    ).lstrip()
+    notebook = {
+        'cells': [
+            {
+                'cell_type': 'code',
+                'execution_count': None,
+                'metadata': {},
+                'outputs': [],
+                'source': source.splitlines(keepends=True),
+            }
+        ],
+        'metadata': {},
+        'nbformat': 4,
+        'nbformat_minor': 5,
+    }
+    work_file = tmp_path / 'work.ipynb'
+    work_file.write_text(json.dumps(notebook), encoding='utf-8')
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_ipynb,
+        [
+            '--docstring-style',
+            'google',
+            '--include-arg-types=False',
+            '--include-arg-defaults=False',
+            str(work_file),
+        ],
+    )
+    assert result.exit_code in {0, 1}, result.output
+
+    updated = json.loads(work_file.read_text())
+    updated_source = ''.join(updated['cells'][0]['source'])
+    assert 'x: Value. The default is automatic.' in updated_source
+    assert 'x (float' not in updated_source
+    assert 'default=9' not in updated_source

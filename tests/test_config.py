@@ -1,6 +1,7 @@
 """Tests for configuration file parsing."""
 
 from pathlib import Path
+from textwrap import dedent
 
 from click.testing import CliRunner
 
@@ -94,11 +95,17 @@ def test_load_config_with_hyphens(tmp_path: Path) -> None:
     config_content = """
 [tool.format_docstring]
 line-length = 100
+include-arg-types = false
+include-arg-defaults = false
 """
     config_file.write_text(config_content)
 
     result = load_config_from_file(config_file)
-    assert result == {'line_length': 100}
+    assert result == {
+        'line_length': 100,
+        'include_arg_types': False,
+        'include_arg_defaults': False,
+    }
 
 
 def test_find_config_file_from_current_dir(tmp_path: Path) -> None:
@@ -253,3 +260,90 @@ def test_invalid_toml_file(tmp_path: Path) -> None:
     # Should return empty dict instead of crashing
     result = load_config_from_file(config_file)
     assert result == {}
+
+
+def test_cli_config_include_arg_options(tmp_path: Path) -> None:
+    """Config file can disable included Google arg metadata."""
+    config_file = tmp_path / 'pyproject.toml'
+    config_file.write_text(
+        dedent(
+            """
+            [tool.format_docstring]
+            docstring_style = "google"
+            include_arg_types = false
+            include_arg_defaults = false
+            """
+        )
+    )
+
+    test_file = tmp_path / 'doc.py'
+    test_file.write_text(
+        dedent(
+            '''
+            def foo(x: int = 3):
+                """Do it.
+
+                Args:
+                    x (float, default=9): Value. The default is automatic.
+                """
+                return x
+            '''
+        ).lstrip()
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_py, ['--config', str(config_file), str(test_file)]
+    )
+    assert result.exit_code in {0, 1}, result.output
+
+    output = test_file.read_text()
+    assert 'x: Value. The default is automatic.' in output
+    assert 'x (float' not in output
+    assert 'default=9' not in output
+
+
+def test_cli_include_arg_options_override_config(tmp_path: Path) -> None:
+    """CLI include options override config file values."""
+    config_file = tmp_path / 'pyproject.toml'
+    config_file.write_text(
+        dedent(
+            """
+            [tool.format_docstring]
+            docstring_style = "google"
+            include_arg_types = false
+            include_arg_defaults = false
+            """
+        )
+    )
+
+    test_file = tmp_path / 'doc.py'
+    test_file.write_text(
+        dedent(
+            '''
+            def foo(x: int = 3):
+                """Do it.
+
+                Args:
+                    x (float, default=9): Value.
+                """
+                return x
+            '''
+        ).lstrip()
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_py,
+        [
+            '--config',
+            str(config_file),
+            '--include-arg-types=True',
+            '--include-arg-defaults=True',
+            str(test_file),
+        ],
+    )
+    assert result.exit_code in {0, 1}, result.output
+
+    output = test_file.read_text()
+    assert 'x (int, default=3): Value.' in output

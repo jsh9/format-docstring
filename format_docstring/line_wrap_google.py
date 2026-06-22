@@ -118,6 +118,8 @@ def wrap_docstring_google(
         parameter_metadata: ParameterMetadata | None = None,
         return_annotation: str | None = None,
         attribute_metadata: ParameterMetadata | None = None,
+        include_arg_types: bool = True,
+        include_arg_defaults: bool = True,
         compact_first_line: bool = False,
 ) -> str:
     """
@@ -148,6 +150,8 @@ def wrap_docstring_google(
         parameter_metadata=parameter_metadata,
         return_annotation=return_annotation,
         attribute_metadata=attribute_metadata,
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
         compact_first_line=should_compact_first_line,
     )
 
@@ -194,6 +198,8 @@ def _pass1_unwrap_google_docstring(
         parameter_metadata: ParameterMetadata | None = None,
         return_annotation: str | None = None,
         attribute_metadata: ParameterMetadata | None = None,
+        include_arg_types: bool = True,
+        include_arg_defaults: bool = True,
         compact_first_line: bool = False,
 ) -> str:
     """
@@ -267,6 +273,8 @@ def _pass1_unwrap_google_docstring(
                 parts,
                 section_info,
                 return_annotation_str,
+                include_arg_types=include_arg_types,
+                include_arg_defaults=include_arg_defaults,
             )
             if signature_item is not None:
                 state.output.extend(signature_item.lines)
@@ -436,6 +444,9 @@ def _unwrap_google_signature_item(
         parts: _GoogleLineParts,
         section_info: _GoogleSignatureSectionInfo,
         return_annotation: str | None,
+        *,
+        include_arg_types: bool = True,
+        include_arg_defaults: bool = True,
 ) -> _GoogleUnwrappedSignatureItem | None:
     """Unwrap one Google signature item, if the current line is an item."""
     candidate = _standardize_google_signature_candidate(
@@ -453,6 +464,8 @@ def _unwrap_google_signature_item(
         signature_part = _rewrite_google_parameter_signature(
             signature_part,
             section_info.metadata,
+            include_arg_types=include_arg_types,
+            include_arg_defaults=include_arg_defaults,
         )
 
     description_lines, next_index = _collect_google_description_lines(
@@ -1525,31 +1538,34 @@ def _split_google_annotation_pieces(annotation: str) -> list[str]:
     return pieces
 
 
-def _strip_google_metadata_markers(annotation: str) -> str:
-    """
-    Remove docstring-only optional/default markers before source sync.
-
-    When function metadata supplies the default value, stale ``optional`` or
-    existing ``default=...`` text in the docstring should not be preserved as a
-    second default marker.
-    """
-    pieces = []
+def _split_google_metadata_markers(
+        annotation: str,
+) -> tuple[list[str], str | None, bool]:
+    """Split Google annotation text into type pieces, default, and optional."""
+    type_pieces: list[str] = []
+    default_value: str | None = None
+    has_optional = False
     for piece in _split_google_annotation_pieces(annotation):
         piece_lower = piece.lower()
         if piece_lower == 'optional':
+            has_optional = True
             continue
 
         if piece_lower.startswith('default='):
+            default_value = piece.split('=', 1)[1].strip()
             continue
 
-        pieces.append(piece)
+        type_pieces.append(piece)
 
-    return ', '.join(pieces)
+    return type_pieces, default_value, has_optional
 
 
 def _rewrite_google_parameter_signature(
         signature_part: str,
         metadata: ParameterMetadata | None,
+        *,
+        include_arg_types: bool = True,
+        include_arg_defaults: bool = True,
 ) -> str:
     """Rewrite an ``Args:`` or ``Attributes:`` signature from metadata."""
     stripped_colon = signature_part.rstrip()
@@ -1563,23 +1579,41 @@ def _rewrite_google_parameter_signature(
 
     name = match.group('name')
     meta = _lookup_google_metadata(name, metadata)
-    if meta is None:
+    if meta is None and include_arg_types and include_arg_defaults:
         return signature_part
 
-    annotation, default = meta
     existing_annotation = (match.group('annotation') or '').strip()
-    annotation_text = (
-        annotation if annotation is not None else existing_annotation
+    existing_type_pieces, existing_default, has_optional = (
+        _split_google_metadata_markers(existing_annotation)
     )
-    if default is not None:
-        annotation_text = _strip_google_metadata_markers(annotation_text)
 
     pieces: list[str] = []
-    if annotation_text:
-        pieces.append(annotation_text)
+    annotation: str | None = None
+    default: str | None = None
+    if meta is not None:
+        annotation, default = meta
 
-    if default is not None:
-        pieces.append(f'default={default}')
+    source_controls_annotation = meta is not None and annotation is not None
+    source_controls_defaults = meta is not None and (
+        annotation is not None or default is not None
+    )
+
+    default_text = None
+    if include_arg_defaults:
+        default_text = (
+            default if source_controls_defaults else existing_default
+        )
+
+    if include_arg_types:
+        if source_controls_annotation:
+            pieces.append(annotation)
+        else:
+            pieces.extend(existing_type_pieces)
+            if has_optional and default_text is None:
+                pieces.append('optional')
+
+    if default_text is not None:
+        pieces.append(f'default={default_text}')
 
     indent = match.group('indent')
     if not pieces:

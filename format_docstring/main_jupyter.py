@@ -54,9 +54,24 @@ from format_docstring.config import ConfigFileCommand
 )
 @click.option(
     '--fix-rst-backticks',
+    type=bool,
     default=True,
     show_default=True,
     help='Fix single backticks to double backticks per rST syntax',
+)
+@click.option(
+    '--include-arg-types',
+    type=bool,
+    default=True,
+    show_default=True,
+    help='Include argument type hints in parameter docstrings',
+)
+@click.option(
+    '--include-arg-defaults',
+    type=bool,
+    default=True,
+    show_default=True,
+    help='Include argument defaults in parameter docstrings',
 )
 @click.option(
     '--verbose',
@@ -73,6 +88,8 @@ def main(
         line_length: int,
         docstring_style: str,
         fix_rst_backticks: bool,
+        include_arg_types: bool,
+        include_arg_defaults: bool,
         verbose: str,
 ) -> None:
     """Format .ipynb files."""
@@ -83,6 +100,8 @@ def main(
             exclude_pattern=exclude,
             line_length=line_length,
             fix_rst_backticks=fix_rst_backticks,
+            include_arg_types=include_arg_types,
+            include_arg_defaults=include_arg_defaults,
             verbose=verbose.lower(),
         )
         fixer.docstring_style = docstring_style
@@ -102,6 +121,8 @@ class JupyterNotebookFixer(BaseFixer):
             line_length: int = 79,
             *,
             fix_rst_backticks: bool = True,
+            include_arg_types: bool = True,
+            include_arg_defaults: bool = True,
             verbose: str = 'default',
     ) -> None:
         super().__init__(
@@ -111,6 +132,8 @@ class JupyterNotebookFixer(BaseFixer):
         )
         self.line_length = line_length
         self.fix_rst_backticks = fix_rst_backticks
+        self.include_arg_types = include_arg_types
+        self.include_arg_defaults = include_arg_defaults
         self.docstring_style: str = 'numpy'
 
     def fix_one_directory_or_one_file(self) -> int:
@@ -167,6 +190,8 @@ class JupyterNotebookFixer(BaseFixer):
                     line_length=self.line_length,
                     docstring_style=self.docstring_style,
                     fix_rst_backticks=self.fix_rst_backticks,
+                    include_arg_types=self.include_arg_types,
+                    include_arg_defaults=self.include_arg_defaults,
                 )
 
                 if fixed != source_without_magic:

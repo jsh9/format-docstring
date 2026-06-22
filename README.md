@@ -36,17 +36,16 @@ ______________________________________________________________________
 `format-docstring` is a tool that automatically formats and wraps docstring
 content in Python files and Jupyter notebooks.
 
-Baseline reflow corresponds to the common docstring cleanups offered by
-general-purpose formatters: splitting one-line docstrings into the canonical
-multi-line layout (triple quotes, blank line, summary), normalizing
-indentation, and wrapping text at a fixed column width without applying extra
-heuristics.
-
 | Feature                                   | `format-docstring` | [docformatter] | [pydocstringformatter] | [Ruff] | [Black] |
 | ----------------------------------------- | ------------------ | -------------- | ---------------------- | ------ | ------- |
 | Docstring wrapping                        | ✅                 | ❌             | ❌                     | ❌     | ❌      |
 | Compatible with line length linter (E501) | ✅                 | ❌             | ❌                     | N/A    | N/A     |
 | Fixes common docstring typos              | ✅                 | ❌             | ❌                     | ❌     | ❌      |
+
+For stronger docstring checks, use `format-docstring` together with
+[`pydoclint`](https://github.com/jsh9/pydoclint). `format-docstring` handles
+formatting and wrapping, while `pydoclint` checks docstring completeness and
+consistency with function signatures.
 
 ## 2. Before vs After Examples
 
@@ -535,22 +534,18 @@ leave that docstring untouched.
 
 ### 6.1. Command-Line Options
 
-- `--line-length INTEGER`: Maximum line length for wrapping docstrings
-  (default: 79)
-- `--docstring-style CHOICE`: Docstring style to target (`numpy` or `google`,
-  default: `numpy`). This selects the style to format, not a converter between
-  styles.
-- `--fix-rst-backticks BOOL`: Automatically fix single backticks to double
-  backticks per rST syntax (default: `True`). Pass `False` to disable this.
-- `--verbose CHOICE`: Logging detail level (`default` keeps the existing
-  behaviour, `diff` prints unified diffs when rewrites happen)
-- `--exclude TEXT`: Regex pattern to exclude files/directories (default:
-  `\.git|\.tox|\.pytest_cache`)
-- `--config PATH`: Path to a `pyproject.toml` config file. If not specified,
-  the tool automatically searches for `pyproject.toml` in parent directories.
-  Command-line options take precedence over config file settings.
-- `--version`: Show version information
-- `--help`: Show help message
+| Option                        | Default   | Description                                                                                                                                                                                           |
+| ----------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--line-length INTEGER`       | `79`      | Maximum line length for wrapping docstrings.                                                                                                                                                          |
+| `--docstring-style CHOICE`    | `numpy`   | Docstring style to target, either `numpy` or `google`. This selects the style to format, not a converter between styles.                                                                              |
+| `--fix-rst-backticks BOOL`    | `True`    | Automatically fix single backticks to double backticks per rST syntax. Pass `False` to disable this.                                                                                                  |
+| `--include-arg-types BOOL`    | `True`    | Include argument type hints in parameter docstrings. Pass `False` to remove them from structured arg and attribute signature lines.                                                                   |
+| `--include-arg-defaults BOOL` | `True`    | Include argument defaults in parameter docstrings. Pass `False` to remove them from structured arg and attribute signature lines.                                                                     |
+| `--verbose CHOICE`            | `default` | Logging detail level. `default` keeps the existing behaviour; `diff` prints unified diffs when rewrites happen.                                                                                       |
+| `--exclude TEXT`              | \`.git    | .tox                                                                                                                                                                                                  |
+| `--config PATH`               | None      | Path to a `pyproject.toml` config file. If not specified, the tool automatically searches for `pyproject.toml` in parent directories. Command-line options take precedence over config file settings. |
+| `--version`                   | N/A       | Show version information.                                                                                                                                                                             |
+| `--help`                      | N/A       | Show help message.                                                                                                                                                                                    |
 
 ### 6.2. Usage Examples
 
@@ -595,17 +590,21 @@ as `line-length`.
 line_length = 79
 docstring_style = "numpy"
 fix_rst_backticks = true
+include_arg_types = true
+include_arg_defaults = true
 exclude = "\\.git|\\.venv|__pycache__"
 verbose = "default"  # or "diff" to print unified diffs
 ```
 
-For Google-style docstrings:
+For Google-style docstrings that omit arg types and defaults:
 
 ```toml
 [tool.format_docstring]
 docstring_style = "google"
 line_length = 79
 fix_rst_backticks = true
+include_arg_types = false
+include_arg_defaults = false
 ```
 
 **Available options:**
@@ -616,6 +615,10 @@ fix_rst_backticks = true
   `"numpy"` or `"google"`. Default: `"numpy"`.
 - `fix_rst_backticks` / `fix-rst-backticks` (bool): whether to convert single
   backticks in prose to double backticks per rST syntax. Default: `true`.
+- `include_arg_types` / `include-arg-types` (bool): whether to include argument
+  type hints in parameter docstrings. Default: `true`.
+- `include_arg_defaults` / `include-arg-defaults` (bool): whether to include
+  argument defaults in parameter docstrings. Default: `true`.
 - `exclude` (str): regex pattern used to skip files or directories. Default:
   `"\\.git|\\.tox|\\.pytest_cache"`.
 - `verbose` (str): logging detail level, either `"default"` or `"diff"`. Use
