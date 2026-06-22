@@ -115,7 +115,12 @@ def test_cli_config_verbose_diff(tmp_path: Path) -> None:
 def test_cli_include_arg_options_strip_google_signature(
         tmp_path: Path,
 ) -> None:
-    """CLI include options strip Google arg metadata when disabled."""
+    """
+    Verify CLI include options strip Google arg metadata when disabled.
+
+    This guards the Click plumbing so boolean command-line values reach the
+    rewriter instead of only working through direct ``fix_src`` calls.
+    """
     test_file = tmp_path / 'doc.py'
     test_file.write_text(
         dedent(

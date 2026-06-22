@@ -263,7 +263,12 @@ def test_invalid_toml_file(tmp_path: Path) -> None:
 
 
 def test_cli_config_include_arg_options(tmp_path: Path) -> None:
-    """Config file can disable included Google arg metadata."""
+    """
+    Verify config files can disable included Google arg metadata.
+
+    The options are parsed before Click resolves defaults, so this guards the
+    pyproject-to-Click default_map path rather than direct CLI parsing.
+    """
     config_file = tmp_path / 'pyproject.toml'
     config_file.write_text(
         dedent(
@@ -304,7 +309,12 @@ def test_cli_config_include_arg_options(tmp_path: Path) -> None:
 
 
 def test_cli_include_arg_options_override_config(tmp_path: Path) -> None:
-    """CLI include options override config file values."""
+    """
+    Verify CLI include options override config file values.
+
+    This protects the precedence rule that explicit command-line values remain
+    authoritative even when pyproject config disables both include options.
+    """
     config_file = tmp_path / 'pyproject.toml'
     config_file.write_text(
         dedent(

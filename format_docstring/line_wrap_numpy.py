@@ -675,6 +675,9 @@ def _rewrite_parameter_signature(
     if meta is not None:
         annotation, default = meta
 
+    # Source metadata is authoritative only when it has an annotation/default.
+    # Otherwise, preserve existing docstring pieces unless an include flag asks
+    # us to strip them; unannotated functions should not erase author docs.
     source_controls_annotation = meta is not None and annotation is not None
     source_controls_defaults = meta is not None and (
         annotation is not None or default is not None

@@ -115,7 +115,12 @@ def test_cli_ipynb_config_verbose_diff(tmp_path: Path) -> None:
 def test_cli_ipynb_include_arg_options_strip_google_signature(
         tmp_path: Path,
 ) -> None:
-    """Notebook CLI include options strip Google arg metadata when disabled."""
+    """
+    Verify notebook CLI include options strip Google arg metadata.
+
+    Notebook cells take a separate fixer path with magic reconstruction, so
+    this proves the new flags are passed through that path too.
+    """
     source = dedent(
         '''
         def foo(x: int = 3):

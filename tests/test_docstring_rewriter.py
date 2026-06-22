@@ -501,7 +501,13 @@ def test_fix_src_include_arg_options_end_to_end(
         include_arg_types: bool,
         include_arg_defaults: bool,
 ) -> None:
-    """Verify include arg options with full-source AST metadata rewrites."""
+    """
+    Verify include arg options with full-source AST metadata rewrites.
+
+    These cases must stay end-to-end because type/default inclusion depends on
+    annotations, defaults, variadics, and class attributes collected from the
+    surrounding Python source, not just the raw docstring text.
+    """
     result = docstring_rewriter.fix_src(
         input_src,
         line_length=line_length,
