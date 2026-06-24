@@ -72,6 +72,19 @@ repos:
     hooks:
       - id: markdown-heading-numbering
         exclude: ^CHANGELOG\.md$
+  - repo: https://github.com/jsh9/pre-commit-tox-version-sync
+    rev: 0.1.1
+    hooks:
+      - id: sync-precommit-tox-versions
+        args:
+          - --pre-commit-repo
+          - https://github.com/jsh9/muff-pre-commit
+          - --tox-env
+          - muff-lint
+          - --tox-env
+          - muff-format
+          - --tox-dep
+          - muff
   - repo: local
     hooks:
       - id: format-docstring
