@@ -1142,6 +1142,16 @@ def _fix_rst_backticks(docstring: str) -> str:
     It deliberately **does not** modify other rST constructs that require
     single backticks.
 
+    Parameters
+    ----------
+    docstring : str
+        The docstring content to process.
+
+    Returns
+    -------
+    str
+        The docstring with only inline-literal backticks fixed.
+
     Notes
     -----
     The following forms stay untouched:
@@ -1169,16 +1179,6 @@ def _fix_rst_backticks(docstring: str) -> str:
       anonymous/named references).
     - The line is not protected as REPL or examples code before regex
       replacement runs.
-
-    Parameters
-    ----------
-    docstring : str
-        The docstring content to process.
-
-    Returns
-    -------
-    str
-        The docstring with only inline-literal backticks fixed.
 
     Examples
     --------
