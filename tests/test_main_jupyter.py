@@ -167,3 +167,124 @@ def test_cli_ipynb_include_arg_options_strip_google_signature(
     assert 'x: Value. The default is automatic.' in updated_source
     assert 'x (float' not in updated_source
     assert 'default=9' not in updated_source
+
+
+def test_cli_ipynb_include_return_and_yield_types_strip_google_types(
+        tmp_path: Path,
+) -> None:
+    """
+    Verify notebook CLI strips Google return/yield types when disabled.
+
+    Notebook formatting reconstructs cell source after magic handling, so this
+    proves the option survives that separate fixer path.
+    """
+    source = dedent(
+        '''
+        def foo() -> dict[str, str]:
+            """Do it.
+
+            Returns:
+                dict[str, str]: Mapping result.
+            """
+            return {}
+
+        def bar() -> Iterator[int]:
+            """Yield it.
+
+            Yields:
+                int: Next value.
+            """
+            yield 1
+        '''
+    ).lstrip()
+    notebook = {
+        'cells': [
+            {
+                'cell_type': 'code',
+                'execution_count': None,
+                'metadata': {},
+                'outputs': [],
+                'source': source.splitlines(keepends=True),
+            }
+        ],
+        'metadata': {},
+        'nbformat': 4,
+        'nbformat_minor': 5,
+    }
+    work_file = tmp_path / 'work.ipynb'
+    work_file.write_text(json.dumps(notebook), encoding='utf-8')
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_ipynb,
+        [
+            '--docstring-style',
+            'google',
+            '--include-return-and-yield-types=False',
+            str(work_file),
+        ],
+    )
+    assert result.exit_code in {0, 1}, result.output
+
+    updated = json.loads(work_file.read_text())
+    updated_source = ''.join(updated['cells'][0]['source'])
+    assert 'Mapping result.' in updated_source
+    assert 'Next value.' in updated_source
+    assert 'dict[str, str]: Mapping result.' not in updated_source
+    assert 'int: Next value.' not in updated_source
+
+
+def test_cli_ipynb_numpy_include_return_and_yield_types_false_errors(
+        tmp_path: Path,
+) -> None:
+    """
+    Verify notebook CLI rejects disabled return/yield type lines for NumPy.
+
+    The failure should happen before JSON rewriting so invalid NumPy config
+    does not alter notebook formatting or metadata.
+    """
+    source = dedent(
+        '''
+        def foo() -> int:
+            """Do it.
+
+            Returns
+            -------
+            int
+                Value.
+            """
+            return 1
+        '''
+    ).lstrip()
+    notebook = {
+        'cells': [
+            {
+                'cell_type': 'code',
+                'execution_count': None,
+                'metadata': {},
+                'outputs': [],
+                'source': source.splitlines(keepends=True),
+            }
+        ],
+        'metadata': {},
+        'nbformat': 4,
+        'nbformat_minor': 5,
+    }
+    work_file = tmp_path / 'work.ipynb'
+    original_text = json.dumps(notebook)
+    work_file.write_text(original_text, encoding='utf-8')
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_ipynb,
+        [
+            '--docstring-style',
+            'numpy',
+            '--include-return-and-yield-types=False',
+            str(work_file),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert 'NumPy/numpydoc requires' in result.output
+    assert work_file.read_text() == original_text

@@ -102,8 +102,10 @@ class _GoogleWrapState:
     line_length: int
     compact_first_line: bool
     opening_quotes_on_own_line: bool
+    include_return_and_yield_types: bool
     is_first_line: bool = True
     in_signature_section: bool = False
+    in_return_section: bool = False
     custom_section_indent: int | None = None
     in_examples_section: bool = False
 
@@ -120,6 +122,7 @@ def wrap_docstring_google(
         attribute_metadata: ParameterMetadata | None = None,
         include_arg_types: bool = True,
         include_arg_defaults: bool = True,
+        include_return_and_yield_types: bool = True,
         compact_first_line: bool = False,
 ) -> str:
     """
@@ -152,6 +155,7 @@ def wrap_docstring_google(
         attribute_metadata=attribute_metadata,
         include_arg_types=include_arg_types,
         include_arg_defaults=include_arg_defaults,
+        include_return_and_yield_types=include_return_and_yield_types,
         compact_first_line=should_compact_first_line,
     )
 
@@ -162,6 +166,7 @@ def wrap_docstring_google(
         closing_indent=closing_indent,
         compact_first_line=should_compact_first_line,
         opening_quotes_on_own_line=opening_quotes_on_own_line,
+        include_return_and_yield_types=include_return_and_yield_types,
     )
 
 
@@ -200,6 +205,7 @@ def _pass1_unwrap_google_docstring(
         attribute_metadata: ParameterMetadata | None = None,
         include_arg_types: bool = True,
         include_arg_defaults: bool = True,
+        include_return_and_yield_types: bool = True,
         compact_first_line: bool = False,
 ) -> str:
     """
@@ -222,9 +228,12 @@ def _pass1_unwrap_google_docstring(
 
     state = _GooglePass1State(output=[])
     line_idx: int = 0
-    return_annotation_str: str | None = (
-        return_annotation.strip() if return_annotation else None
-    )
+    return_annotation_str: str | None = None
+    # Return/yield annotation sync happens before signature detection. Disable
+    # it up front so description-only Google output is not immediately rebuilt
+    # as ``type: description`` before the stripping path can run.
+    if include_return_and_yield_types and return_annotation:
+        return_annotation_str = return_annotation.strip()
 
     while line_idx < len(lines):
         parts = _split_google_line(lines[line_idx])
@@ -275,6 +284,9 @@ def _pass1_unwrap_google_docstring(
                 return_annotation_str,
                 include_arg_types=include_arg_types,
                 include_arg_defaults=include_arg_defaults,
+                include_return_and_yield_types=(
+                    include_return_and_yield_types
+                ),
             )
             if signature_item is not None:
                 state.output.extend(signature_item.lines)
@@ -447,6 +459,7 @@ def _unwrap_google_signature_item(
         *,
         include_arg_types: bool = True,
         include_arg_defaults: bool = True,
+        include_return_and_yield_types: bool = True,
 ) -> _GoogleUnwrappedSignatureItem | None:
     """Unwrap one Google signature item, if the current line is an item."""
     candidate = _standardize_google_signature_candidate(
@@ -486,6 +499,24 @@ def _unwrap_google_signature_item(
         parts.indent_level,
         has_inline_description=inline_desc is not None,
     )
+    if (
+        section_info.is_return_section
+        and not include_return_and_yield_types
+        and _is_google_return_signature(candidate.line.lstrip())
+    ):
+        # A typed Returns/Yields row with a description becomes ordinary prose
+        # when users rely on function annotations for the type. Type-only rows
+        # return None below so we preserve the only documented content.
+        description_only_lines = _google_return_description_only_lines(
+            processed_desc_lines,
+            current_item_indent=parts.indent_level,
+        )
+        if description_only_lines is not None:
+            return _GoogleUnwrappedSignatureItem(
+                lines=description_only_lines,
+                next_index=next_index,
+            )
+
     segments = segment_lines_by_wrappability(
         processed_desc_lines,
         style='google',
@@ -653,6 +684,27 @@ def _ensure_google_return_signature_delimiter(
         return signature_part
 
     return f'{signature_part.rstrip()}:'
+
+
+def _google_return_description_only_lines(
+        description_lines: list[str],
+        *,
+        current_item_indent: int,
+) -> list[str] | None:
+    """
+    Return description-only output for Google Returns/Yields entries.
+
+    ``None`` means the item had no description after removing the type, so the
+    caller should keep the original type-only row instead of emptying the
+    section.
+    """
+    if not any(line.strip() for line in description_lines):
+        return None
+
+    indent = ' ' * current_item_indent
+    return [
+        f'{indent}{line}' if line.strip() else '' for line in description_lines
+    ]
 
 
 def _merge_google_signature_description_segments(
@@ -991,6 +1043,7 @@ def _pass2_wrap_google_docstring(
         closing_indent: int | None = None,
         compact_first_line: bool = False,
         opening_quotes_on_own_line: bool = False,
+        include_return_and_yield_types: bool = True,
 ) -> str:
     """
     Wrap the unwrapped docstring (Pass 2).
@@ -1005,6 +1058,7 @@ def _pass2_wrap_google_docstring(
         line_length=line_length,
         compact_first_line=compact_first_line,
         opening_quotes_on_own_line=opening_quotes_on_own_line,
+        include_return_and_yield_types=include_return_and_yield_types,
     )
     segments = segment_lines_by_wrappability(
         docstring.splitlines(),
@@ -1110,6 +1164,9 @@ def _update_google_wrap_section_state(
         state.in_signature_section = _is_google_signature_section_header(
             parts.stripped
         )
+        state.in_return_section = is_google_returns_or_yields_section_header(
+            parts.stripped
+        )
     elif (
         _is_google_unknown_section_header(parts.stripped)
         and parts.indent_level <= state.leading_indent
@@ -1117,6 +1174,7 @@ def _update_google_wrap_section_state(
         state.custom_section_indent = parts.indent_level
         state.in_examples_section = False
         state.in_signature_section = False
+        state.in_return_section = False
     elif (
         state.custom_section_indent is not None
         and parts.indent_level <= state.custom_section_indent
@@ -1166,6 +1224,12 @@ def _is_google_signature_line_in_context(
 ) -> bool:
     """Return True when a line should receive signature wrapping."""
     if not state.in_signature_section:
+        return False
+
+    if state.in_return_section and not state.include_return_and_yield_types:
+        # Pass two normally treats Returns/Yields as signature sections. When
+        # types are disabled, pass-one output should wrap as prose so labels
+        # such as ``Result:`` are preserved instead of reclassified.
         return False
 
     if parts.stripped.startswith(('"""', "'''")):

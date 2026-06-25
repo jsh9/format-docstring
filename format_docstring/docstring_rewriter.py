@@ -311,6 +311,7 @@ def fix_src(
         fix_rst_backticks: bool = True,
         include_arg_types: bool = True,
         include_arg_defaults: bool = True,
+        include_return_and_yield_types: bool = True,
 ) -> str:
     """
     Return code with only docstrings updated to wrapped content.
@@ -330,6 +331,9 @@ def fix_src(
         If True, include argument type hints in parameter docstrings.
     include_arg_defaults : bool, default=True
         If True, include argument defaults in parameter docstrings.
+    include_return_and_yield_types : bool, default=True
+        If True, include return and yield type hints in docstrings. This can
+        only be disabled for Google-style docstrings.
 
     Returns
     -------
@@ -343,6 +347,10 @@ def fix_src(
     spans directly in the original text to preserve non-docstring formatting
     and comments.
     """
+    _validate_include_return_and_yield_types(
+        docstring_style,
+        include_return_and_yield_types=include_return_and_yield_types,
+    )
     tree: ast.Module = ast.parse(source_code, type_comments=True)
     line_starts: list[int] = calc_line_starts(source_code)
 
@@ -359,6 +367,7 @@ def fix_src(
         fix_rst_backticks=fix_rst_backticks,
         include_arg_types=include_arg_types,
         include_arg_defaults=include_arg_defaults,
+        include_return_and_yield_types=include_return_and_yield_types,
     )
     if replacement is not None:
         replacements.append(replacement)
@@ -377,6 +386,7 @@ def fix_src(
                 fix_rst_backticks=fix_rst_backticks,
                 include_arg_types=include_arg_types,
                 include_arg_defaults=include_arg_defaults,
+                include_return_and_yield_types=include_return_and_yield_types,
             )
             if replacement is not None:
                 replacements.append(replacement)
@@ -426,6 +436,7 @@ def build_replacement_docstring(
         fix_rst_backticks: bool = True,
         include_arg_types: bool = True,
         include_arg_defaults: bool = True,
+        include_return_and_yield_types: bool = True,
 ) -> tuple[int, int, str] | None:
     """
     Compute a single docstring replacement for the given node.
@@ -449,6 +460,9 @@ def build_replacement_docstring(
         If True, include argument type hints in parameter docstrings.
     include_arg_defaults : bool, default=True
         If True, include argument defaults in parameter docstrings.
+    include_return_and_yield_types : bool, default=True
+        If True, include return and yield type hints in docstrings. This can
+        only be disabled for Google-style docstrings.
 
     Returns
     -------
@@ -550,6 +564,7 @@ def build_replacement_docstring(
         class_attribute_metadata=attribute_metadata,
         include_arg_types=include_arg_types,
         include_arg_defaults=include_arg_defaults,
+        include_return_and_yield_types=include_return_and_yield_types,
         compact_google_docstring=True,
         append_google_closing_indent=True,
     )
@@ -706,6 +721,7 @@ def wrap_docstring(
         class_attribute_metadata: ParameterMetadata | None = None,
         include_arg_types: bool = True,
         include_arg_defaults: bool = True,
+        include_return_and_yield_types: bool = True,
         compact_google_docstring: bool = False,
         append_google_closing_indent: bool = False,
 ) -> str:
@@ -740,6 +756,9 @@ def wrap_docstring(
         If True, include argument type hints in parameter docstrings.
     include_arg_defaults : bool, default=True
         If True, include argument defaults in parameter docstrings.
+    include_return_and_yield_types : bool, default=True
+        If True, include return and yield type hints in docstrings. This can
+        only be disabled for Google-style docstrings.
     compact_google_docstring : bool, default=False
         If True, Google-style wrapping may place the first summary line beside
         the opening quotes when indentation allows it.
@@ -759,6 +778,10 @@ def wrap_docstring(
     - 'google' -> wrap_docstring_google
     """
     style = (docstring_style or '').strip().lower()
+    _validate_include_return_and_yield_types(
+        style,
+        include_return_and_yield_types=include_return_and_yield_types,
+    )
     # Normalize once so style-specific code can preserve the difference between
     # omitted indentation, explicit module-level zero, and explicit ``None``.
     leading_indent_was_unset = leading_indent is _LEADING_INDENT_UNSET
@@ -787,6 +810,7 @@ def wrap_docstring(
             attribute_metadata=class_attribute_metadata,
             include_arg_types=include_arg_types,
             include_arg_defaults=include_arg_defaults,
+            include_return_and_yield_types=include_return_and_yield_types,
             compact_first_line=compact_google_docstring,
         )
     # Default to NumPy-style for unknown/unspecified styles to be permissive.
@@ -803,4 +827,29 @@ def wrap_docstring(
         return_annotation=function_return_annotation,
         include_arg_types=include_arg_types,
         include_arg_defaults=include_arg_defaults,
+        include_return_and_yield_types=include_return_and_yield_types,
     )
+
+
+def _validate_include_return_and_yield_types(
+        docstring_style: str,
+        *,
+        include_return_and_yield_types: bool,
+) -> None:
+    """
+    Validate return/yield type suppression is only used for Google style.
+
+    CLI entrypoints check this before touching files, but direct API callers
+    can bypass Click; this keeps the formatter's public API aligned with the
+    same numpydoc strictness rule.
+    """
+    style = (docstring_style or '').strip().lower()
+    if include_return_and_yield_types or style == 'google':
+        return
+
+    msg = (
+        'include_return_and_yield_types=False is only supported for '
+        'Google-style docstrings because NumPy/numpydoc requires return and '
+        'yield type lines.'
+    )
+    raise ValueError(msg)

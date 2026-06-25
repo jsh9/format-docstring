@@ -97,6 +97,7 @@ def test_load_config_with_hyphens(tmp_path: Path) -> None:
 line-length = 100
 include-arg-types = false
 include-arg-defaults = false
+include-return-and-yield-types = false
 """
     config_file.write_text(config_content)
 
@@ -105,6 +106,7 @@ include-arg-defaults = false
         'line_length': 100,
         'include_arg_types': False,
         'include_arg_defaults': False,
+        'include_return_and_yield_types': False,
     }
 
 
@@ -357,3 +359,95 @@ def test_cli_include_arg_options_override_config(tmp_path: Path) -> None:
 
     output = test_file.read_text()
     assert 'x (int, default=3): Value.' in output
+
+
+def test_cli_config_include_return_and_yield_types_google(
+        tmp_path: Path,
+) -> None:
+    """
+    Verify config files can disable Google return/yield type output.
+
+    This guards the Click ``default_map`` path so the option works when it
+    comes from ``pyproject.toml``, not only from explicit CLI arguments.
+    """
+    config_file = tmp_path / 'pyproject.toml'
+    config_file.write_text(
+        dedent(
+            """
+            [tool.format_docstring]
+            docstring_style = "google"
+            include_return_and_yield_types = false
+            """
+        )
+    )
+
+    test_file = tmp_path / 'doc.py'
+    test_file.write_text(
+        dedent(
+            '''
+            def foo() -> dict[str, str]:
+                """Do it.
+
+                Returns:
+                    dict[str, str]: Mapping result.
+                """
+                return {}
+            '''
+        ).lstrip()
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_py, ['--config', str(config_file), str(test_file)]
+    )
+    assert result.exit_code in {0, 1}, result.output
+
+    output = test_file.read_text()
+    assert 'Mapping result.' in output
+    assert 'dict[str, str]: Mapping result.' not in output
+
+
+def test_cli_config_include_return_and_yield_types_numpy_errors(
+        tmp_path: Path,
+) -> None:
+    """
+    Verify config-provided return/yield type suppression is rejected for NumPy.
+
+    The invalid combination is discovered before processing files, so the test
+    also checks that config loading cannot rewrite a file before failing.
+    """
+    config_file = tmp_path / 'pyproject.toml'
+    config_file.write_text(
+        dedent(
+            """
+            [tool.format_docstring]
+            docstring_style = "numpy"
+            include_return_and_yield_types = false
+            """
+        )
+    )
+
+    test_file = tmp_path / 'doc.py'
+    original = dedent(
+        '''
+        def foo() -> int:
+            """Do it.
+
+            Returns
+            -------
+            int
+                Value.
+            """
+            return 1
+        '''
+    ).lstrip()
+    test_file.write_text(original)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_py, ['--config', str(config_file), str(test_file)]
+    )
+
+    assert result.exit_code != 0
+    assert 'NumPy/numpydoc requires' in result.output
+    assert test_file.read_text() == original

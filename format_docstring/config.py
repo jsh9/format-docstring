@@ -21,6 +21,7 @@ _VALUE_OPTIONS = frozenset({
     '--fix-rst-backticks',
     '--include-arg-defaults',
     '--include-arg-types',
+    '--include-return-and-yield-types',
     '--line-length',
     '--verbose',
 })

@@ -74,6 +74,13 @@ from format_docstring.config import ConfigFileCommand
     help='Include argument defaults in parameter docstrings',
 )
 @click.option(
+    '--include-return-and-yield-types',
+    type=bool,
+    default=True,
+    show_default=True,
+    help='Include return and yield type hints in docstrings',
+)
+@click.option(
     '--verbose',
     type=click.Choice(['default', 'diff'], case_sensitive=False),
     default='default',
@@ -90,10 +97,24 @@ def main(
         fix_rst_backticks: bool,
         include_arg_types: bool,
         include_arg_defaults: bool,
+        include_return_and_yield_types: bool,
         verbose: str,
 ) -> None:
     """Format .ipynb files."""
     ret = 0
+    # Click validates the style choice; this cross-option rule depends on both
+    # parsed values and should fail before any notebook files are processed.
+    if (
+        docstring_style.lower() == 'numpy'
+        and not include_return_and_yield_types
+    ):
+        msg = (
+            '--include-return-and-yield-types=False is only supported for '
+            'Google-style docstrings because NumPy/numpydoc requires return '
+            'and yield type lines.'
+        )
+        raise click.UsageError(msg)
+
     for path in paths:
         fixer = JupyterNotebookFixer(
             path=path,
@@ -102,6 +123,7 @@ def main(
             fix_rst_backticks=fix_rst_backticks,
             include_arg_types=include_arg_types,
             include_arg_defaults=include_arg_defaults,
+            include_return_and_yield_types=include_return_and_yield_types,
             verbose=verbose.lower(),
         )
         fixer.docstring_style = docstring_style
@@ -123,6 +145,7 @@ class JupyterNotebookFixer(BaseFixer):
             fix_rst_backticks: bool = True,
             include_arg_types: bool = True,
             include_arg_defaults: bool = True,
+            include_return_and_yield_types: bool = True,
             verbose: str = 'default',
     ) -> None:
         super().__init__(
@@ -134,6 +157,7 @@ class JupyterNotebookFixer(BaseFixer):
         self.fix_rst_backticks = fix_rst_backticks
         self.include_arg_types = include_arg_types
         self.include_arg_defaults = include_arg_defaults
+        self.include_return_and_yield_types = include_return_and_yield_types
         self.docstring_style: str = 'numpy'
 
     def fix_one_directory_or_one_file(self) -> int:
@@ -192,6 +216,9 @@ class JupyterNotebookFixer(BaseFixer):
                     fix_rst_backticks=self.fix_rst_backticks,
                     include_arg_types=self.include_arg_types,
                     include_arg_defaults=self.include_arg_defaults,
+                    include_return_and_yield_types=(
+                        self.include_return_and_yield_types
+                    ),
                 )
 
                 if fixed != source_without_magic:

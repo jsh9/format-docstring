@@ -518,6 +518,116 @@ def test_fix_src_include_arg_options_end_to_end(
     assert result == expected_src
 
 
+def test_fix_src_google_include_return_and_yield_types_false_end_to_end() -> (
+    None
+):
+    """
+    Verify Google return/yield type stripping with full-source metadata.
+
+    This fixture guards the AST path where annotations, yielded item types, and
+    type-only rows interact with the two-pass Google wrapper.
+    """
+    loaded = _load_test_case(
+        DATA_DIR_CLI_OPTIONS
+        / 'google'
+        / 'include_return_and_yield_types_false.txt'
+    )
+    if loaded is None:
+        raise AssertionError('Malformed return/yield option fixture')
+
+    _, input_src, expected_src, line_length = loaded
+    result = docstring_rewriter.fix_src(
+        input_src,
+        line_length=line_length,
+        docstring_style='google',
+        include_return_and_yield_types=False,
+    )
+    assert result == expected_src
+
+
+def test_fix_src_numpy_include_return_and_yield_types_false_raises() -> None:
+    """
+    Verify direct NumPy API calls reject disabled return/yield type lines.
+
+    Direct callers bypass Click, so this protects the core numpydoc strictness
+    guard instead of only testing CLI validation.
+    """
+    with pytest.raises(ValueError, match='NumPy/numpydoc requires'):
+        docstring_rewriter.fix_src(
+            'def foo() -> int:\n    """Return value."""\n    return 1\n',
+            docstring_style='numpy',
+            include_return_and_yield_types=False,
+        )
+
+
+def test_fix_src_google_include_return_and_yield_types_false_cases() -> None:
+    """
+    Cover the Google return/yield type suppression edge cases.
+
+    These cases prevent regressions where prose descriptions gain annotations,
+    typed rows fail to strip, yielded item types diverge, or type-only rows
+    lose their only documented content.
+    """
+    source = dedent(
+        '''
+        def already_description() -> dict[str, str]:
+            """Build mapping.
+
+            Returns:
+                The mapping should not receive a return annotation.
+            """
+            return {}
+
+        def typed_inline() -> dict[str, str]:
+            """Build typed mapping.
+
+            Returns:
+                dict[str, str]: The mapping from keys to values.
+            """
+            return {}
+
+        def named_typed() -> int:
+            """Count values.
+
+            Returns:
+                result (int): Count of values.
+            """
+            return 1
+
+        def iter_values() -> Iterator[int]:
+            """Iterate values.
+
+            Yields:
+                int: Next value.
+            """
+            yield 1
+
+        def type_only() -> str:
+            """Return type only.
+
+            Returns:
+                str
+            """
+            return "x"
+        '''
+    ).lstrip()
+    result = docstring_rewriter.fix_src(
+        source,
+        line_length=72,
+        docstring_style='google',
+        include_return_and_yield_types=False,
+    )
+
+    assert 'dict[str, str]: The mapping from keys to values.' not in result
+    assert 'result (int): Count of values.' not in result
+    assert 'int: Next value.' not in result
+    assert 'The mapping from keys to values.' in result
+    assert 'Count of values.' in result
+    assert 'Next value.' in result
+    assert '        str\n' in result
+    assert 'The mapping should not receive a return annotation.' in result
+
+
 def test_fix_src_single_case() -> None:
     """
     A placeholder test for easy debugging. You can replace the file name with

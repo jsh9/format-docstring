@@ -36,6 +36,7 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
         return_annotation: str | None = None,
         include_arg_types: bool = True,
         include_arg_defaults: bool = True,
+        include_return_and_yield_types: bool = True,
 ) -> str:
     """
     Wrap NumPy-style docstrings with light parsing rules.
@@ -54,6 +55,17 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
     - Outside these special cases, wrap only lines that exceed ``line_length``
       (keep existing intentional line breaks).
     """
+    # Direct wrapper/API callers can bypass the CLI guard. Keep the NumPy
+    # formatter strict here because Returns/Yields type rows are structural
+    # numpydoc signature lines, not optional prose metadata.
+    if not include_return_and_yield_types:
+        msg = (
+            'include_return_and_yield_types=False is only supported for '
+            'Google-style docstrings because NumPy/numpydoc requires return '
+            'and yield type lines.'
+        )
+        raise ValueError(msg)
+
     # Pre-processing: if caller provides indentation context (i.e., the
     # indentation level of the docstring's parent), and the docstring body
     # doesn't begin with a newline followed by that many spaces, prepend it.

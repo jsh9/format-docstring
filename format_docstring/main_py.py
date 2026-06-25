@@ -66,6 +66,13 @@ from format_docstring.config import ConfigFileCommand
     help='Include argument defaults in parameter docstrings',
 )
 @click.option(
+    '--include-return-and-yield-types',
+    type=bool,
+    default=True,
+    show_default=True,
+    help='Include return and yield type hints in docstrings',
+)
+@click.option(
     '--verbose',
     type=click.Choice(['default', 'diff'], case_sensitive=False),
     default='default',
@@ -82,13 +89,24 @@ def main(
         fix_rst_backticks: bool,
         include_arg_types: bool,
         include_arg_defaults: bool,
+        include_return_and_yield_types: bool,
         verbose: str,
 ) -> None:
     """Format .py files."""
     ret = 0
 
-    # Validating style is handled by the rewriter or Click choice. We no longer
-    # need to block non-numpy here because the rewriter supports Google.
+    # Click validates the style choice; this cross-option rule depends on both
+    # parsed values and should fail before any files are processed.
+    if (
+        docstring_style.lower() == 'numpy'
+        and not include_return_and_yield_types
+    ):
+        msg = (
+            '--include-return-and-yield-types=False is only supported for '
+            'Google-style docstrings because NumPy/numpydoc requires return '
+            'and yield type lines.'
+        )
+        raise click.UsageError(msg)
 
     for path in paths:
         fixer = PythonFileFixer(
@@ -98,6 +116,7 @@ def main(
             fix_rst_backticks=fix_rst_backticks,
             include_arg_types=include_arg_types,
             include_arg_defaults=include_arg_defaults,
+            include_return_and_yield_types=include_return_and_yield_types,
             verbose=verbose.lower(),
         )
         fixer.docstring_style = docstring_style
@@ -119,6 +138,7 @@ class PythonFileFixer(BaseFixer):
             fix_rst_backticks: bool = True,
             include_arg_types: bool = True,
             include_arg_defaults: bool = True,
+            include_return_and_yield_types: bool = True,
             verbose: str = 'default',
     ) -> None:
         super().__init__(
@@ -130,6 +150,7 @@ class PythonFileFixer(BaseFixer):
         self.fix_rst_backticks = fix_rst_backticks
         self.include_arg_types = include_arg_types
         self.include_arg_defaults = include_arg_defaults
+        self.include_return_and_yield_types = include_return_and_yield_types
         self.docstring_style: str = 'numpy'
 
     def fix_one_file(self, filename: str) -> int:
@@ -160,6 +181,9 @@ class PythonFileFixer(BaseFixer):
             fix_rst_backticks=self.fix_rst_backticks,
             include_arg_types=self.include_arg_types,
             include_arg_defaults=self.include_arg_defaults,
+            include_return_and_yield_types=(
+                self.include_return_and_yield_types
+            ),
         )
 
         if filename == '-':
