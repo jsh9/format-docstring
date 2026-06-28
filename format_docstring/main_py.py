@@ -8,7 +8,10 @@ import click
 import format_docstring.docstring_rewriter as rewriter
 from format_docstring import __version__
 from format_docstring.base_fixer import BaseFixer
-from format_docstring.config import ConfigFileCommand
+from format_docstring.config import (
+    ConfigFileCommand,
+    validate_cli_include_return_and_yield_types,
+)
 
 
 @click.command(cls=ConfigFileCommand)
@@ -95,18 +98,10 @@ def main(
     """Format .py files."""
     ret = 0
 
-    # Click validates the style choice; this cross-option rule depends on both
-    # parsed values and should fail before any files are processed.
-    if (
-        docstring_style.lower() == 'numpy'
-        and not include_return_and_yield_types
-    ):
-        msg = (
-            '--include-return-and-yield-types=False is only supported for '
-            'Google-style docstrings because NumPy/numpydoc requires return '
-            'and yield type lines.'
-        )
-        raise click.UsageError(msg)
+    validate_cli_include_return_and_yield_types(
+        docstring_style,
+        include_return_and_yield_types=include_return_and_yield_types,
+    )
 
     for path in paths:
         fixer = PythonFileFixer(

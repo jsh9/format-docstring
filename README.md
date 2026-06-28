@@ -601,7 +601,8 @@ exclude = "\\.git|\\.venv|__pycache__"
 verbose = "default"  # or "diff" to print unified diffs
 ```
 
-For Google-style docstrings that omit arg, return, and yield types:
+For Google-style docstrings that omit argument types/defaults and return/yield
+types:
 
 ```toml
 [tool.format_docstring]

@@ -54,6 +54,40 @@ class ConfigFileCommand(click.Command):
         return super().parse_args(ctx, args)
 
 
+def validate_cli_include_return_and_yield_types(
+        docstring_style: str,
+        *,
+        include_return_and_yield_types: bool,
+) -> None:
+    """
+    Validate return/yield type suppression for Click entrypoints.
+
+    Parameters
+    ----------
+    docstring_style : str
+        The selected docstring style.
+    include_return_and_yield_types : bool
+        Whether return and yield type hints should be included in docstrings.
+
+    Raises
+    ------
+    click.UsageError
+        If return/yield type suppression is requested for NumPy docstrings.
+    """
+    if (
+        include_return_and_yield_types
+        or docstring_style.strip().lower() != 'numpy'
+    ):
+        return
+
+    msg = (
+        '--include-return-and-yield-types=False is only supported for '
+        'Google-style docstrings because NumPy/numpydoc requires return '
+        'and yield type lines.'
+    )
+    raise click.UsageError(msg)
+
+
 def _find_config_for_raw_args(args: list[str]) -> Path | None:
     """
     Resolve the config file implied by raw CLI arguments.
