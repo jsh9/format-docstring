@@ -64,8 +64,8 @@ def validate_cli_include_options(
     """
     Validate cross-option rules for Click entrypoints.
 
-    This runs before fixer construction so invalid CLI/config combinations
-    fail before a multi-path invocation can rewrite any files or notebooks.
+    This runs before fixer construction so invalid CLI/config combinations fail
+    before a multi-path invocation can rewrite any files or notebooks.
 
     Parameters
     ----------
@@ -97,8 +97,8 @@ def validate_cli_include_arg_defaults(
     Validate argument defaults are not emitted without argument types.
 
     Defaults are rendered inside the same signature slot as types, so allowing
-    defaults alone would produce non-standard lines such as
-    ``arg : default=3`` or ``arg (default=3):``.
+    defaults alone would produce non-standard lines such as ``arg : default=3``
+    or ``arg (default=3):``.
 
     Parameters
     ----------

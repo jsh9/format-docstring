@@ -528,8 +528,8 @@ def test_fix_src_include_arg_defaults_without_types_raises(
     """
     Verify direct source formatting rejects defaults without argument types.
 
-    This prevents output such as ``arg : default=3`` or
-    ``arg (default=3):`` when users choose to omit argument type metadata.
+    This prevents output such as ``arg : default=3`` or ``arg (default=3):``
+    when users choose to omit argument type metadata.
     """
     with pytest.raises(
         ValueError,

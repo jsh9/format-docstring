@@ -868,8 +868,8 @@ def _validate_include_arg_defaults(
     Validate argument defaults are not emitted without argument types.
 
     Defaults share the signature metadata slot with types; rejecting this
-    combination prevents type-less signatures that contain only
-    ``default=...`` metadata.
+    combination prevents type-less signatures that contain only ``default=...``
+    metadata.
     """
     if include_arg_types or not include_arg_defaults:
         return
