@@ -539,8 +539,8 @@ leave that docstring untouched.
 | `--line-length INTEGER`                 | `79`                           | Maximum line length for wrapping docstrings.                                                                                                                                                          |
 | `--docstring-style CHOICE`              | `numpy`                        | Docstring style to target, either `numpy` or `google`. This selects the style to format, not a converter between styles.                                                                              |
 | `--fix-rst-backticks BOOL`              | `True`                         | Automatically fix single backticks to double backticks per rST syntax. Pass `False` to disable this.                                                                                                  |
-| `--include-arg-types BOOL`              | `True`                         | Include argument type hints in parameter docstrings. Pass `False` to remove them from structured arg and attribute signature lines.                                                                   |
-| `--include-arg-defaults BOOL`           | `True`                         | Include argument defaults in parameter docstrings. Pass `False` to remove them from structured arg and attribute signature lines.                                                                     |
+| `--include-arg-types BOOL`              | `True`                         | Include argument type hints in parameter docstrings. Pass `False` to remove them from structured arg and attribute signature lines; defaults must also be disabled.                                    |
+| `--include-arg-defaults BOOL`           | `True`                         | Include argument defaults in parameter docstrings. Pass `False` to remove them from structured arg and attribute signature lines. Requires argument types.                                             |
 | `--include-return-and-yield-types BOOL` | `True`                         | Include type hints in `Returns` and `Yields` docstrings. Pass `False` to remove them from Google-style return/yield descriptions. NumPy style does not allow `False`.                                 |
 | `--verbose CHOICE`                      | `default`                      | Logging detail level. `default` keeps the existing behaviour; `diff` prints unified diffs when rewrites happen.                                                                                       |
 | `--exclude TEXT`                        | `\.git\|\.tox\|\.pytest_cache` | Regex pattern to exclude files/directories.                                                                                                                                                           |
@@ -623,9 +623,11 @@ include_return_and_yield_types = false
 - `fix_rst_backticks` / `fix-rst-backticks` (bool): whether to convert single
   backticks in prose to double backticks per rST syntax. Default: `true`.
 - `include_arg_types` / `include-arg-types` (bool): whether to include argument
-  type hints in parameter docstrings. Default: `true`.
+  type hints in parameter docstrings. Default: `true`. If this is `false`,
+  `include_arg_defaults` must also be `false`.
 - `include_arg_defaults` / `include-arg-defaults` (bool): whether to include
-  argument defaults in parameter docstrings. Default: `true`.
+  argument defaults in parameter docstrings. Default: `true`. This requires
+  `include_arg_types = true`.
 - `include_return_and_yield_types` / `include-return-and-yield-types` (bool):
   whether to include return and yield type hints in docstrings. Default:
   `true`. Setting this to `false` is supported only with Google style.

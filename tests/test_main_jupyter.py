@@ -169,6 +169,60 @@ def test_cli_ipynb_include_arg_options_strip_google_signature(
     assert 'default=9' not in updated_source
 
 
+def test_cli_ipynb_include_arg_defaults_without_types_errors(
+        tmp_path: Path,
+) -> None:
+    """
+    Verify notebook CLI rejects defaults when argument types are disabled.
+
+    The failure should happen before JSON rewriting so invalid include options
+    do not alter notebook formatting or metadata.
+    """
+    source = dedent(
+        '''
+        def foo(x: int = 3):
+            """Do it.
+
+            Args:
+                x (float, default=9): Value.
+            """
+            return x
+        '''
+    ).lstrip()
+    notebook = {
+        'cells': [
+            {
+                'cell_type': 'code',
+                'execution_count': None,
+                'metadata': {},
+                'outputs': [],
+                'source': source.splitlines(keepends=True),
+            }
+        ],
+        'metadata': {},
+        'nbformat': 4,
+        'nbformat_minor': 5,
+    }
+    work_file = tmp_path / 'work.ipynb'
+    original_text = json.dumps(notebook)
+    work_file.write_text(original_text, encoding='utf-8')
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_ipynb,
+        [
+            '--docstring-style',
+            'google',
+            '--include-arg-types=False',
+            str(work_file),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert '--include-arg-defaults=True requires' in result.output
+    assert work_file.read_text() == original_text
+
+
 def test_cli_ipynb_include_return_and_yield_types_strip_google_types(
         tmp_path: Path,
 ) -> None:

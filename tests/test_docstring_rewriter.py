@@ -400,14 +400,17 @@ def _load_test_case(filepath: Path) -> tuple[str, str, str, int] | None:
 
 
 def _load_option_test_cases() -> list[OptionTestCase]:
-    """Load end-to-end include option test cases."""
+    """
+    Load valid end-to-end include option test cases.
+
+    Invalid option combinations have dedicated error tests instead of fixture
+    outputs so unsupported signatures are not preserved as expected behavior.
+    """
     raw_cases = [
         ('numpy', 'include_arg_types_and_defaults_true.txt', True, True),
-        ('numpy', 'include_arg_types_false.txt', False, True),
         ('numpy', 'include_arg_defaults_false.txt', True, False),
         ('numpy', 'include_arg_types_and_defaults_false.txt', False, False),
         ('google', 'include_arg_types_and_defaults_true.txt', True, True),
-        ('google', 'include_arg_types_false.txt', False, True),
         ('google', 'include_arg_defaults_false.txt', True, False),
         ('google', 'include_arg_types_and_defaults_false.txt', False, False),
     ]
@@ -516,6 +519,50 @@ def test_fix_src_include_arg_options_end_to_end(
         include_arg_defaults=include_arg_defaults,
     )
     assert result == expected_src
+
+
+@pytest.mark.parametrize('style', ['numpy', 'google'])
+def test_fix_src_include_arg_defaults_without_types_raises(
+        style: str,
+) -> None:
+    """
+    Verify direct source formatting rejects defaults without argument types.
+
+    This prevents output such as ``arg : default=3`` or
+    ``arg (default=3):`` when users choose to omit argument type metadata.
+    """
+    with pytest.raises(
+        ValueError,
+        match='include_arg_defaults=True requires include_arg_types=True',
+    ):
+        docstring_rewriter.fix_src(
+            'def foo(x: int = 3):\n    """Return value."""\n    return x\n',
+            docstring_style=style,
+            include_arg_types=False,
+            include_arg_defaults=True,
+        )
+
+
+@pytest.mark.parametrize('style', ['numpy', 'google'])
+def test_wrap_docstring_include_arg_defaults_without_types_raises(
+        style: str,
+) -> None:
+    """
+    Verify direct docstring wrapping rejects invalid include options.
+
+    ``wrap_docstring`` bypasses source parsing and CLI validation, so this
+    guards the lower-level public API against type-less default metadata.
+    """
+    with pytest.raises(
+        ValueError,
+        match='include_arg_defaults=True requires include_arg_types=True',
+    ):
+        docstring_rewriter.wrap_docstring(
+            'Summary.',
+            docstring_style=style,
+            include_arg_types=False,
+            include_arg_defaults=True,
+        )
 
 
 def test_fix_src_google_include_return_and_yield_types_false_end_to_end() -> (

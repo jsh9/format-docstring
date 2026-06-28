@@ -10,7 +10,7 @@ from format_docstring import __version__
 from format_docstring.base_fixer import BaseFixer
 from format_docstring.config import (
     ConfigFileCommand,
-    validate_cli_include_return_and_yield_types,
+    validate_cli_include_options,
 )
 
 
@@ -98,8 +98,12 @@ def main(
     """Format .py files."""
     ret = 0
 
-    validate_cli_include_return_and_yield_types(
+    # Reject incompatible include flags before the loop so one invalid
+    # invocation cannot partially rewrite earlier paths before failing.
+    validate_cli_include_options(
         docstring_style,
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
         include_return_and_yield_types=include_return_and_yield_types,
     )
 

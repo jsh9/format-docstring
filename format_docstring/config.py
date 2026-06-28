@@ -54,6 +54,74 @@ class ConfigFileCommand(click.Command):
         return super().parse_args(ctx, args)
 
 
+def validate_cli_include_options(
+        docstring_style: str,
+        *,
+        include_arg_types: bool,
+        include_arg_defaults: bool,
+        include_return_and_yield_types: bool,
+) -> None:
+    """
+    Validate cross-option rules for Click entrypoints.
+
+    This runs before fixer construction so invalid CLI/config combinations
+    fail before a multi-path invocation can rewrite any files or notebooks.
+
+    Parameters
+    ----------
+    docstring_style : str
+        The selected docstring style.
+    include_arg_types : bool
+        Whether argument type hints should be included in docstrings.
+    include_arg_defaults : bool
+        Whether argument defaults should be included in docstrings.
+    include_return_and_yield_types : bool
+        Whether return and yield type hints should be included in docstrings.
+    """
+    validate_cli_include_arg_defaults(
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
+    )
+    validate_cli_include_return_and_yield_types(
+        docstring_style,
+        include_return_and_yield_types=include_return_and_yield_types,
+    )
+
+
+def validate_cli_include_arg_defaults(
+        *,
+        include_arg_types: bool,
+        include_arg_defaults: bool,
+) -> None:
+    """
+    Validate argument defaults are not emitted without argument types.
+
+    Defaults are rendered inside the same signature slot as types, so allowing
+    defaults alone would produce non-standard lines such as
+    ``arg : default=3`` or ``arg (default=3):``.
+
+    Parameters
+    ----------
+    include_arg_types : bool
+        Whether argument type hints should be included in docstrings.
+    include_arg_defaults : bool
+        Whether argument defaults should be included in docstrings.
+
+    Raises
+    ------
+    click.UsageError
+        If defaults are requested while argument types are omitted.
+    """
+    if include_arg_types or not include_arg_defaults:
+        return
+
+    msg = (
+        '--include-arg-defaults=True requires --include-arg-types=True. '
+        'Set --include-arg-defaults=False when omitting argument types.'
+    )
+    raise click.UsageError(msg)
+
+
 def validate_cli_include_return_and_yield_types(
         docstring_style: str,
         *,

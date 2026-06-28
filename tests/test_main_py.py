@@ -155,6 +155,45 @@ def test_cli_include_arg_options_strip_google_signature(
     assert 'default=9' not in output
 
 
+def test_cli_include_arg_defaults_without_types_errors(
+        tmp_path: Path,
+) -> None:
+    """
+    Verify CLI rejects defaults when argument types are disabled.
+
+    The command should fail before rewriting so users do not get malformed
+    signature lines such as ``arg (default=3):``.
+    """
+    test_file = tmp_path / 'doc.py'
+    original = dedent(
+        '''
+        def foo(x: int = 3):
+            """Do it.
+
+            Args:
+                x (float, default=9): Value.
+            """
+            return x
+        '''
+    ).lstrip()
+    test_file.write_text(original)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_py,
+        [
+            '--docstring-style',
+            'google',
+            '--include-arg-types=False',
+            str(test_file),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert '--include-arg-defaults=True requires' in result.output
+    assert test_file.read_text() == original
+
+
 def test_cli_include_return_and_yield_types_strip_google_output_types(
         tmp_path: Path,
 ) -> None:

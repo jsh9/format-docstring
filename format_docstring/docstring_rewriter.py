@@ -347,8 +347,10 @@ def fix_src(
     spans directly in the original text to preserve non-docstring formatting
     and comments.
     """
-    _validate_include_return_and_yield_types(
+    _validate_include_options(
         docstring_style,
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
         include_return_and_yield_types=include_return_and_yield_types,
     )
     tree: ast.Module = ast.parse(source_code, type_comments=True)
@@ -778,8 +780,10 @@ def wrap_docstring(
     - 'google' -> wrap_docstring_google
     """
     style = (docstring_style or '').strip().lower()
-    _validate_include_return_and_yield_types(
+    _validate_include_options(
         style,
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
         include_return_and_yield_types=include_return_and_yield_types,
     )
     # Normalize once so style-specific code can preserve the difference between
@@ -829,6 +833,52 @@ def wrap_docstring(
         include_arg_defaults=include_arg_defaults,
         include_return_and_yield_types=include_return_and_yield_types,
     )
+
+
+def _validate_include_options(
+        docstring_style: str,
+        *,
+        include_arg_types: bool,
+        include_arg_defaults: bool,
+        include_return_and_yield_types: bool,
+) -> None:
+    """
+    Validate cross-option rules for direct formatter API calls.
+
+    CLI entrypoints validate before constructing fixers, but library callers
+    can call ``fix_src`` or ``wrap_docstring`` directly. Keep the same option
+    contract at this boundary before any wrapping logic can run.
+    """
+    _validate_include_arg_defaults(
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
+    )
+    _validate_include_return_and_yield_types(
+        docstring_style,
+        include_return_and_yield_types=include_return_and_yield_types,
+    )
+
+
+def _validate_include_arg_defaults(
+        *,
+        include_arg_types: bool,
+        include_arg_defaults: bool,
+) -> None:
+    """
+    Validate argument defaults are not emitted without argument types.
+
+    Defaults share the signature metadata slot with types; rejecting this
+    combination prevents type-less signatures that contain only
+    ``default=...`` metadata.
+    """
+    if include_arg_types or not include_arg_defaults:
+        return
+
+    msg = (
+        'include_arg_defaults=True requires include_arg_types=True. Set '
+        'include_arg_defaults=False when omitting argument types.'
+    )
+    raise ValueError(msg)
 
 
 def _validate_include_return_and_yield_types(

@@ -361,6 +361,50 @@ def test_cli_include_arg_options_override_config(tmp_path: Path) -> None:
     assert 'x (int, default=3): Value.' in output
 
 
+def test_cli_config_include_arg_defaults_without_types_errors(
+        tmp_path: Path,
+) -> None:
+    """
+    Verify config-provided disabled arg types require disabled defaults.
+
+    ``include_arg_defaults`` defaults to true, so a config file that disables
+    only arg types should fail before rewriting any files.
+    """
+    config_file = tmp_path / 'pyproject.toml'
+    config_file.write_text(
+        dedent(
+            """
+            [tool.format_docstring]
+            docstring_style = "google"
+            include_arg_types = false
+            """
+        )
+    )
+
+    test_file = tmp_path / 'doc.py'
+    original = dedent(
+        '''
+        def foo(x: int = 3):
+            """Do it.
+
+            Args:
+                x (float, default=9): Value.
+            """
+            return x
+        '''
+    ).lstrip()
+    test_file.write_text(original)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_py, ['--config', str(config_file), str(test_file)]
+    )
+
+    assert result.exit_code != 0
+    assert '--include-arg-defaults=True requires' in result.output
+    assert test_file.read_text() == original
+
+
 def test_cli_config_include_return_and_yield_types_google(
         tmp_path: Path,
 ) -> None:
