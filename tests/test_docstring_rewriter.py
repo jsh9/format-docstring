@@ -254,7 +254,8 @@ def test_fix_src_skips_non_triple_quoted_docstring_literals(
         closer: str,
 ) -> None:
     """
-    One-character quote delimiters are Python docstrings but not format targets.
+    One-character quote delimiters are Python docstrings but not format
+    targets.
 
     Skipping them keeps long valid source literals from being wrapped into
     invalid multi-line single-quoted or double-quoted strings.

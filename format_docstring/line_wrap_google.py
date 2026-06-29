@@ -136,7 +136,7 @@ def wrap_docstring_google(
     first because single backticks can expand to double backticks; doing that
     after wrapping can make the final output exceed ``line_length``.
 
-    ``opening_width`` only affects compact first lines. AST rewrites pass the
+    ``opening_width`` affects first-line wrapping. AST rewrites pass the
     measured source-literal opener so raw/unicode prefixes reduce the first
     content budget; callers without source context keep the bare-triple-quote
     default.
