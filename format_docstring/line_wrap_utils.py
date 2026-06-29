@@ -66,6 +66,28 @@ _RETURN_PROSE_LABELS = {
 }
 
 
+def validate_include_arg_defaults(
+        *,
+        include_arg_types: bool,
+        include_arg_defaults: bool,
+) -> None:
+    """
+    Validate argument defaults are not emitted without argument types.
+
+    Defaults share the signature metadata slot with types; rejecting this
+    combination prevents type-less signatures that contain only ``default=...``
+    metadata.
+    """
+    if include_arg_types or not include_arg_defaults:
+        return
+
+    msg = (
+        'include_arg_defaults=True requires include_arg_types=True. Set '
+        'include_arg_defaults=False when omitting argument types.'
+    )
+    raise ValueError(msg)
+
+
 def add_leading_indent(docstring: str, leading_indent: int | None) -> str:
     r"""
     Ensure a docstring starts with a newline + indent when requested.

@@ -114,3 +114,4 @@ max-locals = 1000
 max-nested-blocks = 10
 max-returns = 30
 max-statements = 50
+max-statements-in-try = 15

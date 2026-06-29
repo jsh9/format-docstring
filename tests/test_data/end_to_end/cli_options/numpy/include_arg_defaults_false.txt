@@ -1,0 +1,155 @@
+LINE_LENGTH: 79
+
+**********
+from typing import Any
+
+
+def format_items(
+        item: "Item",
+        count: int = 3,
+        *extras: str,
+        mode: str = "fast",
+        enabled: bool = True,
+        **options: Any,
+) -> tuple[str, ...]:
+    """
+    Format items.
+
+    Parameters
+    ----------
+    item : object
+        Primary item.
+    count : float, default=9
+        Number of items. The default behavior is automatic.
+    *extras : tuple[Any, ...]
+        Extra item labels.
+    mode : object, default='slow'
+        Formatting mode.
+    enabled : bool, optional
+        Whether formatting is enabled.
+    **options : dict[str, Any]
+        Extra options.
+
+    Returns
+    -------
+    tuple[str, ...]
+        Formatted item labels.
+    """
+    return ()
+
+
+# This case documents the include_arg_defaults=False contract:
+# - "optional" is default metadata, so it should be stripped even when written
+#   as ",optional" or with extra spaces after the comma.
+# - Type text from the docstring should stay because include_arg_types=True.
+# - "required" is not default metadata, so it should stay.
+def optional_spacing(required_value, compact=10, spaced=20):
+    """
+    Exercise optional marker spacing.
+
+    Parameters
+    ----------
+    required_value : str, required
+        Required marker.
+    compact : float,optional
+        Compact optional marker.
+    spaced : int,   optional
+        Extra-spaced optional marker.
+    """
+    return compact, spaced, required_value
+
+
+class Settings:
+    """
+    Store settings.
+
+    Attributes
+    ----------
+    threshold : object, default=1
+        Threshold value.
+    label : object, optional
+        Display label.
+    retries : object, default=5
+        Retry count.
+    """
+
+    threshold: float = 0.75
+    label: str = "stable"
+    retries = 2  # type: int
+
+**********
+from typing import Any
+
+
+def format_items(
+        item: "Item",
+        count: int = 3,
+        *extras: str,
+        mode: str = "fast",
+        enabled: bool = True,
+        **options: Any,
+) -> tuple[str, ...]:
+    """
+    Format items.
+
+    Parameters
+    ----------
+    item : "Item"
+        Primary item.
+    count : int
+        Number of items. The default behavior is automatic.
+    *extras : str
+        Extra item labels.
+    mode : str
+        Formatting mode.
+    enabled : bool
+        Whether formatting is enabled.
+    **options : Any
+        Extra options.
+
+    Returns
+    -------
+    tuple[str, ...]
+        Formatted item labels.
+    """
+    return ()
+
+
+# This case documents the include_arg_defaults=False contract:
+# - "optional" is default metadata, so it should be stripped even when written
+#   as ",optional" or with extra spaces after the comma.
+# - Type text from the docstring should stay because include_arg_types=True.
+# - "required" is not default metadata, so it should stay.
+def optional_spacing(required_value, compact=10, spaced=20):
+    """
+    Exercise optional marker spacing.
+
+    Parameters
+    ----------
+    required_value : str, required
+        Required marker.
+    compact : float
+        Compact optional marker.
+    spaced : int
+        Extra-spaced optional marker.
+    """
+    return compact, spaced, required_value
+
+
+class Settings:
+    """
+    Store settings.
+
+    Attributes
+    ----------
+    threshold : float
+        Threshold value.
+    label : str
+        Display label.
+    retries : int
+        Retry count.
+    """
+
+    threshold: float = 0.75
+    label: str = "stable"
+    retries = 2  # type: int

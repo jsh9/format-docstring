@@ -328,6 +328,10 @@ Examples
 
 DATA_DIR_NUMPY: Path = Path(__file__).parent / 'test_data/end_to_end/numpy'
 DATA_DIR_GOOGLE: Path = Path(__file__).parent / 'test_data/end_to_end/google'
+DATA_DIR_CLI_OPTIONS: Path = (
+    Path(__file__).parent / 'test_data/end_to_end/cli_options'
+)
+OptionTestCase = tuple[str, str, str, str, int, bool, bool]
 
 
 def _load_end_to_end_test_cases(
@@ -395,6 +399,41 @@ def _load_test_case(filepath: Path) -> tuple[str, str, str, int] | None:
     return test_case_name, before_content, after_content, line_length
 
 
+def _load_option_test_cases() -> list[OptionTestCase]:
+    """
+    Load valid end-to-end include option test cases.
+
+    Invalid option combinations have dedicated error tests instead of fixture
+    outputs so unsupported signatures are not preserved as expected behavior.
+    """
+    raw_cases = [
+        ('numpy', 'include_arg_types_and_defaults_true.txt', True, True),
+        ('numpy', 'include_arg_defaults_false.txt', True, False),
+        ('numpy', 'include_arg_types_and_defaults_false.txt', False, False),
+        ('google', 'include_arg_types_and_defaults_true.txt', True, True),
+        ('google', 'include_arg_defaults_false.txt', True, False),
+        ('google', 'include_arg_types_and_defaults_false.txt', False, False),
+    ]
+    test_cases: list[OptionTestCase] = []
+    for style, filename, include_arg_types, include_arg_defaults in raw_cases:
+        loaded = _load_test_case(DATA_DIR_CLI_OPTIONS / style / filename)
+        if loaded is None:
+            raise AssertionError(f'Malformed option fixture: {filename}')
+
+        name, input_src, expected_src, line_length = loaded
+        test_cases.append((
+            f'{style}_{name}',
+            style,
+            input_src,
+            expected_src,
+            line_length,
+            include_arg_types,
+            include_arg_defaults,
+        ))
+
+    return test_cases
+
+
 @pytest.mark.parametrize(
     ('test_name', 'input_src', 'expected_src', 'line_length'),
     _load_end_to_end_test_cases(DATA_DIR_NUMPY),
@@ -440,6 +479,200 @@ def test_fix_src_end_to_end_google(
         input_src, line_length=line_length, docstring_style='google'
     )
     assert result == expected_src
+
+
+@pytest.mark.parametrize(
+    (
+        'test_name',
+        'style',
+        'input_src',
+        'expected_src',
+        'line_length',
+        'include_arg_types',
+        'include_arg_defaults',
+    ),
+    _load_option_test_cases(),
+    ids=lambda case: case[0] if isinstance(case, tuple) else str(case),
+)
+def test_fix_src_include_arg_options_end_to_end(
+        test_name: str,  # noqa: ARG001
+        style: str,
+        input_src: str,
+        expected_src: str,
+        line_length: int,
+        *,
+        include_arg_types: bool,
+        include_arg_defaults: bool,
+) -> None:
+    """
+    Verify include arg options with full-source AST metadata rewrites.
+
+    These cases must stay end-to-end because type/default inclusion depends on
+    annotations, defaults, variadics, and class attributes collected from the
+    surrounding Python source, not just the raw docstring text.
+    """
+    result = docstring_rewriter.fix_src(
+        input_src,
+        line_length=line_length,
+        docstring_style=style,
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
+    )
+    assert result == expected_src
+
+
+@pytest.mark.parametrize('style', ['numpy', 'google'])
+def test_fix_src_include_arg_defaults_without_types_raises(
+        style: str,
+) -> None:
+    """
+    Verify direct source formatting rejects defaults without argument types.
+
+    This prevents output such as ``arg : default=3`` or ``arg (default=3):``
+    when users choose to omit argument type metadata.
+    """
+    with pytest.raises(
+        ValueError,
+        match='include_arg_defaults=True requires include_arg_types=True',
+    ):
+        docstring_rewriter.fix_src(
+            'def foo(x: int = 3):\n    """Return value."""\n    return x\n',
+            docstring_style=style,
+            include_arg_types=False,
+            include_arg_defaults=True,
+        )
+
+
+@pytest.mark.parametrize('style', ['numpy', 'google'])
+def test_wrap_docstring_include_arg_defaults_without_types_raises(
+        style: str,
+) -> None:
+    """
+    Verify direct docstring wrapping rejects invalid include options.
+
+    ``wrap_docstring`` bypasses source parsing and CLI validation, so this
+    guards the lower-level public API against type-less default metadata.
+    """
+    with pytest.raises(
+        ValueError,
+        match='include_arg_defaults=True requires include_arg_types=True',
+    ):
+        docstring_rewriter.wrap_docstring(
+            'Summary.',
+            docstring_style=style,
+            include_arg_types=False,
+            include_arg_defaults=True,
+        )
+
+
+def test_fix_src_google_include_return_and_yield_types_false_end_to_end() -> (
+    None
+):
+    """
+    Verify Google return/yield type stripping with full-source metadata.
+
+    This fixture guards the AST path where annotations, yielded item types, and
+    type-only rows interact with the two-pass Google wrapper.
+    """
+    loaded = _load_test_case(
+        DATA_DIR_CLI_OPTIONS
+        / 'google'
+        / 'include_return_and_yield_types_false.txt'
+    )
+    if loaded is None:
+        raise AssertionError('Malformed return/yield option fixture')
+
+    _, input_src, expected_src, line_length = loaded
+    result = docstring_rewriter.fix_src(
+        input_src,
+        line_length=line_length,
+        docstring_style='google',
+        include_return_and_yield_types=False,
+    )
+    assert result == expected_src
+
+
+def test_fix_src_numpy_include_return_and_yield_types_false_raises() -> None:
+    """
+    Verify direct NumPy API calls reject disabled return/yield type lines.
+
+    Direct callers bypass Click, so this protects the core numpydoc strictness
+    guard instead of only testing CLI validation.
+    """
+    with pytest.raises(ValueError, match='NumPy/numpydoc requires'):
+        docstring_rewriter.fix_src(
+            'def foo() -> int:\n    """Return value."""\n    return 1\n',
+            docstring_style='numpy',
+            include_return_and_yield_types=False,
+        )
+
+
+def test_fix_src_google_include_return_and_yield_types_false_cases() -> None:
+    """
+    Cover the Google return/yield type suppression edge cases.
+
+    These cases prevent regressions where prose descriptions gain annotations,
+    typed rows fail to strip, yielded item types diverge, or type-only rows
+    lose their only documented content.
+    """
+    source = dedent(
+        '''
+        def already_description() -> dict[str, str]:
+            """Build mapping.
+
+            Returns:
+                The mapping should not receive a return annotation.
+            """
+            return {}
+
+        def typed_inline() -> dict[str, str]:
+            """Build typed mapping.
+
+            Returns:
+                dict[str, str]: The mapping from keys to values.
+            """
+            return {}
+
+        def named_typed() -> int:
+            """Count values.
+
+            Returns:
+                result (int): Count of values.
+            """
+            return 1
+
+        def iter_values() -> Iterator[int]:
+            """Iterate values.
+
+            Yields:
+                int: Next value.
+            """
+            yield 1
+
+        def type_only() -> str:
+            """Return type only.
+
+            Returns:
+                str
+            """
+            return "x"
+        '''
+    ).lstrip()
+    result = docstring_rewriter.fix_src(
+        source,
+        line_length=72,
+        docstring_style='google',
+        include_return_and_yield_types=False,
+    )
+
+    assert 'dict[str, str]: The mapping from keys to values.' not in result
+    assert 'result (int): Count of values.' not in result
+    assert 'int: Next value.' not in result
+    assert 'The mapping from keys to values.' in result
+    assert 'Count of values.' in result
+    assert 'Next value.' in result
+    assert '        str\n' in result
+    assert 'The mapping should not receive a return annotation.' in result
 
 
 def test_fix_src_single_case() -> None:

@@ -18,6 +18,7 @@ from format_docstring.line_wrap_utils import (
     is_literal_block_paragraph,
     is_rst_code_block,
     process_temp_output,
+    validate_include_arg_defaults,
 )
 from format_docstring.section_utils import (
     canonical_google_section_header,
@@ -34,6 +35,9 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
         parameter_metadata: ParameterMetadata | None = None,
         attribute_metadata: ParameterMetadata | None = None,
         return_annotation: str | None = None,
+        include_arg_types: bool = True,
+        include_arg_defaults: bool = True,
+        include_return_and_yield_types: bool = True,
 ) -> str:
     """
     Wrap NumPy-style docstrings with light parsing rules.
@@ -52,6 +56,21 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
     - Outside these special cases, wrap only lines that exceed ``line_length``
       (keep existing intentional line breaks).
     """
+    validate_include_arg_defaults(
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
+    )
+    # Direct wrapper/API callers can bypass the CLI guard. Keep the NumPy
+    # formatter strict here because Returns/Yields type rows are structural
+    # numpydoc signature lines, not optional prose metadata.
+    if not include_return_and_yield_types:
+        msg = (
+            'include_return_and_yield_types=False is only supported for '
+            'Google-style docstrings because NumPy/numpydoc requires return '
+            'and yield type lines.'
+        )
+        raise ValueError(msg)
+
     # Pre-processing: if caller provides indentation context (i.e., the
     # indentation level of the docstring's parent), and the docstring body
     # doesn't begin with a newline followed by that many spaces, prepend it.
@@ -202,7 +221,10 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
                     fixed_line = _fix_colon_spacing(line)
                     fixed_line = _standardize_default_value(fixed_line)
                     fixed_line = _rewrite_parameter_signature(
-                        fixed_line, metadata_for_section
+                        fixed_line,
+                        metadata_for_section,
+                        include_arg_types=include_arg_types,
+                        include_arg_defaults=include_arg_defaults,
                     )
                     fixed_line = _standardize_default_value(fixed_line)
                     temp_out.append(fixed_line)
@@ -560,50 +582,85 @@ def _standardize_default_value(line: str) -> str:
     return line
 
 
-_SIGNATURE_TAIL_KEYWORDS: tuple[str, ...] = (', optional', ', required')
+# Match only trailing qualifiers so annotations like ``Optional[int]`` stay in
+# the type text instead of being misread as docstring metadata.
+_SIGNATURE_TAIL_RE = re.compile(
+    r',\s*(?P<kind>optional|required)\s*$',
+    re.IGNORECASE,
+)
 
 
-def _extract_signature_tail(after_colon: str) -> tuple[str, str]:
+def _is_optional_tail(tail: str) -> bool:
+    """Return True if ``tail`` is an optional marker."""
+    return bool(re.fullmatch(r',\s*optional\s*', tail, re.IGNORECASE))
+
+
+def _extract_signature_tail(
+        after_colon: str,
+        *,
+        strip_optional: bool = True,
+) -> tuple[str, str]:
     """
     Split ``after_colon`` into the core signature content and trailing
     qualifier.
 
-    The ``", optional"`` qualifier is intentionally stripped because the
-    presence of a default value communicates optionality.
+    The optional qualifier accepts compact or extra-spaced forms such as
+    ``,optional`` and ``,   optional``. It can be stripped when a default value
+    will be emitted because the default communicates optionality.
     """
     stripped = after_colon.rstrip()
-    lowered = stripped.lower()
-    for keyword in _SIGNATURE_TAIL_KEYWORDS:
-        idx = lowered.rfind(keyword)
-        if idx == -1:
-            continue
+    match = _SIGNATURE_TAIL_RE.search(stripped)
+    if match is None:
+        return stripped.strip(), ''
 
-        end = idx + len(keyword)
-        if end < len(stripped) and stripped[end] == '[':
-            # Skip cases like ", Optional[int]" where the keyword is part of a
-            # type annotation rather than a qualifier.
-            continue
+    base = stripped[: match.start()].rstrip()
+    tail = stripped[match.start() :]
+    if match.group('kind').lower() == 'optional' and strip_optional:
+        return base, ''
 
-        base = stripped[:idx].rstrip()
-        tail = stripped[idx:]
-        if keyword == ', optional':
-            return base, ''
+    return base, tail
 
-        return base, tail
 
-    return stripped.strip(), ''
+def _split_numpy_default_piece(core: str) -> tuple[str, str | None]:
+    """Split ``core`` into annotation text and a ``default=`` value."""
+    marker = ', default='
+    idx = core.lower().find(marker)
+    if idx == -1:
+        return core.strip(), None
+
+    annotation = core[:idx].rstrip(', ')
+    default = core[idx + len(marker) :].strip()
+    return annotation, default
+
+
+def _lookup_parameter_metadata(
+        name: str,
+        parameter_metadata: ParameterMetadata | None,
+) -> tuple[str | None, str | None] | None:
+    """Return metadata for regular and variadic parameter names."""
+    if not parameter_metadata:
+        return None
+
+    meta = parameter_metadata.get(name)
+    if meta is None and name.startswith('**'):
+        meta = parameter_metadata.get(name[2:])
+
+    if meta is None and name.startswith('*'):
+        meta = parameter_metadata.get(name[1:])
+
+    return meta
 
 
 def _rewrite_parameter_signature(
         line: str,
         parameter_metadata: ParameterMetadata | None,
+        *,
+        include_arg_types: bool = True,
+        include_arg_defaults: bool = True,
 ) -> str:
     """
     Replace the annotation/default portion of a signature line using metadata.
     """
-    if not parameter_metadata:
-        return line
-
     colon_idx = line.find(':')
     if colon_idx == -1:
         return line
@@ -615,43 +672,60 @@ def _rewrite_parameter_signature(
         return line
 
     names = [part.strip() for part in names_segment.split(',') if part.strip()]
-    if len(names) != 1:
+    meta = (
+        _lookup_parameter_metadata(names[0], parameter_metadata)
+        if len(names) == 1
+        else None
+    )
+    if meta is None and include_arg_types and include_arg_defaults:
         return line
 
-    name = names[0]
-    meta = parameter_metadata.get(name)
-    if meta is None and name.startswith('**'):
-        meta = parameter_metadata.get(name[2:])
+    core, tail = _extract_signature_tail(
+        line[colon_idx + 1 :],
+        strip_optional=False,
+    )
+    existing_annotation_text, existing_default = _split_numpy_default_piece(
+        core
+    )
 
-    if meta is None and name.startswith('*'):
-        meta = parameter_metadata.get(name[1:])
+    annotation: str | None = None
+    default: str | None = None
+    if meta is not None:
+        annotation, default = meta
 
-    if meta is None:
-        return line
-
-    annotation, default = meta
-    if annotation is None and default is None:
-        return line
-
-    core, tail = _extract_signature_tail(line[colon_idx + 1 :])
-
-    existing_annotation_text = core.strip()
-    if existing_annotation_text and ', default=' in existing_annotation_text:
-        existing_annotation_text = existing_annotation_text.split(
-            ', default=', 1
-        )[0].rstrip(', ')
-
-    existing_annotation_text = existing_annotation_text.strip()
+    # Source metadata is authoritative only when it has an annotation/default.
+    # Otherwise, preserve existing docstring pieces unless an include flag asks
+    # us to strip them; unannotated functions should not erase author docs.
+    source_controls_annotation = meta is not None and annotation is not None
+    source_controls_defaults = meta is not None and (
+        annotation is not None or default is not None
+    )
 
     rhs_parts: list[str] = []
-    annotation_text = (
-        annotation if annotation is not None else existing_annotation_text
-    )
+    annotation_text = ''
+    if include_arg_types:
+        annotation_text = (
+            annotation if annotation is not None else existing_annotation_text
+        )
+
     if annotation_text:
         rhs_parts.append(annotation_text)
 
-    if default is not None:
-        rhs_parts.append(f'default={default}')
+    default_text = None
+    if include_arg_defaults:
+        default_text = (
+            default if source_controls_defaults else existing_default
+        )
+    elif _is_optional_tail(tail):
+        tail = ''
+
+    if default_text is not None:
+        rhs_parts.append(f'default={default_text}')
+        if _is_optional_tail(tail):
+            tail = ''
+
+    if source_controls_annotation and _is_optional_tail(tail):
+        tail = ''
 
     rhs = ', '.join(rhs_parts).strip()
     if rhs:
@@ -659,7 +733,7 @@ def _rewrite_parameter_signature(
     else:
         rebuilt = f'{indent}{names_segment} :'
 
-    if tail:
+    if tail and rhs:
         rebuilt = f'{rebuilt}{tail}'
 
     return rebuilt
@@ -1088,6 +1162,16 @@ def _fix_rst_backticks(docstring: str) -> str:
     It deliberately **does not** modify other rST constructs that require
     single backticks.
 
+    Parameters
+    ----------
+    docstring : str
+        The docstring content to process.
+
+    Returns
+    -------
+    str
+        The docstring with only inline-literal backticks fixed.
+
     Notes
     -----
     The following forms stay untouched:
@@ -1115,16 +1199,6 @@ def _fix_rst_backticks(docstring: str) -> str:
       anonymous/named references).
     - The line is not protected as REPL or examples code before regex
       replacement runs.
-
-    Parameters
-    ----------
-    docstring : str
-        The docstring content to process.
-
-    Returns
-    -------
-    str
-        The docstring with only inline-literal backticks fixed.
 
     Examples
     --------

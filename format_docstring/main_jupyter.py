@@ -16,7 +16,10 @@ from jupyter_notebook_parser import (
 import format_docstring.docstring_rewriter as doc_rewriter
 from format_docstring import __version__
 from format_docstring.base_fixer import BaseFixer
-from format_docstring.config import ConfigFileCommand
+from format_docstring.config import (
+    ConfigFileCommand,
+    validate_cli_include_options,
+)
 
 
 @click.command(cls=ConfigFileCommand)
@@ -54,9 +57,31 @@ from format_docstring.config import ConfigFileCommand
 )
 @click.option(
     '--fix-rst-backticks',
+    type=bool,
     default=True,
     show_default=True,
     help='Fix single backticks to double backticks per rST syntax',
+)
+@click.option(
+    '--include-arg-types',
+    type=bool,
+    default=True,
+    show_default=True,
+    help='Include argument type hints in parameter docstrings',
+)
+@click.option(
+    '--include-arg-defaults',
+    type=bool,
+    default=True,
+    show_default=True,
+    help='Include argument defaults in parameter docstrings',
+)
+@click.option(
+    '--include-return-and-yield-types',
+    type=bool,
+    default=True,
+    show_default=True,
+    help='Include return and yield type hints in docstrings',
 )
 @click.option(
     '--verbose',
@@ -73,16 +98,31 @@ def main(
         line_length: int,
         docstring_style: str,
         fix_rst_backticks: bool,
+        include_arg_types: bool,
+        include_arg_defaults: bool,
+        include_return_and_yield_types: bool,
         verbose: str,
 ) -> None:
     """Format .ipynb files."""
     ret = 0
+    # Reject incompatible include flags before the loop so one invalid
+    # invocation cannot partially rewrite earlier notebooks before failing.
+    validate_cli_include_options(
+        docstring_style,
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
+        include_return_and_yield_types=include_return_and_yield_types,
+    )
+
     for path in paths:
         fixer = JupyterNotebookFixer(
             path=path,
             exclude_pattern=exclude,
             line_length=line_length,
             fix_rst_backticks=fix_rst_backticks,
+            include_arg_types=include_arg_types,
+            include_arg_defaults=include_arg_defaults,
+            include_return_and_yield_types=include_return_and_yield_types,
             verbose=verbose.lower(),
         )
         fixer.docstring_style = docstring_style
@@ -102,6 +142,9 @@ class JupyterNotebookFixer(BaseFixer):
             line_length: int = 79,
             *,
             fix_rst_backticks: bool = True,
+            include_arg_types: bool = True,
+            include_arg_defaults: bool = True,
+            include_return_and_yield_types: bool = True,
             verbose: str = 'default',
     ) -> None:
         super().__init__(
@@ -111,6 +154,9 @@ class JupyterNotebookFixer(BaseFixer):
         )
         self.line_length = line_length
         self.fix_rst_backticks = fix_rst_backticks
+        self.include_arg_types = include_arg_types
+        self.include_arg_defaults = include_arg_defaults
+        self.include_return_and_yield_types = include_return_and_yield_types
         self.docstring_style: str = 'numpy'
 
     def fix_one_directory_or_one_file(self) -> int:
@@ -167,6 +213,11 @@ class JupyterNotebookFixer(BaseFixer):
                     line_length=self.line_length,
                     docstring_style=self.docstring_style,
                     fix_rst_backticks=self.fix_rst_backticks,
+                    include_arg_types=self.include_arg_types,
+                    include_arg_defaults=self.include_arg_defaults,
+                    include_return_and_yield_types=(
+                        self.include_return_and_yield_types
+                    ),
                 )
 
                 if fixed != source_without_magic:

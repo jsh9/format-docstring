@@ -1,0 +1,60 @@
+LINE_LENGTH: 72
+
+**********
+def load_mapping() -> dict[str, str]:
+    """
+    Load mapping.
+
+    Returns:
+        result (dict[str, str]): Mapping description that is long enough to wrap across multiple lines when the return type is stripped from the Google section.
+    """
+    return {}
+
+
+def iter_values() -> Iterator[int]:
+    """
+    Iterate values.
+
+    Yields:
+        int: Next value description that is long enough to wrap after the yielded type is stripped from the Google section.
+    """
+    yield 1
+
+
+def type_only() -> str:
+    """
+    Return type only.
+
+    Returns:
+        str
+    """
+    return "x"
+
+**********
+def load_mapping() -> dict[str, str]:
+    """Load mapping.
+
+    Returns:
+        Mapping description that is long enough to wrap across multiple
+        lines when the return type is stripped from the Google section.
+    """
+    return {}
+
+
+def iter_values() -> Iterator[int]:
+    """Iterate values.
+
+    Yields:
+        Next value description that is long enough to wrap after the
+        yielded type is stripped from the Google section.
+    """
+    yield 1
+
+
+def type_only() -> str:
+    """Return type only.
+
+    Returns:
+        str
+    """
+    return "x"

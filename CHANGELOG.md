@@ -6,6 +6,19 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-29
+
+- Added
+  - CLI and `pyproject.toml` options to control whether argument types,
+    argument defaults, and Google return/yield types are included in docstring
+    signature lines for Python files and Jupyter notebooks.
+- Fixed
+  - Google-style argument signature synchronization preserves existing
+    `required` metadata when source annotations replace stale docstring type
+    text.
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.3.0...0.4.0
+
 ## [0.3.0] - 2026-06-19
 
 - Added

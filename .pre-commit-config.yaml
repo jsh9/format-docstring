@@ -17,7 +17,7 @@ repos:
         exclude: ^tests/helpers\.py$
       - id: check-merge-conflict
   - repo: https://github.com/jsh9/muff-pre-commit
-    rev: 0.13.2
+    rev: 0.15.20
     hooks:
       - id: muff-format
         args: [--config, muff.toml]
@@ -27,11 +27,11 @@ repos:
       - id: blank-line-after-blocks
       - id: blank-line-after-blocks-jupyter
   - repo: https://github.com/lyz-code/yamlfix
-    rev: 1.18.0
+    rev: 1.19.1
     hooks:
       - id: yamlfix
   - repo: https://github.com/pappasam/toml-sort
-    rev: v0.24.2
+    rev: v0.24.4
     hooks:
       - id: toml-sort-fix
         args:
@@ -42,7 +42,7 @@ repos:
           - --trailing-comma-inline-array
           - --sort-inline-arrays
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.15.0
+    rev: v2.16.0
     hooks:
       - id: pretty-format-ini
         args: [--autofix]
@@ -63,15 +63,28 @@ repos:
           - --no-sort-keys
           - --no-eof-newline
   - repo: https://github.com/jsh9/markdown-toc-creator
-    rev: 0.1.0
+    rev: 0.1.3
     hooks:
       - id: markdown-toc-creator
         exclude: ^AGENTS\.md$|^CHANGELOG\.md$
   - repo: https://github.com/jsh9/markdown-heading-numbering
-    rev: 0.1.0
+    rev: 0.1.1
     hooks:
       - id: markdown-heading-numbering
         exclude: ^CHANGELOG\.md$
+  - repo: https://github.com/jsh9/pre-commit-tox-version-sync
+    rev: 0.1.1
+    hooks:
+      - id: sync-precommit-tox-versions
+        args:
+          - --pre-commit-repo
+          - https://github.com/jsh9/muff-pre-commit
+          - --tox-env
+          - muff-lint
+          - --tox-env
+          - muff-format
+          - --tox-dep
+          - muff
   - repo: local
     hooks:
       - id: format-docstring

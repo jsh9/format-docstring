@@ -1,0 +1,83 @@
+LINE_LENGTH: 79
+
+**********
+from typing import Any
+
+
+def format_items(
+        item: "Item",
+        count: int = 3,
+        *extras: str,
+        mode: str = "fast",
+        enabled: bool = True,
+        **options: Any,
+) -> tuple[str, ...]:
+    """Format items.
+
+    Args:
+        item (object): Primary item.
+        count (float, default=9): Number of items. The default behavior is automatic.
+        *extras (tuple[Any, ...]): Extra item labels.
+        mode (object, default='slow'): Formatting mode.
+        enabled (bool, optional): Whether formatting is enabled.
+        **options (dict[str, Any]): Extra options.
+
+    Returns:
+        tuple[str, ...]: Formatted item labels.
+    """
+    return ()
+
+
+class Settings:
+    """Store settings.
+
+    Attributes:
+        threshold (object, default=1): Threshold value.
+        label (object, optional): Display label.
+        retries (object, default=5): Retry count.
+    """
+
+    threshold: float = 0.75
+    label: str = "stable"
+    retries = 2  # type: int
+
+**********
+from typing import Any
+
+
+def format_items(
+        item: "Item",
+        count: int = 3,
+        *extras: str,
+        mode: str = "fast",
+        enabled: bool = True,
+        **options: Any,
+) -> tuple[str, ...]:
+    """Format items.
+
+    Args:
+        item: Primary item.
+        count: Number of items. The default behavior is automatic.
+        *extras: Extra item labels.
+        mode: Formatting mode.
+        enabled: Whether formatting is enabled.
+        **options: Extra options.
+
+    Returns:
+        tuple[str, ...]: Formatted item labels.
+    """
+    return ()
+
+
+class Settings:
+    """Store settings.
+
+    Attributes:
+        threshold: Threshold value.
+        label: Display label.
+        retries: Retry count.
+    """
+
+    threshold: float = 0.75
+    label: str = "stable"
+    retries = 2  # type: int
