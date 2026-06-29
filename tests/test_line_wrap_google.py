@@ -7,6 +7,7 @@ from format_docstring.line_wrap_google import (
     _find_google_signature_colon,
     _normalize_google_signature_spacing,
     _wrap_first_line_shorter,
+    wrap_docstring_google,
 )
 from tests.helpers import load_cases_from_dir
 
@@ -45,6 +46,27 @@ def test_wrap_docstring_google_single_case() -> None:
     A placeholder test for easy debugging. Replaces the file name with the test
     case file that's producing errors if needed.
     """
+
+
+def test_wrap_docstring_google_defaults_without_types_raises() -> None:
+    """
+    Verify the Google wrapper rejects defaults without argument types.
+
+    The style-specific wrapper can be called directly, so it should keep the
+    same option invariant as the CLI and top-level wrapper before metadata
+    rewriting can produce malformed signatures.
+    """
+    with pytest.raises(
+        ValueError,
+        match='include_arg_defaults=True requires include_arg_types=True',
+    ):
+        wrap_docstring_google(
+            'Args:\n    x (float): Value.',
+            line_length=79,
+            parameter_metadata={'x': ('int', '3')},
+            include_arg_types=False,
+            include_arg_defaults=True,
+        )
 
 
 @pytest.mark.parametrize(

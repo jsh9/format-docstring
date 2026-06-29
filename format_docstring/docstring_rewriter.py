@@ -12,6 +12,7 @@ from format_docstring.line_wrap_numpy import (
     handle_single_line_docstring,
     wrap_docstring_numpy,
 )
+from format_docstring.line_wrap_utils import validate_include_arg_defaults
 
 if TYPE_CHECKING:
     from format_docstring.line_wrap_utils import ParameterMetadata
@@ -849,7 +850,7 @@ def _validate_include_options(
     can call ``fix_src`` or ``wrap_docstring`` directly. Keep the same option
     contract at this boundary before any wrapping logic can run.
     """
-    _validate_include_arg_defaults(
+    validate_include_arg_defaults(
         include_arg_types=include_arg_types,
         include_arg_defaults=include_arg_defaults,
     )
@@ -857,28 +858,6 @@ def _validate_include_options(
         docstring_style,
         include_return_and_yield_types=include_return_and_yield_types,
     )
-
-
-def _validate_include_arg_defaults(
-        *,
-        include_arg_types: bool,
-        include_arg_defaults: bool,
-) -> None:
-    """
-    Validate argument defaults are not emitted without argument types.
-
-    Defaults share the signature metadata slot with types; rejecting this
-    combination prevents type-less signatures that contain only ``default=...``
-    metadata.
-    """
-    if include_arg_types or not include_arg_defaults:
-        return
-
-    msg = (
-        'include_arg_defaults=True requires include_arg_types=True. Set '
-        'include_arg_defaults=False when omitting argument types.'
-    )
-    raise ValueError(msg)
 
 
 def _validate_include_return_and_yield_types(

@@ -18,6 +18,7 @@ from format_docstring.line_wrap_utils import (
     is_literal_block_paragraph,
     is_rst_code_block,
     process_temp_output,
+    validate_include_arg_defaults,
 )
 from format_docstring.section_utils import (
     canonical_google_section_header,
@@ -55,6 +56,10 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
     - Outside these special cases, wrap only lines that exceed ``line_length``
       (keep existing intentional line breaks).
     """
+    validate_include_arg_defaults(
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
+    )
     # Direct wrapper/API callers can bypass the CLI guard. Keep the NumPy
     # formatter strict here because Returns/Yields type rows are structural
     # numpydoc signature lines, not optional prose metadata.

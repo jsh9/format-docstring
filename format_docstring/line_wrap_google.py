@@ -17,6 +17,7 @@ from format_docstring.line_wrap_utils import (
     is_google_examples_code_block,
     merge_lines_and_strip,
     segment_lines_by_wrappability,
+    validate_include_arg_defaults,
 )
 from format_docstring.section_utils import (
     canonical_google_section_header,
@@ -133,6 +134,11 @@ def wrap_docstring_google(
     first because single backticks can expand to double backticks; doing that
     after wrapping can make the final output exceed ``line_length``.
     """
+    validate_include_arg_defaults(
+        include_arg_types=include_arg_types,
+        include_arg_defaults=include_arg_defaults,
+    )
+
     docstring_ = docstring
     if fix_rst_backticks:
         docstring_ = _fix_rst_backticks(docstring_)
@@ -1604,15 +1610,20 @@ def _split_google_annotation_pieces(annotation: str) -> list[str]:
 
 def _split_google_metadata_markers(
         annotation: str,
-) -> tuple[list[str], str | None, bool]:
-    """Split Google annotation text into type pieces, default, and optional."""
+) -> tuple[list[str], str | None, bool, bool]:
+    """Split Google annotation text into type pieces and metadata markers."""
     type_pieces: list[str] = []
     default_value: str | None = None
     has_optional = False
+    has_required = False
     for piece in _split_google_annotation_pieces(annotation):
         piece_lower = piece.lower()
         if piece_lower == 'optional':
             has_optional = True
+            continue
+
+        if piece_lower == 'required':
+            has_required = True
             continue
 
         if piece_lower.startswith('default='):
@@ -1621,7 +1632,7 @@ def _split_google_metadata_markers(
 
         type_pieces.append(piece)
 
-    return type_pieces, default_value, has_optional
+    return type_pieces, default_value, has_optional, has_required
 
 
 def _rewrite_google_parameter_signature(
@@ -1647,7 +1658,7 @@ def _rewrite_google_parameter_signature(
         return signature_part
 
     existing_annotation = (match.group('annotation') or '').strip()
-    existing_type_pieces, existing_default, has_optional = (
+    existing_type_pieces, existing_default, has_optional, has_required = (
         _split_google_metadata_markers(existing_annotation)
     )
 
@@ -1676,10 +1687,19 @@ def _rewrite_google_parameter_signature(
             pieces.append(annotation)
         else:
             pieces.extend(existing_type_pieces)
-            # Preserve ``optional`` only when default metadata is enabled;
-            # it describes defaulted-parameter state, not type information.
-            if include_arg_defaults and has_optional and default_text is None:
-                pieces.append('optional')
+
+        if has_required:
+            pieces.append('required')
+        # Drop an existing ``optional`` marker when defaults are hidden. In
+        # Google signatures it sits beside the type text, but still represents
+        # defaulted-parameter state.
+        if (
+            not source_controls_annotation
+            and include_arg_defaults
+            and has_optional
+            and default_text is None
+        ):
+            pieces.append('optional')
 
     if default_text is not None:
         pieces.append(f'default={default_text}')

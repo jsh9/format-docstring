@@ -44,6 +44,15 @@ def optional_spacing(required_value, compact=10, spaced=20):
     return compact, spaced, required_value
 
 
+def required_marker_with_synced_type(value: str):
+    """Exercise required marker preservation during type sync.
+
+    Args:
+        value (float, required): Required marker.
+    """
+    return value
+
+
 class Settings:
     """Store settings.
 
@@ -99,6 +108,15 @@ def optional_spacing(required_value, compact=10, spaced=20):
         spaced (int): Extra-spaced optional marker.
     """
     return compact, spaced, required_value
+
+
+def required_marker_with_synced_type(value: str):
+    """Exercise required marker preservation during type sync.
+
+    Args:
+        value (str, required): Required marker.
+    """
+    return value
 
 
 class Settings:

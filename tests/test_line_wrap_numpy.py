@@ -11,6 +11,7 @@ from format_docstring.line_wrap_numpy import (
     _is_hyphen_underline,
     _is_param_signature,
     _standardize_default_value,
+    wrap_docstring_numpy,
 )
 from tests.helpers import load_case_from_file, load_cases_from_dir
 
@@ -58,6 +59,27 @@ def test_wrap_docstring_single_case() -> None:
         fix_rst_backticks=False,
     )
     assert out.strip('\n') == after.strip('\n')
+
+
+def test_wrap_docstring_numpy_defaults_without_types_raises() -> None:
+    """
+    Verify the NumPy wrapper rejects defaults without argument types.
+
+    The style-specific wrapper can be called directly, so it should keep the
+    same option invariant as the CLI and top-level wrapper before metadata
+    rewriting can produce malformed signatures.
+    """
+    with pytest.raises(
+        ValueError,
+        match='include_arg_defaults=True requires include_arg_types=True',
+    ):
+        wrap_docstring_numpy(
+            'Parameters\n----------\nx : float\n    Value.',
+            line_length=79,
+            parameter_metadata={'x': ('int', '3')},
+            include_arg_types=False,
+            include_arg_defaults=True,
+        )
 
 
 @pytest.mark.parametrize(
