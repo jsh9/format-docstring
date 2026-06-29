@@ -577,7 +577,17 @@ def _standardize_default_value(line: str) -> str:
     return line
 
 
-_SIGNATURE_TAIL_KEYWORDS: tuple[str, ...] = (', optional', ', required')
+# Match only trailing qualifiers so annotations like ``Optional[int]`` stay in
+# the type text instead of being misread as docstring metadata.
+_SIGNATURE_TAIL_RE = re.compile(
+    r',\s*(?P<kind>optional|required)\s*$',
+    re.IGNORECASE,
+)
+
+
+def _is_optional_tail(tail: str) -> bool:
+    """Return True if ``tail`` is an optional marker."""
+    return bool(re.fullmatch(r',\s*optional\s*', tail, re.IGNORECASE))
 
 
 def _extract_signature_tail(
@@ -589,30 +599,21 @@ def _extract_signature_tail(
     Split ``after_colon`` into the core signature content and trailing
     qualifier.
 
-    The ``", optional"`` qualifier can be stripped when a default value will be
-    emitted because the default communicates optionality.
+    The optional qualifier accepts compact or extra-spaced forms such as
+    ``,optional`` and ``,   optional``. It can be stripped when a default value
+    will be emitted because the default communicates optionality.
     """
     stripped = after_colon.rstrip()
-    lowered = stripped.lower()
-    for keyword in _SIGNATURE_TAIL_KEYWORDS:
-        idx = lowered.rfind(keyword)
-        if idx == -1:
-            continue
+    match = _SIGNATURE_TAIL_RE.search(stripped)
+    if match is None:
+        return stripped.strip(), ''
 
-        end = idx + len(keyword)
-        if end < len(stripped) and stripped[end] == '[':
-            # Skip cases like ", Optional[int]" where the keyword is part of a
-            # type annotation rather than a qualifier.
-            continue
+    base = stripped[: match.start()].rstrip()
+    tail = stripped[match.start() :]
+    if match.group('kind').lower() == 'optional' and strip_optional:
+        return base, ''
 
-        base = stripped[:idx].rstrip()
-        tail = stripped[idx:]
-        if keyword == ', optional' and strip_optional:
-            return base, ''
-
-        return base, tail
-
-    return stripped.strip(), ''
+    return base, tail
 
 
 def _split_numpy_default_piece(core: str) -> tuple[str, str | None]:
@@ -710,13 +711,15 @@ def _rewrite_parameter_signature(
         default_text = (
             default if source_controls_defaults else existing_default
         )
+    elif _is_optional_tail(tail):
+        tail = ''
 
     if default_text is not None:
         rhs_parts.append(f'default={default_text}')
-        if tail.lower() == ', optional':
+        if _is_optional_tail(tail):
             tail = ''
 
-    if source_controls_annotation and tail.lower() == ', optional':
+    if source_controls_annotation and _is_optional_tail(tail):
         tail = ''
 
     rhs = ', '.join(rhs_parts).strip()

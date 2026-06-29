@@ -1676,7 +1676,9 @@ def _rewrite_google_parameter_signature(
             pieces.append(annotation)
         else:
             pieces.extend(existing_type_pieces)
-            if has_optional and default_text is None:
+            # Preserve ``optional`` only when default metadata is enabled;
+            # it describes defaulted-parameter state, not type information.
+            if include_arg_defaults and has_optional and default_text is None:
                 pieces.append('optional')
 
     if default_text is not None:

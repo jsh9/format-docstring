@@ -540,7 +540,7 @@ leave that docstring untouched.
 | `--docstring-style CHOICE`              | `numpy`                        | Docstring style to target, either `numpy` or `google`. This selects the style to format, not a converter between styles.                                                                              |
 | `--fix-rst-backticks BOOL`              | `True`                         | Automatically fix single backticks to double backticks per rST syntax. Pass `False` to disable this.                                                                                                  |
 | `--include-arg-types BOOL`              | `True`                         | Include argument type hints in parameter docstrings. Pass `False` to remove them from structured arg and attribute signature lines; defaults must also be disabled.                                   |
-| `--include-arg-defaults BOOL`           | `True`                         | Include argument defaults in parameter docstrings. Pass `False` to remove them from structured arg and attribute signature lines. Requires argument types.                                            |
+| `--include-arg-defaults BOOL`           | `True`                         | Include argument defaults in parameter docstrings. Pass `False` to remove explicit defaults and `optional` markers from structured arg and attribute signature lines. Requires argument types.        |
 | `--include-return-and-yield-types BOOL` | `True`                         | Include type hints in `Returns` and `Yields` docstrings. Pass `False` to remove them from Google-style return/yield descriptions. NumPy style does not allow `False`.                                 |
 | `--verbose CHOICE`                      | `default`                      | Logging detail level. `default` keeps the existing behaviour; `diff` prints unified diffs when rewrites happen.                                                                                       |
 | `--exclude TEXT`                        | `\.git\|\.tox\|\.pytest_cache` | Regex pattern to exclude files/directories.                                                                                                                                                           |
@@ -577,6 +577,9 @@ format-docstring --config pyproject.toml --line-length 100 src/
 
 # Disable backtick fixing
 format-docstring --fix-rst-backticks=False my_module.py
+
+# Omit argument defaults, including optional markers
+format-docstring --include-arg-defaults=False src/
 
 # Omit Google-style return/yield type text when annotations carry the types
 format-docstring --docstring-style google --include-return-and-yield-types=False src/
@@ -627,7 +630,11 @@ include_return_and_yield_types = false
   `include_arg_defaults` must also be `false`.
 - `include_arg_defaults` / `include-arg-defaults` (bool): whether to include
   argument defaults in parameter docstrings. Default: `true`. This requires
-  `include_arg_types = true`.
+  `include_arg_types = true`. When set to `false`, explicit defaults and
+  `optional` markers are removed from structured signatures, including compact
+  or extra-spaced forms such as `,optional` and `,   optional`. For example,
+  `x : int, optional` becomes `x : int` and `x (int, optional):` becomes
+  `x (int):`.
 - `include_return_and_yield_types` / `include-return-and-yield-types` (bool):
   whether to include return and yield type hints in docstrings. Default:
   `true`. Setting this to `false` is supported only with Google style.

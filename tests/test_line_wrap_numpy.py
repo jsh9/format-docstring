@@ -4,6 +4,7 @@ import pytest
 
 from format_docstring.docstring_rewriter import wrap_docstring
 from format_docstring.line_wrap_numpy import (
+    _extract_signature_tail,
     _fix_colon_spacing,
     _fix_rst_backticks,
     _get_section_heading_title,
@@ -256,6 +257,56 @@ def test_fix_colon_spacing(line: str, expected: str) -> None:
 )
 def test_standardize_default_value(line: str, expected: str) -> None:
     assert _standardize_default_value(line) == expected
+
+
+@pytest.mark.parametrize(
+    ('after_colon', 'strip_optional', 'expected'),
+    [
+        ('int, optional', True, ('int', '')),
+        ('int, optional', False, ('int', ', optional')),
+        ('int,optional', True, ('int', '')),
+        ('int,optional', False, ('int', ',optional')),
+        ('int,   optional', True, ('int', '')),
+        ('int,   optional', False, ('int', ',   optional')),
+        ('str, required', True, ('str', ', required')),
+        ('str, required', False, ('str', ', required')),
+        ('Optional[int]', True, ('Optional[int]', '')),
+        ('int, Optional[str]', True, ('int, Optional[str]', '')),
+        ('int, optionality', True, ('int, optionality', '')),
+    ],
+    ids=[
+        'strip-spaced-optional',
+        'preserve-spaced-optional',
+        'strip-compact-optional',
+        'preserve-compact-optional',
+        'strip-extra-spaced-optional',
+        'preserve-extra-spaced-optional',
+        'preserve-required-when-stripping',
+        'preserve-required-without-stripping',
+        'ignore-optional-type-name',
+        'ignore-optional-generic',
+        'ignore-optional-prefix-word',
+    ],
+)
+def test_extract_signature_tail(
+        after_colon: str,
+        *,
+        strip_optional: bool,
+        expected: tuple[str, str],
+) -> None:
+    """
+    Verify NumPy tail parsing for optional/required metadata variants.
+
+    Compact and extra-spaced ``optional`` markers are default metadata, but
+    ``Optional[...]`` and similar type text must stay in the annotation.
+    """
+    assert (
+        _extract_signature_tail(
+            after_colon,
+            strip_optional=strip_optional,
+        )
+        == expected
+    )
 
 
 @pytest.mark.parametrize(

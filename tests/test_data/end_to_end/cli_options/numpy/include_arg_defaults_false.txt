@@ -38,6 +38,27 @@ def format_items(
     return ()
 
 
+# This case documents the include_arg_defaults=False contract:
+# - "optional" is default metadata, so it should be stripped even when written
+#   as ",optional" or with extra spaces after the comma.
+# - Type text from the docstring should stay because include_arg_types=True.
+# - "required" is not default metadata, so it should stay.
+def optional_spacing(required_value, compact=10, spaced=20):
+    """
+    Exercise optional marker spacing.
+
+    Parameters
+    ----------
+    required_value : str, required
+        Required marker.
+    compact : float,optional
+        Compact optional marker.
+    spaced : int,   optional
+        Extra-spaced optional marker.
+    """
+    return compact, spaced, required_value
+
+
 class Settings:
     """
     Store settings.
@@ -92,6 +113,27 @@ def format_items(
         Formatted item labels.
     """
     return ()
+
+
+# This case documents the include_arg_defaults=False contract:
+# - "optional" is default metadata, so it should be stripped even when written
+#   as ",optional" or with extra spaces after the comma.
+# - Type text from the docstring should stay because include_arg_types=True.
+# - "required" is not default metadata, so it should stay.
+def optional_spacing(required_value, compact=10, spaced=20):
+    """
+    Exercise optional marker spacing.
+
+    Parameters
+    ----------
+    required_value : str, required
+        Required marker.
+    compact : float
+        Compact optional marker.
+    spaced : int
+        Extra-spaced optional marker.
+    """
+    return compact, spaced, required_value
 
 
 class Settings:

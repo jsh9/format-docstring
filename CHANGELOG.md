@@ -6,6 +6,17 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+- Added
+  - CLI and `pyproject.toml` options to control whether argument types,
+    argument defaults, and Google return/yield types are included in docstring
+    signature lines.
+- Changed
+  - Disabling argument defaults removes explicit `default=...` values and
+    `optional` markers from structured argument and attribute signature lines,
+    including compact forms like `,optional`.
+
 ## [0.3.0] - 2026-06-19
 
 - Added
