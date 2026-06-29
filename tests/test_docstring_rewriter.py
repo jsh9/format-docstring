@@ -65,6 +65,32 @@ def test_rebuild_literal(literal: str, content: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
+    ('literal', 'expected'),
+    [
+        pytest.param('"""abc"""', 3, id='plain-double'),
+        pytest.param("'''abc'''", 3, id='plain-single'),
+        pytest.param('r"""abc"""', 4, id='raw-lower'),
+        pytest.param('R"""abc"""', 4, id='raw-upper'),
+        pytest.param('u"""abc"""', 4, id='unicode-lower'),
+        pytest.param('U"""abc"""', 4, id='unicode-upper'),
+        pytest.param('rf"""abc"""', 5, id='raw-f-string'),
+        pytest.param('rb"""abc"""', 5, id='raw-bytes'),
+        pytest.param('not a literal', 3, id='fallback'),
+    ],
+)
+def test_literal_opening_width(literal: str, expected: int) -> None:
+    """
+    Source-derived opener widths should drive compact Google wrapping.
+
+    This guards the issue-32 boundary where plain triple quotes keep three
+    columns, one-character prefixes reserve four, syntactic two-character
+    prefixes remain measurable, and malformed helper input falls back to the
+    direct-wrapper default.
+    """
+    assert docstring_rewriter._literal_opening_width(literal) == expected  # noqa: SLF001
+
+
+@pytest.mark.parametrize(
     ('segment', 'expected'),
     [
         (
@@ -172,6 +198,44 @@ def test_find_docstring(src: str, selector: str, *, has_doc: bool) -> None:
 
     expr = docstring_rewriter.find_docstring(node)
     assert (expr is not None) is has_doc
+
+
+@pytest.mark.parametrize(
+    'prefix',
+    [
+        pytest.param('f', id='f-string'),
+        pytest.param('rf', id='raw-f-string'),
+        pytest.param('fr', id='f-raw-string'),
+        pytest.param('rb', id='raw-bytes'),
+        pytest.param('br', id='bytes-raw'),
+    ],
+)
+def test_fix_src_google_leaves_non_docstring_first_expr_unchanged(
+        prefix: str,
+) -> None:
+    """
+    Google formatting leaves unsupported prefix expressions unchanged.
+
+    This keeps opener-width parsing from expanding docstring detection:
+    f-strings and bytes prefixes are not ``ast.Constant[str]`` docstrings in
+    this formatter path, even when they occupy the first statement position.
+    """
+    src = (
+        'def func():\n'
+        f'    {prefix}"""This first expression is intentionally long enough '
+        'that a real compact Google docstring would be wrapped by the '
+        'formatter."""\n'
+        '    return None\n'
+    )
+
+    assert (
+        docstring_rewriter.fix_src(
+            src,
+            line_length=79,
+            docstring_style='google',
+        )
+        == src
+    )
 
 
 @pytest.mark.parametrize(

@@ -22,7 +22,11 @@ GOOGLE_ONLY_FIXTURES = {
     # Keep Google-only allowances explicit even when empty. A new fixture that
     # exists only for Google should be a deliberate exception, not drift from
     # the NumPy gold-standard inventory.
-    'end_to_end': set(),
+    'end_to_end': {
+        # Compact Google first lines reserve source-opener columns; NumPy
+        # does not keep summary content beside the opening quotes.
+        'opening_width_prefixes.txt',
+    },
     'line_wrap': set(),
 }
 

@@ -30,10 +30,10 @@ from format_docstring.section_utils import (
     is_google_yields_section_header,
 )
 
-# Google docstrings can preserve string prefixes such as ``rf`` when rebuilt,
-# so first-line wrapping reserves two prefix characters plus opening quotes.
-GOOGLE_OPENING_QUOTES_WIDTH: Final[int] = 5
-GOOGLE_COMPACT_OPENING_QUOTES_WIDTH: Final[int] = 5
+# Direct wrapper calls receive docstring content without source quotes, so use
+# the bare triple-quote width. AST rewrites override this with the measured
+# source-literal opener to keep compact first-line budgets exact.
+GOOGLE_DEFAULT_OPENING_WIDTH: Final[int] = 3
 GOOGLE_MIN_SIGNATURE_DESC_WIDTH: Final[int] = 10
 GOOGLE_SIGNATURE_MAX_TOKENS: Final[int] = 2
 
@@ -101,6 +101,7 @@ class _GoogleWrapState:
     output: list[str]
     leading_indent: int
     line_length: int
+    opening_width: int
     compact_first_line: bool
     opening_quotes_on_own_line: bool
     include_return_and_yield_types: bool
@@ -125,6 +126,7 @@ def wrap_docstring_google(
         include_arg_defaults: bool = True,
         include_return_and_yield_types: bool = True,
         compact_first_line: bool = False,
+        opening_width: int = GOOGLE_DEFAULT_OPENING_WIDTH,
 ) -> str:
     """
     Wrap Google-style docstrings.
@@ -133,6 +135,11 @@ def wrap_docstring_google(
     finally wraps them to the target line length. The backtick pass must run
     first because single backticks can expand to double backticks; doing that
     after wrapping can make the final output exceed ``line_length``.
+
+    ``opening_width`` only affects compact first lines. AST rewrites pass the
+    measured source-literal opener so raw/unicode prefixes reduce the first
+    content budget; callers without source context keep the bare-triple-quote
+    default.
     """
     validate_include_arg_defaults(
         include_arg_types=include_arg_types,
@@ -172,6 +179,7 @@ def wrap_docstring_google(
         closing_indent=closing_indent,
         compact_first_line=should_compact_first_line,
         opening_quotes_on_own_line=opening_quotes_on_own_line,
+        opening_width=opening_width,
         include_return_and_yield_types=include_return_and_yield_types,
     )
 
@@ -1049,6 +1057,7 @@ def _pass2_wrap_google_docstring(
         closing_indent: int | None = None,
         compact_first_line: bool = False,
         opening_quotes_on_own_line: bool = False,
+        opening_width: int = GOOGLE_DEFAULT_OPENING_WIDTH,
         include_return_and_yield_types: bool = True,
 ) -> str:
     """
@@ -1062,6 +1071,7 @@ def _pass2_wrap_google_docstring(
         output=[],
         leading_indent=leading_indent or 0,
         line_length=line_length,
+        opening_width=opening_width,
         compact_first_line=compact_first_line,
         opening_quotes_on_own_line=opening_quotes_on_own_line,
         include_return_and_yield_types=include_return_and_yield_types,
@@ -1213,14 +1223,21 @@ def _google_effective_signature_indent(
         state: _GoogleWrapState,
         parts: _GoogleLineParts,
 ) -> int:
-    """Return indent used by pass-two signature context checks."""
+    """
+    Return first-line signature indent after accounting for opener width.
+
+    Compact first lines lose columns to the literal opener before content
+    starts. Signature context checks need that effective indent so a first-line
+    ``Args:`` item is classified the same way it would be on later physical
+    lines.
+    """
     if not state.is_first_line:
         return parts.indent_level
 
     if parts.indent_level < state.leading_indent:
-        return state.leading_indent + GOOGLE_OPENING_QUOTES_WIDTH
+        return state.leading_indent + state.opening_width
 
-    return parts.indent_level + GOOGLE_OPENING_QUOTES_WIDTH
+    return parts.indent_level + state.opening_width
 
 
 def _is_google_signature_line_in_context(
@@ -1286,15 +1303,16 @@ def _wrap_google_first_prose_line(
         state: _GoogleWrapState,
         parts: _GoogleLineParts,
 ) -> None:
-    """Wrap the first physical docstring line with opening-quote budget."""
-    opening_width = (
-        GOOGLE_COMPACT_OPENING_QUOTES_WIDTH
-        if state.compact_first_line
-        else GOOGLE_OPENING_QUOTES_WIDTH
-    )
+    """
+    Wrap the first physical docstring line with source-opener budget.
+
+    Compact Google output rebuilds the opener outside this content string, so
+    the wrapper must reserve those columns before deciding whether the first
+    summary fits.
+    """
     first_line_width = max(
         1,
-        state.line_length - state.leading_indent - opening_width,
+        state.line_length - state.leading_indent - state.opening_width,
     )
     state.output.extend(
         _wrap_first_line_shorter(

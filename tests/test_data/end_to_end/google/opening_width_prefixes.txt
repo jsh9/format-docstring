@@ -1,0 +1,75 @@
+LINE_LENGTH: 79
+
+**********
+class Plain:
+    """Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+    """
+    pass
+
+
+class Raw:
+    r"""Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+    """
+    pass
+
+
+class Unicode:
+    u"""Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+    """
+    pass
+
+
+class RawFString:
+    rf"""Two-prefix first expressions are not docstrings.
+    They stay unchanged by Google wrapping."""
+    pass
+
+
+class RawBytes:
+    rb"""Two-prefix first expressions are not docstrings.
+    They stay unchanged by Google wrapping."""
+    pass
+
+**********
+class Plain:
+    """Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+    """
+    pass
+
+
+class Raw:
+    r"""Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc
+    abc.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+    """
+    pass
+
+
+class Unicode:
+    u"""Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc
+    abc.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+    """
+    pass
+
+
+class RawFString:
+    rf"""Two-prefix first expressions are not docstrings.
+    They stay unchanged by Google wrapping."""
+    pass
+
+
+class RawBytes:
+    rb"""Two-prefix first expressions are not docstrings.
+    They stay unchanged by Google wrapping."""
+    pass

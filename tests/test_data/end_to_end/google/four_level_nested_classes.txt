@@ -74,9 +74,9 @@ class OuterClass:
                     """
 
                     def nested_method(self):
-                        """Yet another nested moethod within the deepest
-                        nested class that performs specific operations. This
-                        method docstring should also be properly wrapped while
+                        """Yet another nested moethod within the deepest nested
+                        class that performs specific operations. This method
+                        docstring should also be properly wrapped while
                         maintaining the deep indentation level of twenty
                         spaces.
                         """

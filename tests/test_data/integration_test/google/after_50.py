@@ -10,8 +10,8 @@ class Alpha:
     CONSTANT_WITH_LONG_VALUE = 'THIS_IS_A_LONG_CONSTANT_VALUE_THAT_SHOULD_NOT_BE_TOUCHED_BY_THE_FORMATTER_EVEN_IF_IT_IS_VERY_LONG'
 
     def method(self, x, y):
-        """This method processes the inputs x
-        and y and returns a computed result while
+        """This method processes the inputs x and
+        y and returns a computed result while
         demonstrating that long lines in
         docstrings wrap correctly and that the
         closing quotes align on their own line.

@@ -21,6 +21,7 @@ ______________________________________________________________________
   - [5.1. Command Line Interface](#51-command-line-interface)
   - [5.2. Pre-commit Hook](#52-pre-commit-hook)
   - [5.3. Opting Out of Formatting](#53-opting-out-of-formatting)
+  - [5.4. What Counts as a Docstring](#54-what-counts-as-a-docstring)
 - [6. Configuration](#6-configuration)
   - [6.1. Command-Line Options](#61-command-line-options)
   - [6.2. Usage Examples](#62-usage-examples)
@@ -530,6 +531,31 @@ first run `format-docstring`, accept the parts you like, revert the edits you
 dislike, and then add an inline `# no-format-docstring` comment so future runs
 leave that docstring untouched.
 
+### 5.4. What Counts as a Docstring
+
+`format-docstring` follows [Python's docstring rule][python-docstring]: the
+first statement in a module, class, function, or method must be a string
+literal. In practice, the formatter rewrites string-valued docstring literals
+such as plain, raw, and Unicode-prefixed strings:
+
+```python
+"""Formatted."""
+r"""Formatted."""
+u"""Formatted."""
+```
+
+Formatted string literals and bytes literals are not string docstrings in
+Python's AST, so they are left unchanged even when they appear first:
+
+```python
+f"""Not a docstring."""
+rf"""Not a docstring."""
+fr"""Not a docstring."""
+b"""Not a docstring."""
+rb"""Not a docstring."""
+br"""Not a docstring."""
+```
+
 ## 6. Configuration
 
 ### 6.1. Command-Line Options
@@ -658,4 +684,5 @@ use AI coding assistants to rewrite the docstrings first.
 [black]: https://github.com/psf/black
 [docformatter]: https://github.com/PyCQA/docformatter
 [pydocstringformatter]: https://github.com/DanielNoord/pydocstringformatter
+[python-docstring]: https://docs.python.org/3/glossary.html#term-docstring
 [ruff]: https://github.com/astral-sh/ruff
