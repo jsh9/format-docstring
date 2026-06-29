@@ -506,6 +506,13 @@ def build_replacement_docstring(
     )
     original_literal = source_code[start:end]
 
+    # Python accepts one-character quote delimiters as docstrings, but this
+    # formatter rebuilds literals by preserving the original delimiter. Skip
+    # non-triple-quoted literals so wrapping cannot produce invalid multi-line
+    # single-quoted or double-quoted source.
+    if not _is_triple_quoted_literal(original_literal):
+        return None
+
     if _has_inline_no_format_comment(source_code, end):
         return None
 
@@ -721,6 +728,21 @@ def rebuild_literal(original_literal: str, content: str) -> str | None:
         content = newline.join(normalized_content.split('\n'))
 
     return f'{prefix}{delim}{content}{delim}'
+
+
+def _is_triple_quoted_literal(original_literal: str) -> bool:
+    """
+    Return True if the literal starts with optional prefix plus triple quotes.
+
+    This checks the formatter's supported source shape, not Python's broader
+    docstring definition.
+    """
+    i = 0
+    n = len(original_literal)
+    while i < n and original_literal[i] in 'rRuUbBfF':
+        i += 1
+
+    return original_literal[i : i + 3] in {'"""', "'''"}
 
 
 def _literal_opening_width(original_literal: str) -> int:

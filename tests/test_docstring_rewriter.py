@@ -238,6 +238,45 @@ def test_fix_src_google_leaves_non_docstring_first_expr_unchanged(
     )
 
 
+@pytest.mark.parametrize('style', ['numpy', 'google'])
+@pytest.mark.parametrize(
+    ('opener', 'closer'),
+    [
+        pytest.param("'", "'", id='single-quote'),
+        pytest.param('"', '"', id='double-quote'),
+        pytest.param("r'", "'", id='raw-single-quote'),
+        pytest.param('r"', '"', id='raw-double-quote'),
+    ],
+)
+def test_fix_src_skips_non_triple_quoted_docstring_literals(
+        style: str,
+        opener: str,
+        closer: str,
+) -> None:
+    """
+    One-character quote delimiters are Python docstrings but not format targets.
+
+    Skipping them keeps long valid source literals from being wrapped into
+    invalid multi-line single-quoted or double-quoted strings.
+    """
+    src = (
+        'def func():\n'
+        f'    {opener}This first statement is intentionally long enough '
+        'that wrapping it would require multiple physical lines and break '
+        f'the original one-character quote delimiter.{closer}\n'
+        '    return None\n'
+    )
+
+    formatted = docstring_rewriter.fix_src(
+        src,
+        line_length=79,
+        docstring_style=style,
+    )
+
+    assert formatted == src
+    compile(formatted, '<formatted>', 'exec')
+
+
 @pytest.mark.parametrize(
     ('src', 'node_kind'),
     [
