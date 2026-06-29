@@ -732,17 +732,34 @@ def rebuild_literal(original_literal: str, content: str) -> str | None:
 
 def _is_triple_quoted_literal(original_literal: str) -> bool:
     """
-    Return True if the literal starts with optional prefix plus triple quotes.
+    Return True if the source slice is one triple-quoted string token.
 
     This checks the formatter's supported source shape, not Python's broader
-    docstring definition.
+    docstring definition. Adjacent string tokens can still become one AST
+    docstring value, but rebuilding them as one preserved-delimiter literal can
+    expose delimiter text that was safe only while split across tokens.
     """
+    try:
+        string_tokens = [
+            tok.string
+            for tok in tokenize.generate_tokens(
+                io.StringIO(original_literal).readline
+            )
+            if tok.type == tokenize.STRING
+        ]
+    except tokenize.TokenError:
+        return False
+
+    if len(string_tokens) != 1:
+        return False
+
+    literal = string_tokens[0]
     i = 0
-    n = len(original_literal)
-    while i < n and original_literal[i] in 'rRuUbBfF':
+    n = len(literal)
+    while i < n and literal[i] in 'rRuUbBfF':
         i += 1
 
-    return original_literal[i : i + 3] in {'"""', "'''"}
+    return literal[i : i + 3] in {'"""', "'''"}
 
 
 def _literal_opening_width(original_literal: str) -> int:

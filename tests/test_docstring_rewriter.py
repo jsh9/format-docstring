@@ -278,6 +278,53 @@ def test_fix_src_skips_non_triple_quoted_docstring_literals(
     compile(formatted, '<formatted>', 'exec')
 
 
+@pytest.mark.parametrize('style', ['numpy', 'google'])
+@pytest.mark.parametrize(
+    'src',
+    [
+        pytest.param(
+            (
+                'def func():\n'
+                '    """This docstring mentions """ \'"""\' '
+                '"""and has enough extra words to force wrapping across '
+                'multiple physical lines in formatter output."""\n'
+                '    return None\n'
+            ),
+            id='delimiter-token',
+        ),
+        pytest.param(
+            (
+                'def func():\n'
+                '    """This adjacent docstring is intentionally long enough '
+                'for wrapping.""" " Second adjacent string token should keep '
+                'this unsupported source shape."\n'
+                '    return None\n'
+            ),
+            id='simple-adjacent-literal',
+        ),
+    ],
+)
+def test_fix_src_skips_adjacent_literal_docstrings(
+        style: str,
+        src: str,
+) -> None:
+    """
+    Verify adjacent literal docstrings stay unchanged for each style.
+
+    These literals are valid Python but not safe rewrite targets: collapsing
+    multiple source tokens into one rebuilt literal can emit invalid source when
+    a later token contributes the active delimiter text.
+    """
+    formatted = docstring_rewriter.fix_src(
+        src,
+        line_length=60,
+        docstring_style=style,
+    )
+
+    assert formatted == src
+    compile(formatted, '<formatted>', 'exec')
+
+
 @pytest.mark.parametrize(
     ('src', 'node_kind'),
     [
