@@ -312,8 +312,8 @@ def test_fix_src_skips_adjacent_literal_docstrings(
     Verify adjacent literal docstrings stay unchanged for each style.
 
     These literals are valid Python but not safe rewrite targets: collapsing
-    multiple source tokens into one rebuilt literal can emit invalid source when
-    a later token contributes the active delimiter text.
+    multiple source tokens into one rebuilt literal can emit invalid source
+    when a later token contributes the active delimiter text.
     """
     formatted = docstring_rewriter.fix_src(
         src,
