@@ -731,8 +731,8 @@ def _literal_opening_width(original_literal: str) -> int:
     two must reserve the exact prefix plus quote delimiter columns from the
     source slice. This helper is intentionally syntactic: it can measure
     prefixes such as ``rf``/``rb`` even though docstring detection still
-    decides whether such literals are format targets. If parsing fails, use
-    the bare triple-quote default for direct-wrapper-style fallbacks.
+    decides whether such literals are format targets. If parsing fails, use the
+    bare triple-quote default for direct-wrapper-style fallbacks.
     """
     i = 0
     n = len(original_literal)
@@ -805,7 +805,7 @@ def wrap_docstring(
     append_google_closing_indent : bool, default=False
         If True, Google-style wrapping appends the indentation needed before
         closing quotes in rebuilt docstring literals.
-    google_opening_width : int, default=3
+    google_opening_width : int, default=GOOGLE_DEFAULT_OPENING_WIDTH
         Visible width of the opening literal prefix plus quote delimiter for
         compact Google docstrings. Whole-source rewrites pass the value
         measured from the source literal; direct wrapper calls use the bare
