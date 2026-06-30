@@ -102,7 +102,6 @@ class _GoogleWrapState:
     leading_indent: int
     line_length: int
     opening_width: int
-    compact_first_line: bool
     opening_quotes_on_own_line: bool
     include_return_and_yield_types: bool
     is_first_line: bool = True
@@ -177,7 +176,6 @@ def wrap_docstring_google(
         line_length=line_length,
         leading_indent=leading_indent,
         closing_indent=closing_indent,
-        compact_first_line=should_compact_first_line,
         opening_quotes_on_own_line=opening_quotes_on_own_line,
         opening_width=opening_width,
         include_return_and_yield_types=include_return_and_yield_types,
@@ -1055,7 +1053,6 @@ def _pass2_wrap_google_docstring(
         line_length: int,
         leading_indent: int | None = None,
         closing_indent: int | None = None,
-        compact_first_line: bool = False,
         opening_quotes_on_own_line: bool = False,
         opening_width: int = GOOGLE_DEFAULT_OPENING_WIDTH,
         include_return_and_yield_types: bool = True,
@@ -1072,7 +1069,6 @@ def _pass2_wrap_google_docstring(
         leading_indent=leading_indent or 0,
         line_length=line_length,
         opening_width=opening_width,
-        compact_first_line=compact_first_line,
         opening_quotes_on_own_line=opening_quotes_on_own_line,
         include_return_and_yield_types=include_return_and_yield_types,
     )

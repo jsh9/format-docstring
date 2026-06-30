@@ -535,8 +535,8 @@ leave that docstring untouched.
 
 `format-docstring` follows [Python's docstring rule][python-docstring] to find
 candidate docstrings: the first statement in a module, class, function, or
-method must be a string literal. It intentionally formats only triple-quoted
-string literals such as plain, raw, and Unicode-prefixed strings:
+method must be a string literal. It intentionally formats only one
+triple-quoted string token with a plain, raw, or Unicode prefix:
 
 ```python
 """Formatted."""
@@ -546,11 +546,13 @@ u"""Formatted."""
 
 Single-quoted and double-quoted one-character delimiters can be Python
 docstrings, but they are outside formatter support and are left unchanged.
-Formatted string literals and bytes literals are also left unchanged:
+Adjacent or implicitly concatenated string literals, formatted string literals,
+and bytes literals are also left unchanged:
 
 ```python
 'Not formatted.'
 "Not formatted."
+"""Not formatted.""" "Still not formatted."
 f"""Not a docstring."""
 rf"""Not a docstring."""
 fr"""Not a docstring."""
