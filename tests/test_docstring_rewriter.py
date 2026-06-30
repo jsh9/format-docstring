@@ -65,6 +65,32 @@ def test_rebuild_literal(literal: str, content: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
+    ('literal', 'expected'),
+    [
+        pytest.param('"""abc"""', 3, id='plain-double'),
+        pytest.param("'''abc'''", 3, id='plain-single'),
+        pytest.param('r"""abc"""', 4, id='raw-lower'),
+        pytest.param('R"""abc"""', 4, id='raw-upper'),
+        pytest.param('u"""abc"""', 4, id='unicode-lower'),
+        pytest.param('U"""abc"""', 4, id='unicode-upper'),
+        pytest.param('rf"""abc"""', 5, id='raw-f-string'),
+        pytest.param('rb"""abc"""', 5, id='raw-bytes'),
+        pytest.param('not a literal', 3, id='fallback'),
+    ],
+)
+def test_literal_opening_width(literal: str, expected: int) -> None:
+    """
+    Source-derived opener widths should drive compact Google wrapping.
+
+    This guards the issue-32 boundary where plain triple quotes keep three
+    columns, one-character prefixes reserve four, syntactic two-character
+    prefixes remain measurable, and malformed helper input falls back to the
+    direct-wrapper default.
+    """
+    assert docstring_rewriter._literal_opening_width(literal) == expected  # noqa: SLF001
+
+
+@pytest.mark.parametrize(
     ('segment', 'expected'),
     [
         (
@@ -172,6 +198,131 @@ def test_find_docstring(src: str, selector: str, *, has_doc: bool) -> None:
 
     expr = docstring_rewriter.find_docstring(node)
     assert (expr is not None) is has_doc
+
+
+@pytest.mark.parametrize(
+    'prefix',
+    [
+        pytest.param('f', id='f-string'),
+        pytest.param('rf', id='raw-f-string'),
+        pytest.param('fr', id='f-raw-string'),
+        pytest.param('rb', id='raw-bytes'),
+        pytest.param('br', id='bytes-raw'),
+    ],
+)
+def test_fix_src_google_leaves_non_docstring_first_expr_unchanged(
+        prefix: str,
+) -> None:
+    """
+    Google formatting leaves unsupported prefix expressions unchanged.
+
+    This keeps opener-width parsing from expanding docstring detection:
+    f-strings and bytes prefixes are not ``ast.Constant[str]`` docstrings in
+    this formatter path, even when they occupy the first statement position.
+    """
+    src = (
+        'def func():\n'
+        f'    {prefix}"""This first expression is intentionally long enough '
+        'that a real compact Google docstring would be wrapped by the '
+        'formatter."""\n'
+        '    return None\n'
+    )
+
+    assert (
+        docstring_rewriter.fix_src(
+            src,
+            line_length=79,
+            docstring_style='google',
+        )
+        == src
+    )
+
+
+@pytest.mark.parametrize('style', ['numpy', 'google'])
+@pytest.mark.parametrize(
+    ('opener', 'closer'),
+    [
+        pytest.param("'", "'", id='single-quote'),
+        pytest.param('"', '"', id='double-quote'),
+        pytest.param("r'", "'", id='raw-single-quote'),
+        pytest.param('r"', '"', id='raw-double-quote'),
+    ],
+)
+def test_fix_src_skips_non_triple_quoted_docstring_literals(
+        style: str,
+        opener: str,
+        closer: str,
+) -> None:
+    """
+    One-character quote delimiters are Python docstrings but not format
+    targets.
+
+    Skipping them keeps long valid source literals from being wrapped into
+    invalid multi-line single-quoted or double-quoted strings.
+    """
+    src = (
+        'def func():\n'
+        f'    {opener}This first statement is intentionally long enough '
+        'that wrapping it would require multiple physical lines and break '
+        f'the original one-character quote delimiter.{closer}\n'
+        '    return None\n'
+    )
+
+    formatted = docstring_rewriter.fix_src(
+        src,
+        line_length=79,
+        docstring_style=style,
+    )
+
+    assert formatted == src
+    compile(formatted, '<formatted>', 'exec')
+
+
+@pytest.mark.parametrize('style', ['numpy', 'google'])
+@pytest.mark.parametrize(
+    'src',
+    [
+        pytest.param(
+            (
+                'def func():\n'
+                '    """This docstring mentions """ \'"""\' '
+                '"""and has enough extra words to force wrapping across '
+                'multiple physical lines in formatter output."""\n'
+                '    return None\n'
+            ),
+            id='delimiter-token',
+        ),
+        pytest.param(
+            (
+                'def func():\n'
+                '    """This adjacent docstring is intentionally long enough '
+                'for wrapping.""" " Second adjacent string token should keep '
+                'this unsupported source shape."\n'
+                '    return None\n'
+            ),
+            id='simple-adjacent-literal',
+        ),
+    ],
+)
+def test_fix_src_skips_adjacent_literal_docstrings(
+        style: str,
+        src: str,
+) -> None:
+    """
+    Verify adjacent literal docstrings stay unchanged for each style.
+
+    These literals are valid Python but not safe rewrite targets: collapsing
+    multiple source tokens into one rebuilt literal can emit invalid source
+    when a later token contributes the active delimiter text.
+    """
+    formatted = docstring_rewriter.fix_src(
+        src,
+        line_length=60,
+        docstring_style=style,
+    )
+
+    assert formatted == src
+    compile(formatted, '<formatted>', 'exec')
 
 
 @pytest.mark.parametrize(

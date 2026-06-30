@@ -74,15 +74,13 @@ def func1():
 
 
 def func2a():
-    """The content itself does not exceed length limit but with quotes it
-    would
+    """The content itself does not exceed length limit but with quotes it would
     """
     pass
 
 
 def func2b():
-    """The content itself does not exceed length limit but with quotes it
-    would
+    """The content itself does not exceed length limit but with quotes it would
     """
     pass
 
@@ -101,42 +99,42 @@ def func4():
 
 
 def func5():
-    """Quite quite quite quite quite quite quite quite quite quite quite
-    quite quite quite quite quite quite long line
+    """Quite quite quite quite quite quite quite quite quite quite quite quite
+    quite quite quite quite quite long line
     """
     pass
 
 
 def func6():
-    """Af bf cf df ef ff gf hf if jf kf lf mf nf of pf qf rf sf tf uf vf wf
-    xf yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af bf cf df ef ff gf hf if jf kf lf
-    mf nf of pf qf rf sf tf uf vf wf xf yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af
-    bf cf df ef ff gf hf if jf kf lf mf
+    """Af bf cf df ef ff gf hf if jf kf lf mf nf of pf qf rf sf tf uf vf wf xf
+    yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af bf cf df ef ff gf hf if jf kf lf mf
+    nf of pf qf rf sf tf uf vf wf xf yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af bf
+    cf df ef ff gf hf if jf kf lf mf
     """
     pass
 
 
 def func7():
-    """Af bf cf df ef ff gf hf if jf kf lf mf nf of pf qf rf sf tf uf vf wf
-    xf yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af bf cf df ef ff gf hf if jf kf lf
-    mf nf of pf qf rf sf tf uf vf wf xf yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af
-    bf cf df ef ff gf hf if jf kf lf mf
+    """Af bf cf df ef ff gf hf if jf kf lf mf nf of pf qf rf sf tf uf vf wf xf
+    yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af bf cf df ef ff gf hf if jf kf lf mf
+    nf of pf qf rf sf tf uf vf wf xf yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af bf
+    cf df ef ff gf hf if jf kf lf mf
     """
     pass
 
 
 def func8():
-    """Af bf cf df ef ff gf hf if jf kf lf mf nf of pf qf rf sf tf uf vf wf
-    xf yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af bf cf df ef ff gf hf if jf kf lf
-    mf nf of pf qf rf sf tf uf vf wf xf yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af
-    bf cf df ef ff gf hf if jf kf lf mf
+    """Af bf cf df ef ff gf hf if jf kf lf mf nf of pf qf rf sf tf uf vf wf xf
+    yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af bf cf df ef ff gf hf if jf kf lf mf
+    nf of pf qf rf sf tf uf vf wf xf yf zf 1f 2f 3f 4f 5f 6f 7f 8f 9f 0f af bf
+    cf df ef ff gf hf if jf kf lf mf
     """
     pass
 
 
 def func9():
     def get_scores(self) -> np.ndarray:
-        """Return entire score array, with 'None' for scores that haven't
-        been calculated.
+        """Return entire score array, with 'None' for scores that haven't been
+        calculated.
         """
         return self.scores

@@ -7,7 +7,10 @@ import textwrap
 import tokenize
 from typing import TYPE_CHECKING, cast
 
-from format_docstring.line_wrap_google import wrap_docstring_google
+from format_docstring.line_wrap_google import (
+    GOOGLE_DEFAULT_OPENING_WIDTH,
+    wrap_docstring_google,
+)
 from format_docstring.line_wrap_numpy import (
     handle_single_line_docstring,
     wrap_docstring_numpy,
@@ -503,6 +506,13 @@ def build_replacement_docstring(
     )
     original_literal = source_code[start:end]
 
+    # Python accepts one-character quote delimiters as docstrings, but this
+    # formatter rebuilds literals by preserving the original delimiter. Skip
+    # non-triple-quoted literals so wrapping cannot produce invalid multi-line
+    # single-quoted or double-quoted source.
+    if not _is_triple_quoted_literal(original_literal):
+        return None
+
     if _has_inline_no_format_comment(source_code, end):
         return None
 
@@ -556,6 +566,10 @@ def build_replacement_docstring(
         if class_attr_metadata:
             attribute_metadata = class_attr_metadata
 
+    # Whole-source rewrites know the original source opener. Pass that width
+    # through so compact Google summaries charge raw/unicode prefixes one
+    # extra column while direct wrapper calls keep the bare triple-quote
+    # default.
     wrapped: str = wrap_docstring(
         doc,
         line_length=line_length,
@@ -570,6 +584,7 @@ def build_replacement_docstring(
         include_return_and_yield_types=include_return_and_yield_types,
         compact_google_docstring=True,
         append_google_closing_indent=True,
+        google_opening_width=_literal_opening_width(original_literal),
     )
 
     new_literal: str | None = rebuild_literal(original_literal, wrapped)
@@ -613,6 +628,9 @@ def find_docstring(node: ModuleClassOrFunc) -> ast.Expr | None:
         return None
 
     val = first.value
+    # AST rewrites only handle string-valued docstrings. F-strings parse as
+    # ``ast.JoinedStr`` and bytes literals as ``ast.Constant[bytes]``, so they
+    # stay untouched instead of being rebuilt as text.
     if isinstance(val, ast.Constant) and isinstance(val.value, str):
         return first
 
@@ -712,6 +730,63 @@ def rebuild_literal(original_literal: str, content: str) -> str | None:
     return f'{prefix}{delim}{content}{delim}'
 
 
+def _is_triple_quoted_literal(original_literal: str) -> bool:
+    """
+    Return True if the source slice is one triple-quoted string token.
+
+    This checks the formatter's supported source shape, not Python's broader
+    docstring definition. Adjacent string tokens can still become one AST
+    docstring value, but rebuilding them as one preserved-delimiter literal can
+    expose delimiter text that was safe only while split across tokens.
+    """
+    try:
+        string_tokens = [
+            tok.string
+            for tok in tokenize.generate_tokens(
+                io.StringIO(original_literal).readline
+            )
+            if tok.type == tokenize.STRING
+        ]
+    except tokenize.TokenError:
+        return False
+
+    if len(string_tokens) != 1:
+        return False
+
+    literal = string_tokens[0]
+    i = 0
+    n = len(literal)
+    while i < n and literal[i] in 'rRuUbBfF':
+        i += 1
+
+    return literal[i : i + 3] in {'"""', "'''"}
+
+
+def _literal_opening_width(original_literal: str) -> int:
+    """
+    Return the source opener width before the first content character.
+
+    Compact Google rewrites keep the first summary beside the opener, so pass
+    two must reserve the exact prefix plus quote delimiter columns from the
+    source slice. This helper is intentionally syntactic: it can measure
+    prefixes such as ``rf``/``rb`` even though docstring detection still
+    decides whether such literals are format targets. If parsing fails, use the
+    bare triple-quote default for direct-wrapper-style fallbacks.
+    """
+    i = 0
+    n = len(original_literal)
+    while i < n and original_literal[i] in 'rRuUbBfF':
+        i += 1
+
+    if original_literal[i : i + 3] in {'"""', "'''"}:
+        return i + 3
+
+    if i < n and original_literal[i] in {'"', "'"}:
+        return i + 1
+
+    return GOOGLE_DEFAULT_OPENING_WIDTH
+
+
 def wrap_docstring(
         docstring: str,
         line_length: int = 79,
@@ -727,6 +802,7 @@ def wrap_docstring(
         include_return_and_yield_types: bool = True,
         compact_google_docstring: bool = False,
         append_google_closing_indent: bool = False,
+        google_opening_width: int = GOOGLE_DEFAULT_OPENING_WIDTH,
 ) -> str:
     """
     Wrap a docstring to the given line length (stub).
@@ -768,6 +844,11 @@ def wrap_docstring(
     append_google_closing_indent : bool, default=False
         If True, Google-style wrapping appends the indentation needed before
         closing quotes in rebuilt docstring literals.
+    google_opening_width : int, default=GOOGLE_DEFAULT_OPENING_WIDTH
+        Visible width of the opening literal prefix plus quote delimiter for
+        compact Google docstrings. Whole-source rewrites pass the value
+        measured from the source literal; direct wrapper calls use the bare
+        triple-quote default because no literal prefix is available.
 
     Returns
     -------
@@ -817,6 +898,7 @@ def wrap_docstring(
             include_arg_defaults=include_arg_defaults,
             include_return_and_yield_types=include_return_and_yield_types,
             compact_first_line=compact_google_docstring,
+            opening_width=google_opening_width,
         )
     # Default to NumPy-style for unknown/unspecified styles to be permissive.
     return wrap_docstring_numpy(

@@ -1,6 +1,6 @@
 class Alpha:
-    """Class Alpha performs an operation with a very long explanation meant
-    to exceed the configured line length so that we can verify wrapping and
+    """Class Alpha performs an operation with a very long explanation meant to
+    exceed the configured line length so that we can verify wrapping and
     indentation handling even when the docstring does not begin with a newline
     before the first word.
     """

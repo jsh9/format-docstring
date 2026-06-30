@@ -1,0 +1,79 @@
+LINE_LENGTH: 79
+
+**********
+class Plain:
+    """Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abd abe abf abg.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abD abE abF abG abH abI abJ.
+    """
+    pass
+
+
+class Raw:
+    r"""Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abd abe abf abg.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abD abE abF abG abH abI abJ.
+    """
+    pass
+
+
+class Unicode:
+    u"""Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abd abe abf abg abh.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abD abE abF abG abH abI abJ.
+    """
+    pass
+
+
+class RawFString:
+    rf"""Two-prefix first expressions are not docstrings. Two-prefix first expressions are not docstrings.
+    They stay unchanged by Google wrapping."""
+    pass
+
+
+class RawBytes:
+    rb"""Two-prefix first expressions are not docstrings. Two-prefix first expressions are not docstrings.
+    They stay unchanged by Google wrapping."""
+    pass
+
+**********
+class Plain:
+    """Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abd
+    abe abf abg.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abD abE
+    abF abG abH abI abJ.
+    """
+    pass
+
+
+class Raw:
+    r"""Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abd
+    abe abf abg.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abD abE
+    abF abG abH abI abJ.
+    """
+    pass
+
+
+class Unicode:
+    u"""Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abd abe
+    abf abg abh.
+
+    Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abD abE
+    abF abG abH abI abJ.
+    """
+    pass
+
+
+class RawFString:
+    rf"""Two-prefix first expressions are not docstrings. Two-prefix first expressions are not docstrings.
+    They stay unchanged by Google wrapping."""
+    pass
+
+
+class RawBytes:
+    rb"""Two-prefix first expressions are not docstrings. Two-prefix first expressions are not docstrings.
+    They stay unchanged by Google wrapping."""
+    pass

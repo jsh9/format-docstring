@@ -6,6 +6,19 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-06-30
+
+- Fixed
+  - Google-style compact docstring wrapping now reserves the opening literal
+    width from the source, so plain triple-quoted summaries keep the correct
+    first-line budget while raw and Unicode prefixes still account for their
+    extra prefix column.
+  - One-character quoted docstring literals and adjacent string-token
+    docstrings are skipped as unsupported formatter targets, so long strings
+    are not wrapped into invalid multi-line source.
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.4.0...0.4.1
+
 ## [0.4.0] - 2026-06-29
 
 - Added
