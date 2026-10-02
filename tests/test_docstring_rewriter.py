@@ -861,3 +861,26 @@ def test_fix_rst_backticks_end_to_end(
         input_source, line_length=79, fix_rst_backticks=fix_rst_backticks
     )
     assert result == expected_source
+
+
+@pytest.mark.parametrize(
+    ('style', 'data_dir'),
+    [('numpy', DATA_DIR_NUMPY), ('google', DATA_DIR_GOOGLE)],
+)
+def test_inline_literal_fixture_is_idempotent(
+        style: str,
+        data_dir: Path,
+) -> None:
+    """
+    Reformatting the inline-literal fixture output must be a no-op.
+
+    Inline literals are wrapped as unbreakable words, so a second pass must
+    neither split them nor rejoin them differently.
+    """
+    loaded = _load_test_case(data_dir / 'inline_literal_is_not_split.txt')
+    assert loaded is not None
+    _, _, expected_src, line_length = loaded
+    result = docstring_rewriter.fix_src(
+        expected_src, line_length=line_length, docstring_style=style
+    )
+    assert result == expected_src

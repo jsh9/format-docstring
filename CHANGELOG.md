@@ -6,6 +6,20 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-10-02
+
+- Fixed
+  - Line wrapping no longer breaks inside rST inline literals
+    (``` ``...`` ```). Breaking there dropped the whitespace at the break, so a
+    literal such as ``` ``'  '`` ``` lost its spaces. Each inline literal now
+    wraps as one unbreakable word, overflowing like other long words when it is
+    longer than the line. Re-running the formatter rejoins literals that
+    earlier versions split across lines.
+  - Google-style compact first lines no longer collapse runs of spaces inside
+    inline literals.
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.4.1...0.4.2
+
 ## [0.4.1] - 2026-06-30
 
 - Fixed

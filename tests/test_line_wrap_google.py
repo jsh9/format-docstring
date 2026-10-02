@@ -213,6 +213,24 @@ def test_normalize_google_signature_spacing(
                 '        paragraph that should wrap',
             ],
         ),
+        # Spaces inside an inline literal are kept even without a break
+        (
+            "Indent with ``'  '`` (two spaces).",
+            40,
+            50,
+            '',
+            '',
+            ["Indent with ``'  '`` (two spaces)."],
+        ),
+        # An inline literal moves to the next line as one word
+        (
+            "Indent nested lines with ``'  '`` (two spaces).",
+            28,
+            50,
+            '',
+            '    ',
+            ['Indent nested lines with', "    ``'  '`` (two spaces)."],
+        ),
     ],
     ids=[
         'empty_text',
@@ -223,6 +241,8 @@ def test_normalize_google_signature_spacing(
         'same_indentation',
         'different_indents',
         'realistic_docstring',
+        'inline_literal_spaces_kept',
+        'inline_literal_not_split',
     ],
 )
 def test_wrap_first_line_shorter(

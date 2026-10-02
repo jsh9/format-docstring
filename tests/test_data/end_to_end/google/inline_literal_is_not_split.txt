@@ -1,0 +1,69 @@
+LINE_LENGTH: 79
+
+**********
+def render(report, sep):
+    """Render a report as text.
+
+    By default, all nested lines in the generated report are indented with ``'  '`` (two spaces) before they are written.
+
+    When syncing, the parser handles annotations and types that contain ``, default=`` in their own text.
+
+    A literal longer than the line stays whole: ``x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x`` and is not split.
+
+    A literal split by an earlier version is joined again, e.g. ``Generator[T,
+    None, None]`` or ``Iterator[T]`` in this sentence.
+
+    Args:
+        report (str): The report. All of its nested lines are indented with ``'  '`` (two spaces).
+        sep (str): Separator placed between the rendered sections of the report. All separator lines in the output are indented with ``'  '`` (two spaces).
+    """
+    pass
+
+
+def render_line(line):
+    """Normally, all nested lines in the generated report are indented with ``'  '`` (two spaces) before they are written."""
+    pass
+
+
+def indent(line):
+    """Indent with ``'  '`` (two spaces)."""
+    pass
+
+**********
+
+def render(report, sep):
+    """Render a report as text.
+
+    By default, all nested lines in the generated report are indented with
+    ``'  '`` (two spaces) before they are written.
+
+    When syncing, the parser handles annotations and types that contain
+    ``, default=`` in their own text.
+
+    A literal longer than the line stays whole:
+    ``x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x``
+    and is not split.
+
+    A literal split by an earlier version is joined again, e.g.
+    ``Generator[T, None, None]`` or ``Iterator[T]`` in this sentence.
+
+    Args:
+        report (str): The report. All of its nested lines are indented with
+            ``'  '`` (two spaces).
+        sep (str): Separator placed between the rendered sections of the
+            report. All separator lines in the output are indented with
+            ``'  '`` (two spaces).
+    """
+    pass
+
+
+def render_line(line):
+    """Normally, all nested lines in the generated report are indented with
+    ``'  '`` (two spaces) before they are written.
+    """
+    pass
+
+
+def indent(line):
+    """Indent with ``'  '`` (two spaces)."""
+    pass
