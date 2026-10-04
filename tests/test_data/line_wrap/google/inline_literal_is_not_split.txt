@@ -1,0 +1,44 @@
+LINE_LENGTH: 79
+
+**********
+Render a report as text.
+
+By default, all the nested lines in the generated report are indented with ``'  '`` (two spaces) before they are written.
+
+When syncing, the parser handles annotations and types that contain ``, default=`` in their own text.
+
+A literal longer than the line stays whole: ``x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x`` and is not split.
+
+A literal split by an earlier version is joined again, e.g. ``Generator[T,
+None, None]`` or ``Iterator[T]`` in this sentence.
+
+Args:
+    report (str): The report to render. All nested lines are indented with ``'  '`` (two spaces).
+    sep (str): Separator placed between any two rendered sections of the report. All the separator lines in the output are indented with ``'  '`` (two spaces).
+    section_separator_for_rendered_report (str): ``'  ' + '-' * (width - 4) + '  '`` by default.
+
+**********
+
+Render a report as text.
+
+By default, all the nested lines in the generated report are indented with
+``'  '`` (two spaces) before they are written.
+
+When syncing, the parser handles annotations and types that contain
+``, default=`` in their own text.
+
+A literal longer than the line stays whole:
+``x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x``
+and is not split.
+
+A literal split by an earlier version is joined again, e.g.
+``Generator[T, None, None]`` or ``Iterator[T]`` in this sentence.
+
+Args:
+    report (str): The report to render. All nested lines are indented with
+        ``'  '`` (two spaces).
+    sep (str): Separator placed between any two rendered sections of the
+        report. All the separator lines in the output are indented with
+        ``'  '`` (two spaces).
+    section_separator_for_rendered_report (str):
+        ``'  ' + '-' * (width - 4) + '  '`` by default.

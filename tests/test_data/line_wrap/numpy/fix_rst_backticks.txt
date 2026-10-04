@@ -84,8 +84,8 @@ that should remain unchanged. Cross-references like `Section`_ should not be
 modified, nor should anonymous refs like `Docs`__. External links like `Python
 <https://www.python.org>`_ must also stay as-is.
 
-Explicit targets like shown in the directive ``.. _`Special Target`:
-https://example.com/special`` should not be touched.
+Explicit targets like shown in the directive
+``.. _`Special Target`: https://example.com/special`` should not be touched.
 
 Here's another example where long URLs extend to the next line `Here is perhaps
 the Link <https://www.this-is-a-url-that-is-long.com>`_ and `Another One

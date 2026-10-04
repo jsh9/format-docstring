@@ -19,6 +19,7 @@ from format_docstring.line_wrap_utils import (
     is_rst_code_block,
     process_temp_output,
     validate_include_arg_defaults,
+    wrap_keeping_inline_literals,
 )
 from format_docstring.section_utils import (
     canonical_google_section_header,
@@ -800,9 +801,9 @@ def _unwrap_generator_annotation(annotation: str | None) -> str | None:
     AsyncGenerator, or the item type when it is an Iterator or AsyncIterator.
 
     This is a small helper to keep ``Yields`` sections intuitive; Python
-    signatures often annotate generator functions as ``Generator[T, None,
-    None]`` or ``Iterator[T]`` but docstrings should spell out the yielded type
-    ``T`` instead of the whole container.
+    signatures often annotate generator functions as
+    ``Generator[T, None, None]`` or ``Iterator[T]`` but docstrings should spell
+    out the yielded type ``T`` instead of the whole container.
     """
     if annotation is None:
         return None
@@ -992,7 +993,9 @@ def handle_single_line_docstring(
             replace_whitespace=False,
             drop_whitespace=True,
         )
-        wrapped_list: list[str] = tw.wrap(docstring_content)
+        wrapped_list: list[str] = wrap_keeping_inline_literals(
+            docstring_content, tw.wrap
+        )
         wrapped: str = textwrap.indent('\n'.join(wrapped_list), indent)
         return f'{prefix}\n{wrapped}\n{indent}{postfix}'
 

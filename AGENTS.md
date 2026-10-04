@@ -46,6 +46,13 @@ oriented before making changes.
   mirroring tuple element splits when the docstring already enumerates them.
 - `Raises` section entries are treated like signature lines in the NumPy
   wrapper so exception names stay untouched while descriptions wrap.
+- Every prose wrapper goes through
+  `line_wrap_utils.wrap_keeping_inline_literals`, which masks every whitespace
+  character inside rST inline literals (``` ``...`` ```) with a private-use
+  placeholder so each literal wraps as one unbreakable word; breaking inside
+  one would drop significant spaces. `_find_google_signature_colon` likewise
+  skips colons inside inline literals so a literal at the start of a prose line
+  is not mistaken for a signature.
 - Wrapping honors NumPy section heuristics, rST constructs, code fences,
   `Examples` prompts, and literal blocks introduced by `::`.
 - `_normalize_signature_segment` flattens multiline annotations via

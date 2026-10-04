@@ -82,12 +82,16 @@ def test_wrap_docstring_google_defaults_without_types_raises() -> None:
         ),
         ('    arg3: Text', len('    arg3')),
         ('    continuation without delimiter', -1),
+        ('    ``key:value`` pairs and more text', -1),
+        ('    ``key:value``: Text', len('    ``key:value``')),
     ],
     ids=[
         'typed_signature',
         'nested_colon_in_type',
         'no_type_signature',
         'no_delimiter',
+        'colon_inside_inline_literal',
+        'delimiter_after_inline_literal',
     ],
 )
 def test_find_google_signature_colon(line: str, expected: int) -> None:
@@ -96,9 +100,28 @@ def test_find_google_signature_colon(line: str, expected: int) -> None:
 
     The spacing normalizer runs before broad signature parsing. This regression
     guard is needed so malformed Google signatures can be repaired without
-    splitting type expressions such as ``slice(1:5)`` in the middle.
+    splitting type expressions such as ``slice(1:5)`` in the middle. A colon
+    inside an inline literal is content, not a delimiter; otherwise a prose
+    line starting with ``key:value`` would be re-spaced as a signature.
     """
     assert _find_google_signature_colon(line) == expected
+
+
+def test_prose_line_starting_with_inline_literal_is_left_alone() -> None:
+    """
+    A wrapped literal that lands at the start of a prose line is not a
+    signature, so a second pass must not rewrite ``key:value`` to
+    ``key: value``.
+    """
+    docstring = (
+        'Summary.\n'
+        '\n'
+        'Notes:\n'
+        '    This paragraph mentions that you can include things like x\n'
+        '    ``key:value`` pairs and more text that continues here for a\n'
+        '    while.'
+    )
+    assert wrap_docstring_google(docstring, line_length=79) == docstring
 
 
 @pytest.mark.parametrize(
@@ -213,6 +236,24 @@ def test_normalize_google_signature_spacing(
                 '        paragraph that should wrap',
             ],
         ),
+        # Spaces inside an inline literal are kept even without a break
+        (
+            "Indent with ``'  '`` (two spaces).",
+            40,
+            50,
+            '',
+            '',
+            ["Indent with ``'  '`` (two spaces)."],
+        ),
+        # An inline literal moves to the next line as one word
+        (
+            "Indent nested lines with ``'  '`` (two spaces).",
+            28,
+            50,
+            '',
+            '    ',
+            ['Indent nested lines with', "    ``'  '`` (two spaces)."],
+        ),
     ],
     ids=[
         'empty_text',
@@ -223,6 +264,8 @@ def test_normalize_google_signature_spacing(
         'same_indentation',
         'different_indents',
         'realistic_docstring',
+        'inline_literal_spaces_kept',
+        'inline_literal_not_split',
     ],
 )
 def test_wrap_first_line_shorter(

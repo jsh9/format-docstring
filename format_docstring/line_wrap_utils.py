@@ -51,6 +51,19 @@ _PYTHON_EXAMPLE_START_PATTERN = re.compile(
     r')'
 )
 
+# Matches rST inline literals. Like docutils, the opening backtick pair must
+# be followed by non-whitespace and the closing pair preceded by it, so a
+# space-padded pair inside a literal does not end it early.
+_INLINE_LITERAL_PATTERN = re.compile(r'``(?=\S).+?(?<=\S)``')
+# Whitespace inside a literal is masked with a code point from Supplementary
+# Private Use Area-A that encodes the original character (space, tab, NBSP,
+# ...), so the round trip is exact for every kind of whitespace. Each
+# placeholder is one code point and is not whitespace for ``textwrap`` or
+# ``str.split``, so masked literals wrap as single words without changing line
+# widths. Every ``str.isspace`` character is below U+3000.
+_INLINE_LITERAL_PLACEHOLDER_BASE = 0xF0000
+_INLINE_LITERAL_PLACEHOLDER_PATTERN = re.compile(r'[\U000f0000-\U000f3000]')
+
 ParameterMetadata = dict[str, tuple[str | None, str | None]]
 _SectionBoundaryPredicate = Callable[[list[str], int], bool]
 
@@ -342,7 +355,9 @@ def _wrap_text_segment(lines: list[str], width: int) -> list[str]:
     for paragraph in paragraphs:
         if paragraph.strip():  # Only process non-empty paragraphs
             stripped_para: str = paragraph.lstrip(' ')
-            wrapped_lines: list[str] = tw.wrap(stripped_para)
+            wrapped_lines: list[str] = wrap_keeping_inline_literals(
+                stripped_para, tw.wrap
+            )
             indented_lines: list[str] = (
                 [indent + line for line in wrapped_lines]
                 if wrapped_lines
@@ -366,6 +381,78 @@ def _wrap_text_segment(lines: list[str], width: int) -> list[str]:
         original_lines=lines,
         wrapped_lines=result_,
     )
+
+
+def find_inline_literal_spans(text: str) -> list[tuple[int, int]]:
+    """Return the ``(start, end)`` index pairs of rST inline literals."""
+    if '``' not in text:
+        return []
+
+    return [match.span() for match in _INLINE_LITERAL_PATTERN.finditer(text)]
+
+
+def is_inside_inline_literal(text: str, index: int) -> bool:
+    """Return True if ``text[index]`` lies inside an rST inline literal."""
+    return any(
+        start <= index < end for start, end in find_inline_literal_spans(text)
+    )
+
+
+def protect_inline_literal_spaces(text: str) -> str:
+    """
+    Replace whitespace inside rST inline literals with non-space placeholders.
+
+    Line wrappers break at whitespace and drop it at the break, which would
+    split a literal across lines and lose runs of spaces inside it (e.g.
+    ``'  '``). ``textwrap`` also expands tabs and ``str.split`` collapses every
+    kind of Unicode whitespace, so each whitespace character is masked with a
+    placeholder that encodes it. Masking makes each literal one unbreakable
+    word; ``restore_inline_literal_spaces`` undoes it exactly.
+    """
+    if '``' not in text:
+        return text
+
+    return _INLINE_LITERAL_PATTERN.sub(
+        lambda match: ''.join(
+            chr(_INLINE_LITERAL_PLACEHOLDER_BASE + ord(char))
+            if char.isspace()
+            else char
+            for char in match.group(0)
+        ),
+        text,
+    )
+
+
+def restore_inline_literal_spaces(text: str) -> str:
+    """Undo ``protect_inline_literal_spaces``."""
+    return _INLINE_LITERAL_PLACEHOLDER_PATTERN.sub(
+        lambda match: chr(
+            ord(match.group(0)) - _INLINE_LITERAL_PLACEHOLDER_BASE
+        ),
+        text,
+    )
+
+
+def wrap_keeping_inline_literals(
+        text: str,
+        wrap: Callable[[str], list[str]],
+) -> list[str]:
+    """
+    Wrap ``text`` with ``wrap`` without breaking inside inline literals.
+
+    Whitespace inside literals is masked before wrapping and restored in the
+    wrapped lines. The round trip is exact, so a misdetected literal can only
+    move a line break, never change the text. Text that already contains a
+    placeholder code point (possible via an escape sequence, because docstrings
+    are wrapped after evaluation) is wrapped unmasked so it is never corrupted.
+    """
+    if _INLINE_LITERAL_PLACEHOLDER_PATTERN.search(text):
+        return wrap(text)
+
+    return [
+        restore_inline_literal_spaces(line)
+        for line in wrap(protect_inline_literal_spaces(text))
+    ]
 
 
 def _add_back_leading_or_trailing_newline(
@@ -844,8 +931,8 @@ def is_rst_code_block(
     """
     Check if lines starting at start_idx form an rST code directive block.
 
-    Common rST code directives are introduced by lines such as ``..
-    code-block:: python``. Their indented body is code-like content, so
+    Common rST code directives are introduced by lines such as
+    ``.. code-block:: python``. Their indented body is code-like content, so
     wrapping and rST backtick normalization should preserve it.
 
     Parameters

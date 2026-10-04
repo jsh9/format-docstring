@@ -861,3 +861,114 @@ def test_fix_rst_backticks_end_to_end(
         input_source, line_length=79, fix_rst_backticks=fix_rst_backticks
     )
     assert result == expected_source
+
+
+@pytest.mark.parametrize(
+    ('style', 'data_dir'),
+    [('numpy', DATA_DIR_NUMPY), ('google', DATA_DIR_GOOGLE)],
+)
+def test_inline_literal_fixture_is_idempotent(
+        style: str,
+        data_dir: Path,
+) -> None:
+    """
+    Reformatting the inline-literal fixture output must be a no-op.
+
+    Inline literals are wrapped as unbreakable words, so a second pass must
+    neither split them nor rejoin them differently.
+    """
+    loaded = _load_test_case(data_dir / 'inline_literal_is_not_split.txt')
+    assert loaded is not None
+    _, _, expected_src, line_length = loaded
+    result = docstring_rewriter.fix_src(
+        expected_src, line_length=line_length, docstring_style=style
+    )
+    assert result == expected_src
+
+
+@pytest.mark.parametrize(
+    ('style', 'source', 'expected'),
+    [
+        pytest.param(
+            'google',
+            '''\
+def f():
+    """Summary.
+
+    Notes:
+        This paragraph mentions that you can include things like x ``key:value`` pairs and more text that continues here for a while.
+    """
+''',  # noqa: E501
+            '''\
+def f():
+    """Summary.
+
+    Notes:
+        This paragraph mentions that you can include things like x
+        ``key:value`` pairs and more text that continues here for a while.
+    """
+''',
+            id='google_literal_with_colon_moved_to_line_start',
+        ),
+        pytest.param(
+            'numpy',
+            '''\
+def g():
+    """
+    Summary.
+
+    Nested lines of the generated report are indented with yyyyy ``'\t\t'`` (two tabs) before they are written.
+    """
+''',  # noqa: E501
+            '''\
+def g():
+    """
+    Summary.
+
+    Nested lines of the generated report are indented with yyyyy ``'\t\t'`` (two
+    tabs) before they are written.
+    """
+''',  # noqa: E501
+            id='numpy_tabs_inside_literal',
+        ),
+        pytest.param(
+            'google',
+            '''\
+def h():
+    """Indent all of the nested lines of the generated report with ``'\xa0\xa0'`` (two nbsp) please.
+    """
+''',  # noqa: E501
+            '''\
+def h():
+    """Indent all of the nested lines of the generated report with ``'\xa0\xa0'``
+    (two nbsp) please.
+    """
+''',  # noqa: E501
+            id='google_compact_first_line_nbsp_inside_literal',
+        ),
+    ],
+)
+def test_inline_literal_content_is_never_changed(
+        style: str,
+        source: str,
+        expected: str,
+) -> None:
+    """
+    Wrapping must keep every character of an inline literal, and a second pass
+    must be a no-op.
+
+    Regressions covered: a literal containing a colon that lands at the start
+    of a Google prose line was re-spaced as a signature; tabs inside a literal
+    were expanded or used as a break point; non-breaking spaces on a Google
+    compact first line were collapsed to a single space.
+    """
+    result = docstring_rewriter.fix_src(
+        source, line_length=79, docstring_style=style
+    )
+    assert result == expected
+    assert (
+        docstring_rewriter.fix_src(
+            result, line_length=79, docstring_style=style
+        )
+        == result
+    )

@@ -296,6 +296,20 @@ records : list[dict[str, str]]
 """
 ```
 
+**Inline literals are never split.** Each ``` ``...`` ``` span wraps as one
+word, so spaces, tabs and other whitespace inside it are kept and the literal
+stays greppable. A literal longer than the line overflows instead of breaking.
+
+```diff
+"""
+Render a report as text.
+
+-By default, all the nested lines in the generated report are indented with ``'  '`` (two spaces) before they are written.
++By default, all the nested lines in the generated report are indented with
++``'  '`` (two spaces) before they are written.
+"""
+```
+
 **Known sections are parsed, and custom sections are kept.** Recognized section
 titles such as `Parameters`, `Returns`, `Yields`, `Raises`, `Examples`, and
 `Notes` are canonicalized. Unknown underlined sections remain custom sections,
@@ -386,6 +400,20 @@ reflowed. Prose around those blocks still wraps normally.
 
 Args:
     records (list[dict[str, str]]): Input records.
+"""
+```
+
+**Inline literals are never split.** Each ``` ``...`` ``` span wraps as one
+word, so spaces, tabs and other whitespace inside it are kept and the literal
+stays greppable. A literal longer than the line overflows instead of breaking.
+
+```diff
+"""
+Render a report as text.
+
+-By default, all the nested lines in the generated report are indented with ``'  '`` (two spaces) before they are written.
++By default, all the nested lines in the generated report are indented with
++``'  '`` (two spaces) before they are written.
 """
 ```
 

@@ -15,9 +15,12 @@ from format_docstring.line_wrap_utils import (
     is_code_fence,
     is_google_doctest_block,
     is_google_examples_code_block,
+    is_inside_inline_literal,
     merge_lines_and_strip,
+    protect_inline_literal_spaces,
     segment_lines_by_wrappability,
     validate_include_arg_defaults,
+    wrap_keeping_inline_literals,
 )
 from format_docstring.section_utils import (
     canonical_google_section_header,
@@ -1333,15 +1336,19 @@ def _wrap_google_normal_prose_line(
     ):
         subsequent_indent = ' ' * state.leading_indent
 
-    wrapped = textwrap.fill(
-        parts.line.strip(),
-        width=state.line_length,
-        initial_indent=parts.indent_str,
-        subsequent_indent=subsequent_indent,
-        break_long_words=False,
-        break_on_hyphens=False,
+    state.output.extend(
+        wrap_keeping_inline_literals(
+            parts.line.strip(),
+            lambda text: textwrap.wrap(
+                text,
+                width=state.line_length,
+                initial_indent=parts.indent_str,
+                subsequent_indent=subsequent_indent,
+                break_long_words=False,
+                break_on_hyphens=False,
+            ),
+        )
     )
-    state.output.extend(wrapped.splitlines())
 
 
 def _wrap_google_signature_line(
@@ -1381,7 +1388,9 @@ def _wrap_google_signature_line(
 
     first_line_prefix = sig_part_stripped + ' '
     remaining_first = line_length - len(first_line_prefix)
-    first_word = desc_part.split()[0] if desc_part else ''
+    # Measure the first unbreakable word: a leading inline literal containing
+    # spaces must move to the continuation line as a whole when it can't fit.
+    first_word = protect_inline_literal_spaces(desc_part).split()[0]
     if (
         remaining_first < GOOGLE_MIN_SIGNATURE_DESC_WIDTH
         or len(first_word) > remaining_first
@@ -1395,15 +1404,17 @@ def _wrap_google_signature_line(
             ),
         ]
 
-    wrapped = textwrap.fill(
+    return wrap_keeping_inline_literals(
         desc_part,
-        width=line_length,
-        initial_indent=first_line_prefix,
-        subsequent_indent=subsequent_indent,
-        break_long_words=False,
-        break_on_hyphens=False,
+        lambda text: textwrap.wrap(
+            text,
+            width=line_length,
+            initial_indent=first_line_prefix,
+            subsequent_indent=subsequent_indent,
+            break_long_words=False,
+            break_on_hyphens=False,
+        ),
     )
-    return wrapped.splitlines()
 
 
 def _wrap_google_signature_description(
@@ -1413,15 +1424,17 @@ def _wrap_google_signature_description(
         subsequent_indent: str,
 ) -> list[str]:
     """Wrap a Google signature description on continuation lines."""
-    wrapped = textwrap.fill(
+    return wrap_keeping_inline_literals(
         description,
-        width=line_length,
-        initial_indent=subsequent_indent,
-        subsequent_indent=subsequent_indent,
-        break_long_words=False,
-        break_on_hyphens=False,
+        lambda text: textwrap.wrap(
+            text,
+            width=line_length,
+            initial_indent=subsequent_indent,
+            subsequent_indent=subsequent_indent,
+            break_long_words=False,
+            break_on_hyphens=False,
+        ),
     )
-    return wrapped.splitlines()
 
 
 def _wrap_first_line_shorter(
@@ -1451,6 +1464,32 @@ def _wrap_first_line_shorter(
     if not text.strip():
         return [initial_indent + text] if text else []
 
+    return wrap_keeping_inline_literals(
+        text,
+        lambda masked_text: _wrap_words_first_line_shorter(
+            masked_text,
+            first_line_width=first_line_width,
+            subsequent_width=subsequent_width,
+            initial_indent=initial_indent,
+            subsequent_indent=subsequent_indent,
+        ),
+    )
+
+
+def _wrap_words_first_line_shorter(
+        text: str,
+        *,
+        first_line_width: int,
+        subsequent_width: int,
+        initial_indent: str,
+        subsequent_indent: str,
+) -> list[str]:
+    """
+    Greedily fill whitespace-separated words for ``_wrap_first_line_shorter``.
+
+    Splitting on whitespace re-joins words with single spaces, so callers must
+    mask whitespace that is significant (e.g. inside inline literals) first.
+    """
     words = text.split()
     if not words:
         return []
@@ -1912,12 +1951,15 @@ def _rewrite_google_return_signature(line: str, annotation: str) -> str:
 
 def _find_google_signature_colon(line: str) -> int:
     """
-    Return the delimiter colon outside brackets and parentheses.
+    Return the delimiter colon outside brackets, parentheses and literals.
 
     Google signatures use that colon to separate the signature from the
     description. Skipping nested colons prevents rare type expressions from
     being split in the middle before signature spacing is normalized for
-    malformed Google signature fixtures.
+    malformed Google signature fixtures. Colons inside rST inline literals
+    (``` ``key:value`` ```) are skipped too: a prose line that starts with such
+    a literal is not a signature, and treating it as one would rewrite the
+    literal's content.
     """
     nesting = 0
     for idx, char in enumerate(line):
@@ -1925,7 +1967,11 @@ def _find_google_signature_colon(line: str) -> int:
             nesting += 1
         elif char in ')]}':
             nesting -= 1
-        elif char == ':' and nesting == 0:
+        elif (
+            char == ':'
+            and nesting == 0
+            and not is_inside_inline_literal(line, idx)
+        ):
             return idx
 
     return -1
