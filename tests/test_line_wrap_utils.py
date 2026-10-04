@@ -20,6 +20,7 @@ from format_docstring.line_wrap_utils import (
     merge_lines_and_strip,
     process_temp_output,
     protect_inline_literal_spaces,
+    restore_inline_literal_spaces,
     segment_lines_by_wrappability,
     wrap_keeping_inline_literals,
     wrap_preserving_indent,
@@ -423,14 +424,17 @@ def test_merge_lines_and_strip(text: str, expected: str) -> None:
     ('text', 'expected'),
     [
         ('no literals here', 'no literals here'),
-        ("use ``'  '`` here", "use ``'\x00\x00'`` here"),
+        ("use ``'  '`` here", "use ``'\U000f0020\U000f0020'`` here"),
         (
             '``a b`` and ``c d``, not e f',
-            '``a\x00b`` and ``c\x00d``, not e f',
+            '``a\U000f0020b`` and ``c\U000f0020d``, not e f',
         ),
         # Like docutils, a pair preceded by a space does not close the
         # literal, so the whole span is one literal.
-        ('``a `` b`` c', '``a\x00``\x00b`` c'),
+        ('``a `` b`` c', '``a\U000f0020``\U000f0020b`` c'),
+        # Every kind of whitespace is masked, each with its own placeholder,
+        # so tabs and non-breaking spaces round-trip too.
+        ("``'\t\xa0'``", "``'\U000f0009\U000f00a0'``"),
         # Not a literal: the opening pair is followed by a space.
         ('`` a b`` c', '`` a b`` c'),
         ('``unclosed literal', '``unclosed literal'),
@@ -438,6 +442,7 @@ def test_merge_lines_and_strip(text: str, expected: str) -> None:
 )
 def test_protect_inline_literal_spaces(text: str, expected: str) -> None:
     assert protect_inline_literal_spaces(text) == expected
+    assert restore_inline_literal_spaces(expected) == text
 
 
 @pytest.mark.parametrize(
@@ -459,12 +464,24 @@ def test_protect_inline_literal_spaces(text: str, expected: str) -> None:
             8,
             ['see', '``a b c d e f``', 'here'],
         ),
-        # Text that already contains the placeholder is wrapped unmasked so
+        # Tabs would otherwise be expanded by ``textwrap`` and used as a break
+        # point; non-breaking spaces are whitespace for ``str.split``.
+        (
+            "indented with ``'\t\t'`` (two tabs)",
+            17,
+            ['indented with', "``'\t\t'`` (two", 'tabs)'],
+        ),
+        (
+            "indented with ``'\xa0\xa0'`` (two nbsp)",
+            17,
+            ['indented with', "``'\xa0\xa0'`` (two", 'nbsp)'],
+        ),
+        # Text that already contains a placeholder is wrapped unmasked so
         # the placeholder is never turned into a space.
         (
-            'see ``a\x00 b`` here',
+            'see ``a\U000f0020 b`` here',
             9,
-            ['see ``a\x00', 'b`` here'],
+            ['see ``a\U000f0020', 'b`` here'],
         ),
     ],
 )
@@ -497,6 +514,21 @@ def test_wrap_preserving_indent_keeps_inline_literals_whole() -> None:
     assert wrap_preserving_indent([line], 79) == [
         first_line,
         "    ``'  '`` (two spaces) before they are written.",
+    ]
+
+
+def test_wrap_preserving_indent_keeps_tabs_in_inline_literals() -> None:
+    """Tabs inside an inline literal must not be expanded or split on."""
+    line = (
+        '    Nested lines of the generated report are indented with yyyyy'
+        " ``'\t\t'`` (two tabs) before they are written."
+    )
+    assert wrap_preserving_indent([line], 79) == [
+        (
+            '    Nested lines of the generated report are indented with yyyyy'
+            " ``'\t\t'`` (two"
+        ),
+        '    tabs) before they are written.',
     ]
 
 

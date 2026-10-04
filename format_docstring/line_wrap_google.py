@@ -15,6 +15,7 @@ from format_docstring.line_wrap_utils import (
     is_code_fence,
     is_google_doctest_block,
     is_google_examples_code_block,
+    is_inside_inline_literal,
     merge_lines_and_strip,
     protect_inline_literal_spaces,
     segment_lines_by_wrappability,
@@ -1487,7 +1488,7 @@ def _wrap_words_first_line_shorter(
     Greedily fill whitespace-separated words for ``_wrap_first_line_shorter``.
 
     Splitting on whitespace re-joins words with single spaces, so callers must
-    mask spaces that are significant (e.g. inside inline literals) first.
+    mask whitespace that is significant (e.g. inside inline literals) first.
     """
     words = text.split()
     if not words:
@@ -1950,12 +1951,15 @@ def _rewrite_google_return_signature(line: str, annotation: str) -> str:
 
 def _find_google_signature_colon(line: str) -> int:
     """
-    Return the delimiter colon outside brackets and parentheses.
+    Return the delimiter colon outside brackets, parentheses and literals.
 
     Google signatures use that colon to separate the signature from the
     description. Skipping nested colons prevents rare type expressions from
     being split in the middle before signature spacing is normalized for
-    malformed Google signature fixtures.
+    malformed Google signature fixtures. Colons inside rST inline literals
+    (``` ``key:value`` ```) are skipped too: a prose line that starts with
+    such a literal is not a signature, and treating it as one would rewrite
+    the literal's content.
     """
     nesting = 0
     for idx, char in enumerate(line):
@@ -1963,7 +1967,11 @@ def _find_google_signature_colon(line: str) -> int:
             nesting += 1
         elif char in ')]}':
             nesting -= 1
-        elif char == ':' and nesting == 0:
+        elif (
+            char == ':'
+            and nesting == 0
+            and not is_inside_inline_literal(line, idx)
+        ):
             return idx
 
     return -1

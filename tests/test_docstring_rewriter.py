@@ -884,3 +884,91 @@ def test_inline_literal_fixture_is_idempotent(
         expected_src, line_length=line_length, docstring_style=style
     )
     assert result == expected_src
+
+
+@pytest.mark.parametrize(
+    ('style', 'source', 'expected'),
+    [
+        pytest.param(
+            'google',
+            '''\
+def f():
+    """Summary.
+
+    Notes:
+        This paragraph mentions that you can include things like x ``key:value`` pairs and more text that continues here for a while.
+    """
+''',  # noqa: E501
+            '''\
+def f():
+    """Summary.
+
+    Notes:
+        This paragraph mentions that you can include things like x
+        ``key:value`` pairs and more text that continues here for a while.
+    """
+''',
+            id='google_literal_with_colon_moved_to_line_start',
+        ),
+        pytest.param(
+            'numpy',
+            '''\
+def g():
+    """
+    Summary.
+
+    Nested lines of the generated report are indented with yyyyy ``'\t\t'`` (two tabs) before they are written.
+    """
+''',  # noqa: E501
+            '''\
+def g():
+    """
+    Summary.
+
+    Nested lines of the generated report are indented with yyyyy ``'\t\t'`` (two
+    tabs) before they are written.
+    """
+''',  # noqa: E501
+            id='numpy_tabs_inside_literal',
+        ),
+        pytest.param(
+            'google',
+            '''\
+def h():
+    """Indent all of the nested lines of the generated report with ``'\xa0\xa0'`` (two nbsp) please.
+    """
+''',  # noqa: E501
+            '''\
+def h():
+    """Indent all of the nested lines of the generated report with ``'\xa0\xa0'``
+    (two nbsp) please.
+    """
+''',  # noqa: E501
+            id='google_compact_first_line_nbsp_inside_literal',
+        ),
+    ],
+)
+def test_inline_literal_content_is_never_changed(
+        style: str,
+        source: str,
+        expected: str,
+) -> None:
+    """
+    Wrapping must keep every character of an inline literal, and a second
+    pass must be a no-op.
+
+    Regressions covered: a literal containing a colon that lands at the start
+    of a Google prose line was re-spaced as a signature; tabs inside a
+    literal were expanded or used as a break point; non-breaking spaces on a
+    Google compact first line were collapsed to a single space.
+    """
+    result = docstring_rewriter.fix_src(
+        source, line_length=79, docstring_style=style
+    )
+    assert result == expected
+    assert (
+        docstring_rewriter.fix_src(
+            result, line_length=79, docstring_style=style
+        )
+        == result
+    )

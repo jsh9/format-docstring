@@ -14,9 +14,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     literal such as ``` ``'  '`` ``` lost its spaces. Each inline literal now
     wraps as one unbreakable word, overflowing like other long words when it is
     longer than the line. Re-running the formatter rejoins literals that
-    earlier versions split across lines.
+    earlier versions split across lines. Tabs and other Unicode whitespace
+    inside a literal are preserved as well, instead of being expanded or
+    collapsed.
   - Google-style compact first lines no longer collapse runs of spaces inside
     inline literals.
+  - Google-style prose lines that start with an inline literal containing a
+    colon (such as ``` ``key:value`` ```) are no longer mistaken for signature
+    lines, which rewrote the literal's content on a second pass.
 - Full diff
   - https://github.com/jsh9/format-docstring/compare/0.4.1...0.4.2
 

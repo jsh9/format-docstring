@@ -297,8 +297,8 @@ records : list[dict[str, str]]
 ```
 
 **Inline literals are never split.** Each ``` ``...`` ``` span wraps as one
-word, so spaces inside it are kept and the literal stays greppable. A literal
-longer than the line overflows instead of breaking.
+word, so spaces, tabs and other whitespace inside it are kept and the literal
+stays greppable. A literal longer than the line overflows instead of breaking.
 
 ```diff
 """
@@ -404,8 +404,8 @@ Args:
 ```
 
 **Inline literals are never split.** Each ``` ``...`` ``` span wraps as one
-word, so spaces inside it are kept and the literal stays greppable. A literal
-longer than the line overflows instead of breaking.
+word, so spaces, tabs and other whitespace inside it are kept and the literal
+stays greppable. A literal longer than the line overflows instead of breaking.
 
 ```diff
 """
