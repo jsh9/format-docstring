@@ -1,0 +1,89 @@
+LINE_LENGTH: 79
+
+**********
+def ratio(values):
+    """Compute a ratio metric.
+
+    .. code-block:: python
+
+        total = values.sum()
+        count = len(values)
+
+        ratio = total / count
+
+    Prose after the directive body is still wrapped because it is dedented back to the paragraph level.
+
+    .. code:: python
+
+        first = 1
+        second = 2
+
+    .. sourcecode:: python
+
+        first = 1
+        second = 2
+
+    Args:
+        values (numpy.ndarray): The values. For example:
+
+            .. code-block:: python
+
+                values = numpy.array([1, 2, 3])
+                weights = numpy.array([0.5, 0.25, 0.25])
+
+            Prose after the directive body is still wrapped because it is dedented back to the description level.
+
+    Returns:
+        float: The ratio, as in:
+
+            .. code-block:: python
+
+                ratio = total / count
+                assert ratio > 0
+    """
+    return values.sum() / len(values)
+
+**********
+def ratio(values):
+    """Compute a ratio metric.
+
+    .. code-block:: python
+
+        total = values.sum()
+        count = len(values)
+
+        ratio = total / count
+
+    Prose after the directive body is still wrapped because it is dedented back
+    to the paragraph level.
+
+    .. code:: python
+
+        first = 1
+        second = 2
+
+    .. sourcecode:: python
+
+        first = 1
+        second = 2
+
+    Args:
+        values (numpy.ndarray): The values. For example:
+
+            .. code-block:: python
+
+                values = numpy.array([1, 2, 3])
+                weights = numpy.array([0.5, 0.25, 0.25])
+
+            Prose after the directive body is still wrapped because it is
+            dedented back to the description level.
+
+    Returns:
+        float: The ratio, as in:
+
+            .. code-block:: python
+
+                ratio = total / count
+                assert ratio > 0
+    """
+    return values.sum() / len(values)

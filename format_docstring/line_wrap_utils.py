@@ -186,85 +186,86 @@ def process_temp_output(
     """
     Wrap the ``list[str]`` elements in ``temp_out``.
 
-    To preserve literal blocks indicated by ``::``, the function first scans
-    ``temp_out`` for the pattern ``<line ending with '::'>``, followed by
-    ``''`` (exactly 1 empty line), followed by non-empty content. When found,
-    those three entries are merged into a single ``list[str]`` so the literal
-    block (including the separating blank line) is wrapped as one unit.
+    ``str`` elements are emitted unchanged. Lines of rST literal blocks
+    (introduced by a paragraph ending with ``::``) and of code directives (such
+    as ``.. code-block:: python``) are emitted unchanged too, even when they
+    sit in ``list[str]`` elements; see ``_split_out_literal_blocks``.
     """
-
-    def _to_list(element: str | list[str]) -> list[str]:
-        return [element] if isinstance(element, str) else list(element)
-
-    def _ends_with_literal_block_marker(element: str | list[str]) -> bool:
-        if isinstance(element, str):
-            return element.endswith('::')
-
-        if not element:
-            return False
-
-        return element[-1].endswith('::')
-
-    def _is_empty_string(element: str | list[str]) -> bool:
-        return isinstance(element, str) and element == ''
-
-    def _has_content(element: str | list[str]) -> bool:
-        if isinstance(element, str):
-            return element != ''
-
-        return any(line != '' for line in element)
-
-    merged_temp_out: list[str | list[str]] = []
-    idx = 0
-    while idx < len(temp_out):
-        current = temp_out[idx]
-        next_idx = idx + 1
-        next_next_idx = idx + 2
-
-        if (
-            _ends_with_literal_block_marker(current)
-            and next_next_idx < len(temp_out)
-            and _is_empty_string(temp_out[next_idx])
-            and _has_content(temp_out[next_next_idx])
-        ):
-            merged_element: list[str] = []
-            merged_element.extend(_to_list(current))
-            merged_element.extend(_to_list(temp_out[next_idx]))
-            merged_element.extend(_to_list(temp_out[next_next_idx]))
-            merged_temp_out.append(merged_element)
-            idx += 3
-            continue
-
-        merged_temp_out.append(current)
-        idx += 1
-
     out: list[str] = []
 
-    for element in merged_temp_out:
+    for element in _split_out_literal_blocks(temp_out):
         if isinstance(element, str):
             out.append(element)
-        elif isinstance(element, list):
-            wrapped: list[str] = wrap_preserving_indent(element, width)
-            if (
-                '' in element
-                and '' not in wrapped
-                and element.index('') < len(element) - 1
-            ):
-                insertion_idx = min(element.index(''), len(wrapped))
-                wrapped = [
-                    *wrapped[:insertion_idx],
-                    '',
-                    *wrapped[insertion_idx:],
-                ]
+        else:
+            out.extend(wrap_preserving_indent(element, width))
 
-            out.extend(wrapped)
+    return fix_typos_in_section_headings(out)
+
+
+def _split_out_literal_blocks(
+        temp_out: list[str | list[str]],
+) -> list[str | list[str]]:
+    """
+    Move literal block and code directive lines out of ``list[str]`` elements.
+
+    The spans are found on the flattened ``temp_out``, not one element at a
+    time, because wrappers emit blank lines as separate ``str`` elements. A
+    block with blank lines in it is therefore spread across several elements,
+    and only the flattened lines show where it ends. Each protected line
+    becomes a ``str`` element so it is emitted unchanged. The unprotected lines
+    of a ``list[str]`` element stay grouped, so a block that starts or ends in
+    the middle of an element splits it into separately wrapped parts.
+    """
+    lines: list[str] = []
+    # Index of the ``list[str]`` element each line came from (None for ``str``
+    # elements), so unprotected lines can be regrouped as they were.
+    element_ids: list[int | None] = []
+    for element_idx, element in enumerate(temp_out):
+        if isinstance(element, str):
+            lines.append(element)
+            element_ids.append(None)
+        elif isinstance(element, list):
+            lines.extend(element)
+            element_ids.extend([element_idx] * len(element))
         else:
             raise TypeError(
                 f'`element` has unexpected type: {type(element)}.'
                 ' Please contact the author.'
             )
 
-    return fix_typos_in_section_headings(out)
+    is_protected: list[bool] = [False] * len(lines)
+    idx = 0
+    while idx < len(lines):
+        # Check code directives first, matching the order used by
+        # ``segment_lines_by_wrappability``: ``.. code-block::`` without an
+        # argument also ends with ``::``.
+        is_block, end_idx = is_rst_code_block(lines, idx)
+        if not is_block:
+            is_block, end_idx = is_literal_block_paragraph(lines, idx)
+
+        if is_block:
+            is_protected[idx:end_idx] = [True] * (end_idx - idx)
+            idx = end_idx
+        else:
+            idx += 1
+
+    result: list[str | list[str]] = []
+    group: list[str] | None = None
+    group_element_id: int | None = None
+    for line, element_id, protected in zip(
+        lines, element_ids, is_protected, strict=True
+    ):
+        if element_id is None or protected:
+            result.append(line)
+            group = None
+        elif group is not None and element_id == group_element_id:
+            group.append(line)
+        else:
+            group = [line]
+            group_element_id = element_id
+            result.append(group)
+
+    return result
 
 
 def wrap_preserving_indent(lines: list[str], width: int) -> list[str]:

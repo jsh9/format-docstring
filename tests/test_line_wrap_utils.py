@@ -280,7 +280,7 @@ def test_finalize_lines(
             [
                 'Examples::',
                 '',
-                '',  # 2 empty lines: not protected by `::` above -> will wrap
+                '',  # rST allows more than 1 blank line before the block
                 [
                     (
                         '    literal block with long text that should remain'
@@ -293,10 +293,79 @@ def test_finalize_lines(
                 'Examples::',
                 '',
                 '',
-                '    literal block with long',
-                '    text that should remain on',
-                '    one line even though width',
-                '    is short',
+                (
+                    '    literal block with long text that should remain'
+                    ' on one line even though width is short'
+                ),
+            ],
+        ),
+        (
+            [
+                ['Examples::'],
+                '',
+                ['    para 1 a', '    para 1 b'],
+                '',
+                ['    para 2 a', '    para 2 b'],
+                '',
+                ['Dedented prose after the block is wrapped again'],
+            ],
+            30,
+            [
+                'Examples::',
+                '',
+                '    para 1 a',
+                '    para 1 b',
+                '',
+                '    para 2 a',
+                '    para 2 b',
+                '',
+                'Dedented prose after the block',
+                'is wrapped again',
+            ],
+        ),
+        (
+            [
+                ['.. code-block:: python'],
+                '',
+                ['    total = values.sum()', '    count = len(values)'],
+                '',
+                ['Dedented prose after the block is wrapped again'],
+            ],
+            30,
+            [
+                '.. code-block:: python',
+                '',
+                '    total = values.sum()',
+                '    count = len(values)',
+                '',
+                'Dedented prose after the block',
+                'is wrapped again',
+            ],
+        ),
+        (
+            [
+                ['Prose before the block is wrapped. Example::'],
+                '',
+                ['    code line 1'],
+                '',
+                [
+                    '    code line 2',
+                    '    code line 3',
+                    'Prose in the same element as',
+                    'the block is wrapped again',
+                ],
+            ],
+            40,
+            [
+                'Prose before the block is wrapped.',
+                'Example::',
+                '',
+                '    code line 1',
+                '',
+                '    code line 2',
+                '    code line 3',
+                'Prose in the same element as the block',
+                'is wrapped again',
             ],
         ),
         (
@@ -329,11 +398,18 @@ def test_finalize_lines(
         ),
     ],
 )
-def test_process_temp_output_merges_literal_block(
+def test_process_temp_output_preserves_literal_block(
         temp_out: list[str | list[str]],
         width: int,
         expected: list[str],
 ) -> None:
+    """
+    Verify literal blocks and code directives are emitted unchanged.
+
+    Wrappers put blank lines in separate ``str`` elements, so a block with
+    several paragraphs spans several elements. The whole block must still be
+    protected, and prose after it must still be wrapped.
+    """
     assert process_temp_output(temp_out, width) == expected
 
 
