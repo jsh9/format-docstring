@@ -51,8 +51,8 @@ oriented before making changes.
   character inside rST inline literals (``` ``...`` ```) with a private-use
   placeholder so each literal wraps as one unbreakable word; breaking inside
   one would drop significant spaces. `_find_google_signature_colon` likewise
-  skips colons inside inline literals so a literal at the start of a prose
-  line is not mistaken for a signature.
+  skips colons inside inline literals so a literal at the start of a prose line
+  is not mistaken for a signature.
 - Wrapping honors NumPy section heuristics, rST constructs, code fences,
   `Examples` prompts, and literal blocks introduced by `::`.
 - `_normalize_signature_segment` flattens multiline annotations via

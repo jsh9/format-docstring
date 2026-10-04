@@ -404,10 +404,10 @@ def protect_inline_literal_spaces(text: str) -> str:
 
     Line wrappers break at whitespace and drop it at the break, which would
     split a literal across lines and lose runs of spaces inside it (e.g.
-    ``'  '``). ``textwrap`` also expands tabs and ``str.split`` collapses
-    every kind of Unicode whitespace, so each whitespace character is masked
-    with a placeholder that encodes it. Masking makes each literal one
-    unbreakable word; ``restore_inline_literal_spaces`` undoes it exactly.
+    ``'  '``). ``textwrap`` also expands tabs and ``str.split`` collapses every
+    kind of Unicode whitespace, so each whitespace character is masked with a
+    placeholder that encodes it. Masking makes each literal one unbreakable
+    word; ``restore_inline_literal_spaces`` undoes it exactly.
     """
     if '``' not in text:
         return text
@@ -443,9 +443,8 @@ def wrap_keeping_inline_literals(
     Whitespace inside literals is masked before wrapping and restored in the
     wrapped lines. The round trip is exact, so a misdetected literal can only
     move a line break, never change the text. Text that already contains a
-    placeholder code point (possible via an escape sequence, because
-    docstrings are wrapped after evaluation) is wrapped unmasked so it is
-    never corrupted.
+    placeholder code point (possible via an escape sequence, because docstrings
+    are wrapped after evaluation) is wrapped unmasked so it is never corrupted.
     """
     if _INLINE_LITERAL_PLACEHOLDER_PATTERN.search(text):
         return wrap(text)

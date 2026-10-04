@@ -954,13 +954,13 @@ def test_inline_literal_content_is_never_changed(
         expected: str,
 ) -> None:
     """
-    Wrapping must keep every character of an inline literal, and a second
-    pass must be a no-op.
+    Wrapping must keep every character of an inline literal, and a second pass
+    must be a no-op.
 
     Regressions covered: a literal containing a colon that lands at the start
-    of a Google prose line was re-spaced as a signature; tabs inside a
-    literal were expanded or used as a break point; non-breaking spaces on a
-    Google compact first line were collapsed to a single space.
+    of a Google prose line was re-spaced as a signature; tabs inside a literal
+    were expanded or used as a break point; non-breaking spaces on a Google
+    compact first line were collapsed to a single space.
     """
     result = docstring_rewriter.fix_src(
         source, line_length=79, docstring_style=style

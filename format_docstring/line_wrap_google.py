@@ -1957,9 +1957,9 @@ def _find_google_signature_colon(line: str) -> int:
     description. Skipping nested colons prevents rare type expressions from
     being split in the middle before signature spacing is normalized for
     malformed Google signature fixtures. Colons inside rST inline literals
-    (``` ``key:value`` ```) are skipped too: a prose line that starts with
-    such a literal is not a signature, and treating it as one would rewrite
-    the literal's content.
+    (``` ``key:value`` ```) are skipped too: a prose line that starts with such
+    a literal is not a signature, and treating it as one would rewrite the
+    literal's content.
     """
     nesting = 0
     for idx, char in enumerate(line):
