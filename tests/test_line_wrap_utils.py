@@ -396,6 +396,67 @@ def test_finalize_lines(
                 'Trailing text',
             ],
         ),
+        (
+            [
+                [
+                    '=====  ==================================',
+                    'Value  Meaning',
+                    '=====  ==================================',
+                    'csv    Comma-separated, for example::',
+                    '           a,b,c',
+                    'tsv    Tab-separated',
+                    '=====  ==================================',
+                ],
+            ],
+            30,
+            [
+                '=====  ==================================',
+                'Value  Meaning',
+                '=====  ==================================',
+                'csv    Comma-separated, for example::',
+                '           a,b,c',
+                'tsv    Tab-separated',
+                '=====  ==================================',
+            ],
+        ),
+        (
+            [
+                [
+                    '- Item one has text that',
+                    '  ends with a command::',
+                    '      pip install foo',
+                    '  and continues with more text past the limit',
+                    '- Item two',
+                ],
+            ],
+            30,
+            [
+                '- Item one has text that',
+                '  ends with a command::',
+                '      pip install foo',
+                '  and continues with more text past the limit',
+                '- Item two',
+            ],
+        ),
+        (
+            [
+                ['- Item::'],
+                '',
+                ['      code_a()', '      code_b()'],
+                '',
+                ['  Next paragraph of the item is wrapped'],
+            ],
+            30,
+            [
+                '- Item::',
+                '',
+                '      code_a()',
+                '      code_b()',
+                '',
+                '  Next paragraph of the item',
+                '  is wrapped',
+            ],
+        ),
     ],
 )
 def test_process_temp_output_preserves_literal_block(
@@ -2076,6 +2137,75 @@ def test_is_literal_block_paragraph_uses_indentation_boundaries(
     content remains indented past the introducing paragraph.
     """
     is_literal, end_idx = is_literal_block_paragraph(lines, start_idx)
+    assert is_literal == expected_is_literal
+    assert end_idx == expected_end_idx
+
+
+@pytest.mark.parametrize(
+    ('lines', 'expected_is_literal', 'expected_end_idx'),
+    [
+        (
+            [
+                '- Item::',
+                '',
+                '      code()',
+                '',
+                '  Next paragraph of the item',
+            ],
+            True,
+            4,
+        ),
+        (
+            [
+                '1. Step::',
+                '',
+                '       code()',
+                '',
+                '   Next paragraph of the step',
+            ],
+            True,
+            4,
+        ),
+        (
+            [
+                '- Item::',
+                '',
+                '  Not indented past the item text',
+            ],
+            False,
+            1,
+        ),
+        (
+            [
+                '- Item one',
+                '  ends here::',
+                '',
+                '      code()',
+                '',
+                '  Next paragraph of the item',
+            ],
+            True,
+            5,
+        ),
+    ],
+    ids=['bullet', 'enumerated', 'not_literal', 'continuation_line'],
+)
+def test_is_literal_block_paragraph_measures_list_item_text(
+        lines: list[str],
+        *,
+        expected_is_literal: bool,
+        expected_end_idx: int,
+) -> None:
+    """
+    Verify a list item's ``::`` block ends at the item's next paragraph.
+
+    rST indents the block relative to the item's text, not its marker, so a
+    paragraph aligned with that text is the item's prose and must be wrapped.
+    """
+    start_idx = lines.index('') if '' in lines else 1
+    is_literal, end_idx = is_literal_block_paragraph(
+        lines, start_idx, measure_list_item_text=True
+    )
     assert is_literal == expected_is_literal
     assert end_idx == expected_end_idx
 

@@ -13,6 +13,9 @@ from format_docstring.section_utils import (
 # Regex pattern to split text into paragraphs (multiple consecutive newlines)
 _PARAGRAPH_SPLIT_PATTERN = re.compile(r'\n\s*\n')
 _SECTION_UNDERLINE_MIN_LENGTH = 2
+# A bullet or enumerated list marker and the spaces after it, matching the
+# markers ``is_bulleted_list`` accepts.
+_LIST_ITEM_MARKER_PATTERN = re.compile(r'(?:[-*+]|\d+[.)]|\(\d+\)) +')
 _RST_CODE_DIRECTIVE_PATTERN = re.compile(
     r'^\s*\.\.\s+(?:code-block|sourcecode|code)::(?:\s+.*)?$',
     re.IGNORECASE,
@@ -236,12 +239,25 @@ def _split_out_literal_blocks(
     is_protected: list[bool] = [False] * len(lines)
     idx = 0
     while idx < len(lines):
-        # Check code directives first, matching the order used by
-        # ``segment_lines_by_wrappability``: ``.. code-block::`` without an
-        # argument also ends with ``::``.
+        # Follow the detection order of ``segment_lines_by_wrappability``.
+        # Tables and bullet lists come first and are left to it: a row or item
+        # line ending with ``::`` would otherwise split the element so that
+        # neither part is recognized as a table or list, and both are wrapped.
+        is_structure, end_idx = is_rST_table(lines, idx)
+        if not is_structure:
+            is_structure, end_idx = is_bulleted_list(lines, idx)
+
+        if is_structure:
+            idx = end_idx
+            continue
+
+        # Code directives come before literal blocks because
+        # ``.. code-block::`` without an argument also ends with ``::``.
         is_block, end_idx = is_rst_code_block(lines, idx)
         if not is_block:
-            is_block, end_idx = is_literal_block_paragraph(lines, idx)
+            is_block, end_idx = is_literal_block_paragraph(
+                lines, idx, measure_list_item_text=True
+            )
 
         if is_block:
             is_protected[idx:end_idx] = [True] * (end_idx - idx)
@@ -1499,7 +1515,10 @@ def _is_docstring_section_boundary(lines: list[str], idx: int) -> bool:
 
 
 def is_literal_block_paragraph(
-        lines: list[str], start_idx: int
+        lines: list[str],
+        start_idx: int,
+        *,
+        measure_list_item_text: bool = False,
 ) -> tuple[bool, int]:
     """
     Check if lines starting at start_idx form a literal block following ::.
@@ -1513,6 +1532,12 @@ def is_literal_block_paragraph(
         The list of lines to check.
     start_idx : int
         The starting index to check from.
+    measure_list_item_text : bool, default=False
+        When the ``::`` line starts a list item, measure the block's indent
+        from the item's text instead of its marker, as rST does. Later
+        paragraphs of the item then end the block. Off by default because the
+        Google wrapper dedents such paragraphs; it relies on them staying in
+        the block so they are left alone.
 
     Returns
     -------
@@ -1540,7 +1565,15 @@ def is_literal_block_paragraph(
     if not prev_line.endswith('::'):
         return False, start_idx
 
+    # A literal block must be indented past the paragraph that introduces it.
+    # For a list item, that paragraph starts at the item's text, not at its
+    # marker.
     literal_indent = _indent_width(lines[prev_idx])
+    if measure_list_item_text:
+        marker = _LIST_ITEM_MARKER_PATTERN.match(lines[prev_idx].lstrip(' '))
+        if marker:
+            literal_indent += marker.end()
+
     current_idx = start_idx
     has_literal_content = False
     while current_idx < len(lines):
