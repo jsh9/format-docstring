@@ -55,6 +55,10 @@ oriented before making changes.
   is not mistaken for a signature.
 - Wrapping honors NumPy section heuristics, rST constructs, code fences,
   `Examples` prompts, and literal blocks introduced by `::`.
+- NumPy's `process_temp_output` finds `::` literal blocks and code directives
+  (`is_literal_block_paragraph`, `is_rst_code_block`) on the flattened
+  `temp_out`, because blank lines are separate elements there. Checking one
+  element at a time would protect only a block's first paragraph.
 - `_normalize_signature_segment` flattens multiline annotations via
   `ast.unparse` but uses token-level replay to preserve the author's quoting
   style for forward references and string defaults.

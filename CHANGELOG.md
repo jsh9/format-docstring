@@ -6,6 +6,22 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-10-04
+
+- Fixed
+  - NumPy style no longer reflows `::` literal blocks after their first
+    paragraph. Paragraphs after a blank line inside the block were wrapped as
+    prose; the whole block is now kept until the text dedents.
+  - NumPy style no longer reflows the body of code directives that take an
+    argument, such as `.. code-block:: python`, `.. code:: python`, and
+    `.. sourcecode:: python`. Their code lines were joined like prose.
+- Changed
+  - In NumPy style, the whole body of a directive whose line ends with `::`,
+    such as `.. note::`, is now left as is, like a literal block. Previously
+    only its first paragraph was kept and later paragraphs were rewrapped.
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.4.2...0.4.3
+
 ## [0.4.2] - 2026-10-04
 
 - Fixed
