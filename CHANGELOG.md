@@ -18,17 +18,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - NumPy style no longer reflows the body of code directives that take an
     argument, such as `.. code-block:: python`, `.. code:: python`, and
     `.. sourcecode:: python`. Their code lines were joined like prose.
-  - In NumPy style, the paragraph after a list item's `::` block now gets its
-    single backticks fixed. It was already wrapped as prose, but its backticks
-    were left alone as if it were part of the block.
+  - In NumPy style, when a list item's `::` block is indented past the item's
+    text, the item's next paragraph now gets its single backticks fixed. It was
+    already wrapped as prose, but its backticks were left alone as if it were
+    part of the block.
 - Changed
-  - In NumPy style, the body of an admonition such as `.. note::` or
-    `.. warning::` is now wrapped as prose at its own indent, and its backticks
-    are fixed. Previously its first paragraph was left as is, and no backticks
-    in the body were fixed. The directive line and its option lines, such as
-    `:class: tip`, keep their own lines. Other directives whose line ends with
-    `::`, such as `.. list-table::`, keep their whole body as is. Google style
-    still keeps an admonition body as is.
+  - In NumPy style, the whole body of a directive whose line ends with `::`,
+    such as `.. note::`, is now left as is, like a literal block. Previously
+    only its first paragraph was kept and later paragraphs were rewrapped.
 - Full diff
   - https://github.com/jsh9/format-docstring/compare/0.4.2...0.4.3
 

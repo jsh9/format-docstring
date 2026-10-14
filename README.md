@@ -279,10 +279,9 @@ content, and source-signature sync.
 **Protected content keeps its shape.** Tables, doctest prompts, fenced code,
 literal blocks introduced by `::`, rST code directives such as
 `.. code-block:: python`, and bullet lists are not reflowed. A literal block or
-directive body stays intact across blank lines until the text dedents. Prose
-around those blocks still wraps normally. Admonitions such as `.. note::` hold
-prose, so their body is wrapped at its own indent while the directive line is
-kept.
+directive body stays intact across blank lines until the text dedents. The body
+of a directive whose line ends with `::`, such as `.. note::`, is kept the same
+way. Prose around those blocks still wraps normally.
 
 ```diff
 """
@@ -392,8 +391,8 @@ class Config:
 **Protected content keeps its shape.** Tables, doctest prompts, fenced code,
 literal blocks introduced by `::`, rST code directives such as
 `.. code-block:: python`, and Python-like code in `Examples:` are not reflowed.
-The body of an admonition such as `.. note::` is kept as is too. Prose around
-those blocks still wraps normally.
+The body of a directive whose line ends with `::`, such as `.. note::`, is kept
+as is too. Prose around those blocks still wraps normally.
 
 ```diff
 """

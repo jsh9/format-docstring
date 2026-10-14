@@ -17,6 +17,10 @@ Regression notes:
   `arg_description_starts_with_table.txt` mirror the Google indentation
   regression fixtures. They keep the inventory guard aligned and confirm the
   new Google-only fix does not change NumPy protected-block behavior.
-- `rst_admonition_body.txt` differs by style on purpose. NumPy wraps an
-  admonition body as prose, while the Google fixture pins that Google keeps the
-  body as is.
+- `rst_admonition_body.txt` pins that both styles keep an admonition body as
+  is, including a definition list and doctest prompts in it, while prose right
+  after the body still wraps.
+- `literal_block_under_wide_list_marker.txt` and
+  `literal_block_after_doctest_output.txt` guard against joining code under
+  markers such as `(1)` and `10.`, and against doctest output such as `~~~~~`
+  hiding a later literal block.
