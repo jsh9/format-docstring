@@ -1,0 +1,77 @@
+LINE_LENGTH: 79
+
+**********
+def load_rows(path):
+    """
+    Load the rows from the file and return them as a list of dictionaries in order.
+
+    .. note::
+
+        The rows are read lazily, so a very large file does not have to fit in memory at once.
+
+        A second paragraph of the note, which uses `single` backticks and runs past the limit.
+
+    .. warning::
+        :class: custom
+
+        Rows with a missing key are skipped without an error, which can hide problems in the input.
+
+    .. tip::
+        >>> rows = load_rows('rows.csv', strict=True)
+        >>> len(rows)
+    Prose right after the tip, with no blank line, stays outside it and is still wrapped.
+
+    .. seealso::
+
+        Module :py:mod:`csv`
+            Documentation of the :py:mod:`csv` standard module, which does the parsing.
+
+    Parameters
+    ----------
+    path : str
+        The file path.
+
+        .. note::
+
+            The path is opened in text mode, and any encoding errors are reported to the caller.
+    """
+    pass
+
+**********
+def load_rows(path):
+    """
+    Load the rows from the file and return them as a list of dictionaries in
+    order.
+
+    .. note::
+
+        The rows are read lazily, so a very large file does not have to fit in memory at once.
+
+        A second paragraph of the note, which uses `single` backticks and runs past the limit.
+
+    .. warning::
+        :class: custom
+
+        Rows with a missing key are skipped without an error, which can hide problems in the input.
+
+    .. tip::
+        >>> rows = load_rows('rows.csv', strict=True)
+        >>> len(rows)
+    Prose right after the tip, with no blank line, stays outside it and is
+    still wrapped.
+
+    .. seealso::
+
+        Module :py:mod:`csv`
+            Documentation of the :py:mod:`csv` standard module, which does the parsing.
+
+    Parameters
+    ----------
+    path : str
+        The file path.
+
+        .. note::
+
+            The path is opened in text mode, and any encoding errors are reported to the caller.
+    """
+    pass

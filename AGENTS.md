@@ -55,6 +55,23 @@ oriented before making changes.
   is not mistaken for a signature.
 - Wrapping honors NumPy section heuristics, rST constructs, code fences,
   `Examples` prompts, and literal blocks introduced by `::`.
+- `_find_unwrappable_span` in `line_wrap_utils.py` holds the one detection
+  order: code directives, `::` literal blocks, tables, lists, Google doctests,
+  then code fences. Blocks come before tables and lists so a `::` block that
+  starts with a list item stays whole. `segment_lines_by_wrappability` and
+  NumPy's `process_temp_output` both use it. The latter scans the flattened
+  `temp_out`, because blank lines are separate elements there; checking one
+  element at a time would protect only a block's first paragraph. In that scan
+  only `list[str]` lines and blank lines start a span. Other `str` lines were
+  already classified, and doctest output such as `~~~~~` would otherwise read
+  as an unclosed fence that hides every later block.
+- `is_literal_block_paragraph` reads list items by `style`. NumPy measures a
+  list item's block from the item's text when the block is indented past it,
+  and from the marker otherwise, so code under a wide marker such as `(1)` is
+  not joined. Google always measures from the marker, because its wrapper
+  re-indents wrappable text. Any directive whose line ends with `::`, including
+  `.. note::`, introduces a literal block in both styles. `_fix_rst_backticks`
+  takes the same `style`, so both passes read `::` blocks the same way.
 - `_normalize_signature_segment` flattens multiline annotations via
   `ast.unparse` but uses token-level replay to preserve the author's quoting
   style for forward references and string defaults.

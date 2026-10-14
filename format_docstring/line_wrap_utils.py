@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import textwrap
 from collections.abc import Callable
+from typing import Literal
 
 from format_docstring.section_utils import (
     is_google_section_header,
@@ -13,10 +14,35 @@ from format_docstring.section_utils import (
 # Regex pattern to split text into paragraphs (multiple consecutive newlines)
 _PARAGRAPH_SPLIT_PATTERN = re.compile(r'\n\s*\n')
 _SECTION_UNDERLINE_MIN_LENGTH = 2
+# A bullet (``-``, ``*``, ``+``) or enumerator (``1.``, ``1)``, ``(1)``) list
+# marker and the spaces after it. The only definition of a list marker; see
+# ``_match_list_item_marker``.
+_LIST_ITEM_MARKER_PATTERN = re.compile(
+    r'(?:(?P<bullet>[-*+])'
+    r'|\d+(?P<enum_suffix>[.)])'
+    r'|(?P<enum_parens>\(\d+\)))'
+    r' +'
+)
 _RST_CODE_DIRECTIVE_PATTERN = re.compile(
     r'^\s*\.\.\s+(?:code-block|sourcecode|code)::(?:\s+.*)?$',
     re.IGNORECASE,
 )
+
+_UnwrappableKind = Literal[
+    'code_directive',
+    'literal_block',
+    'table',
+    'list',
+    'doctest',
+    'code_fence',
+]
+# The kinds ``_split_out_literal_blocks`` protects before wrapping. Code
+# directives and literal blocks can continue past a blank line, which NumPy
+# keeps in a separate ``temp_out`` element.
+_RST_BLOCK_KINDS: frozenset[_UnwrappableKind] = frozenset({
+    'code_directive',
+    'literal_block',
+})
 # Used only after a wrapper has entered Examples. Keep the match conservative
 # so prose examples still flow through the normal paragraph wrapper.
 _PYTHON_EXAMPLE_START_PATTERN = re.compile(
@@ -186,85 +212,110 @@ def process_temp_output(
     """
     Wrap the ``list[str]`` elements in ``temp_out``.
 
-    To preserve literal blocks indicated by ``::``, the function first scans
-    ``temp_out`` for the pattern ``<line ending with '::'>``, followed by
-    ``''`` (exactly 1 empty line), followed by non-empty content. When found,
-    those three entries are merged into a single ``list[str]`` so the literal
-    block (including the separating blank line) is wrapped as one unit.
+    ``str`` elements are emitted unchanged. Lines of rST literal blocks
+    (introduced by a paragraph ending with ``::``) and of code directives (such
+    as ``.. code-block:: python``) are emitted unchanged too, even when they
+    sit in ``list[str]`` elements; see ``_split_out_literal_blocks``.
     """
-
-    def _to_list(element: str | list[str]) -> list[str]:
-        return [element] if isinstance(element, str) else list(element)
-
-    def _ends_with_literal_block_marker(element: str | list[str]) -> bool:
-        if isinstance(element, str):
-            return element.endswith('::')
-
-        if not element:
-            return False
-
-        return element[-1].endswith('::')
-
-    def _is_empty_string(element: str | list[str]) -> bool:
-        return isinstance(element, str) and element == ''
-
-    def _has_content(element: str | list[str]) -> bool:
-        if isinstance(element, str):
-            return element != ''
-
-        return any(line != '' for line in element)
-
-    merged_temp_out: list[str | list[str]] = []
-    idx = 0
-    while idx < len(temp_out):
-        current = temp_out[idx]
-        next_idx = idx + 1
-        next_next_idx = idx + 2
-
-        if (
-            _ends_with_literal_block_marker(current)
-            and next_next_idx < len(temp_out)
-            and _is_empty_string(temp_out[next_idx])
-            and _has_content(temp_out[next_next_idx])
-        ):
-            merged_element: list[str] = []
-            merged_element.extend(_to_list(current))
-            merged_element.extend(_to_list(temp_out[next_idx]))
-            merged_element.extend(_to_list(temp_out[next_next_idx]))
-            merged_temp_out.append(merged_element)
-            idx += 3
-            continue
-
-        merged_temp_out.append(current)
-        idx += 1
-
     out: list[str] = []
 
-    for element in merged_temp_out:
+    for element in _split_out_literal_blocks(temp_out):
         if isinstance(element, str):
             out.append(element)
-        elif isinstance(element, list):
-            wrapped: list[str] = wrap_preserving_indent(element, width)
-            if (
-                '' in element
-                and '' not in wrapped
-                and element.index('') < len(element) - 1
-            ):
-                insertion_idx = min(element.index(''), len(wrapped))
-                wrapped = [
-                    *wrapped[:insertion_idx],
-                    '',
-                    *wrapped[insertion_idx:],
-                ]
+        else:
+            out.extend(wrap_preserving_indent(element, width))
 
-            out.extend(wrapped)
+    return fix_typos_in_section_headings(out)
+
+
+def _split_out_literal_blocks(
+        temp_out: list[str | list[str]],
+) -> list[str | list[str]]:
+    """
+    Move literal block and code directive lines out of ``list[str]`` elements.
+
+    The spans are found on the flattened ``temp_out``, not one element at a
+    time, because wrappers emit blank lines as separate ``str`` elements. A
+    block with blank lines in it is therefore spread across several elements,
+    and only the flattened lines show where it ends. Each protected line
+    becomes a ``str`` element so it is emitted unchanged. The unprotected lines
+    of a ``list[str]`` element stay grouped, so a block that starts or ends in
+    the middle of an element splits it into separately wrapped parts.
+
+    Spans start only at lines of ``list[str]`` elements and at blank lines. A
+    non-blank ``str`` element was already classified by the caller (fenced
+    code, doctest lines, section headings, signature lines), so a span may
+    cover it but never starts at it. Otherwise doctest output such as ``~~~~~``
+    would read as an unclosed fence that hides every later block. Blank lines
+    must still start spans, because a literal block can start at the blank line
+    after ``::`` and cover classified lines.
+    """
+    lines: list[str] = []
+    can_start_span: list[bool] = []
+    for element in temp_out:
+        if isinstance(element, str):
+            lines.append(element)
+            can_start_span.append(not element.strip())
+        elif isinstance(element, list):
+            lines.extend(element)
+            can_start_span.extend([True] * len(element))
         else:
             raise TypeError(
                 f'`element` has unexpected type: {type(element)}.'
                 ' Please contact the author.'
             )
 
-    return fix_typos_in_section_headings(out)
+    is_protected: list[bool] = [False] * len(lines)
+    idx = 0
+    while idx < len(lines):
+        if not can_start_span[idx]:
+            idx += 1
+            continue
+
+        kind, end_idx = _find_unwrappable_span(lines, idx, style='numpy')
+        if kind is None:
+            idx += 1
+            continue
+
+        # Other spans (tables, lists, fences) are left to
+        # ``segment_lines_by_wrappability`` but skipped whole here. A row or
+        # item line ending with ``::`` would otherwise start a block that
+        # splits the element, so that neither part is recognized as a table or
+        # list, and both are wrapped.
+        if kind in _RST_BLOCK_KINDS:
+            is_protected[idx:end_idx] = [True] * (end_idx - idx)
+
+        idx = end_idx
+
+    result: list[str | list[str]] = []
+    offset = 0
+    for element in temp_out:
+        if isinstance(element, str):
+            result.append(element)
+            offset += 1
+            continue
+
+        # Split the element at its protected lines: each protected line
+        # becomes a ``str``, and each run of other lines stays a ``list[str]``.
+        element_protected = is_protected[offset : offset + len(element)]
+        run: list[str] = []
+        for line, protected in zip(element, element_protected, strict=True):
+            if not protected:
+                run.append(line)
+                continue
+
+            if run:
+                result.append(run)
+                run = []
+
+            result.append(line)
+
+        if run:
+            result.append(run)
+
+        offset += len(element)
+
+    return result
 
 
 def wrap_preserving_indent(lines: list[str], width: int) -> list[str]:
@@ -594,7 +645,7 @@ def fix_typos_in_section_headings(lines: list[str]) -> list[str]:
     return result
 
 
-def segment_lines_by_wrappability(  # noqa: C901, PLR0915
+def segment_lines_by_wrappability(
         lines: list[str],
         *,
         style: str = 'numpy',
@@ -602,9 +653,11 @@ def segment_lines_by_wrappability(  # noqa: C901, PLR0915
     """
     Segment lines into chunks that can or cannot be wrapped.
 
-    Scans through the lines to detect rST tables, bulleted lists, and literal
-    blocks (paragraphs following ::), which should not be wrapped. Other
-    content can be wrapped.
+    Scans through the lines to detect rST code directives, literal blocks
+    (paragraphs following ::), rST tables, and bulleted lists, which should not
+    be wrapped. Other content can be wrapped. Blocks are checked before tables
+    and lists, so a ``::`` block whose first line is a list item or table row
+    is kept whole.
 
     Also detects fenced code blocks using backticks or tildes. Fence handling
     is intentionally style-agnostic because both wrappers must preserve literal
@@ -617,8 +670,11 @@ def segment_lines_by_wrappability(  # noqa: C901, PLR0915
         The list of lines to segment.
     style : str, default='numpy'
         The docstring style being processed. Supported values:
-        - 'numpy': Detect tables, lists, literal blocks, and code fences
-        - 'google': Additionally detect doctest blocks
+        - 'numpy': Detect code directives, literal blocks, tables, lists, and
+          code fences
+        - 'google': Additionally detect doctest blocks, and measure a list
+          item's literal block from its marker (see
+          ``is_literal_block_paragraph``)
 
     Returns
     -------
@@ -649,109 +705,95 @@ def segment_lines_by_wrappability(  # noqa: C901, PLR0915
     >>> result[2]
     (['More wrappable text'], True)
     """
-    if not lines:
-        return []
-
     segments: list[tuple[list[str], bool]] = []
+    wrappable_start: int | None = None
     current_idx = 0
-
     while current_idx < len(lines):
-        # Check for rST table
-        is_table, table_end_idx = is_rST_table(lines, current_idx)
-        if is_table:
-            # Add table segment (not wrappable)
-            table_lines = lines[current_idx:table_end_idx]
-            segments.append((table_lines, False))
-            current_idx = table_end_idx
-            continue
-
-        # Check for bulleted list
-        is_list, list_end_idx = is_bulleted_list(lines, current_idx)
-        if is_list:
-            # Add list segment (not wrappable)
-            list_lines = lines[current_idx:list_end_idx]
-            segments.append((list_lines, False))
-            current_idx = list_end_idx
-            continue
-
-        # Check for rST code directives before literal blocks. Directive lines
-        # also end in ``::``, but the directive itself is part of the protected
-        # block and should not be grouped with surrounding prose.
-        is_rst_code, rst_code_end_idx = is_rst_code_block(lines, current_idx)
-        if is_rst_code:
-            rst_code_lines = lines[current_idx:rst_code_end_idx]
-            segments.append((rst_code_lines, False))
-            current_idx = rst_code_end_idx
-            continue
-
-        # Check for literal block following ::
-        is_literal, literal_end_idx = is_literal_block_paragraph(
-            lines, current_idx
-        )
-        if is_literal:
-            # Add literal block segment (not wrappable)
-            literal_lines = lines[current_idx:literal_end_idx]
-            segments.append((literal_lines, False))
-            current_idx = literal_end_idx
-            continue
-
-        # Check for doctest block (Google style only)
-        if style == 'google':
-            is_doctest, doctest_end_idx = is_google_doctest_block(
-                lines,
-                current_idx,
-            )
-            if is_doctest:
-                # Add doctest segment (not wrappable)
-                doctest_lines = lines[current_idx:doctest_end_idx]
-                segments.append((doctest_lines, False))
-                current_idx = doctest_end_idx
-                continue
-
-        # Protect fenced code before collecting prose so both wrappers keep
-        # backtick and tilde fence contents out of later wrapping passes.
-        is_fence, fence_end_idx = is_code_fence(lines, current_idx)
-        if is_fence:
-            # Add code fence segment (not wrappable)
-            fence_lines = lines[current_idx:fence_end_idx]
-            segments.append((fence_lines, False))
-            current_idx = fence_end_idx
-            continue
-
-        # Neither table, list, nor literal block - collect wrappable content
-        start_idx = current_idx
-        current_idx += 1
-
-        # Continue collecting wrappable lines until we hit a table/list/literal
-        # (or doctest/fence for Google style)
-        while current_idx < len(lines):
-            is_table, _ = is_rST_table(lines, current_idx)
-            is_list, _ = is_bulleted_list(lines, current_idx)
-            is_rst_code, _ = is_rst_code_block(lines, current_idx)
-            is_literal, _ = is_literal_block_paragraph(lines, current_idx)
-
-            if is_table or is_list or is_rst_code or is_literal:
-                break
-
-            is_fence, _ = is_code_fence(lines, current_idx)
-            if is_fence:
-                break
-
-            if style == 'google':
-                is_doctest, _ = is_google_doctest_block(
-                    lines,
-                    current_idx,
-                )
-                if is_doctest:
-                    break
+        kind, end_idx = _find_unwrappable_span(lines, current_idx, style=style)
+        if kind is None:
+            if wrappable_start is None:
+                wrappable_start = current_idx
 
             current_idx += 1
+            continue
 
-        # Add wrappable segment
-        wrappable_lines = lines[start_idx:current_idx]
-        segments.append((wrappable_lines, True))
+        if wrappable_start is not None:
+            segments.append((lines[wrappable_start:current_idx], True))
+            wrappable_start = None
+
+        segments.append((lines[current_idx:end_idx], False))
+        current_idx = end_idx
+
+    if wrappable_start is not None:
+        segments.append((lines[wrappable_start:], True))
 
     return segments
+
+
+def _find_unwrappable_span(
+        lines: list[str],
+        start_idx: int,
+        *,
+        style: str,
+) -> tuple[_UnwrappableKind | None, int]:
+    """
+    Find the unwrappable span that starts at ``lines[start_idx]``, if any.
+
+    This is the one detection order, shared by
+    ``segment_lines_by_wrappability`` and ``_split_out_literal_blocks``. Code
+    directives come before literal blocks because ``.. code-block::`` without
+    an argument also ends with ``::``. Both come before tables and lists, so a
+    ``::`` block whose first line is a list item or table row is kept whole. A
+    list item or table row that ends with ``::`` is still consumed whole by the
+    list or table check, because a scan reaches a list or table at its first
+    line.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The lines being scanned.
+    start_idx : int
+        The index of the line to check.
+    style : str
+        The docstring style, ``'numpy'`` or ``'google'``. Google also detects
+        doctest blocks.
+
+    Returns
+    -------
+    tuple[_UnwrappableKind | None, int]
+        The kind of span and the index after it, or ``(None, start_idx)`` when
+        ``lines[start_idx]`` does not start an unwrappable span.
+    """
+    is_span, end_idx = is_rst_code_block(lines, start_idx)
+    if is_span:
+        return 'code_directive', end_idx
+
+    is_span, end_idx = is_literal_block_paragraph(
+        lines, start_idx, style=style
+    )
+    if is_span:
+        return 'literal_block', end_idx
+
+    is_span, end_idx = is_rST_table(lines, start_idx)
+    if is_span:
+        return 'table', end_idx
+
+    is_span, end_idx = is_bulleted_list(lines, start_idx)
+    if is_span:
+        return 'list', end_idx
+
+    if style == 'google':
+        is_span, end_idx = is_google_doctest_block(lines, start_idx)
+        if is_span:
+            return 'doctest', end_idx
+
+    # Protect fenced code before collecting prose so both wrappers keep
+    # backtick and tilde fence contents out of later wrapping passes.
+    is_span, end_idx = is_code_fence(lines, start_idx)
+    if is_span:
+        return 'code_fence', end_idx
+
+    return None, start_idx
 
 
 def is_examples_code_block(
@@ -1226,15 +1268,14 @@ def is_bulleted_list(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
     return current_idx > start_idx, current_idx
 
 
+def _match_list_item_marker(line: str) -> re.Match[str] | None:
+    """Match the list marker at the start of ``line``, ignoring its indent."""
+    return _LIST_ITEM_MARKER_PATTERN.match(line.lstrip())
+
+
 def _is_list_item(line: str) -> bool:
     """Check if a line is a list item (ordered or unordered)."""
-    return _is_unordered_list_item(line) or _is_ordered_list_item(line)
-
-
-def _is_unordered_list_item(line: str) -> bool:
-    """Check if a line is an unordered list item (starts with -, *, or +)."""
-    stripped = line.lstrip()
-    return stripped.startswith(('- ', '* ', '+ '))
+    return _match_list_item_marker(line) is not None
 
 
 def _is_ordered_list_item(line: str) -> bool:
@@ -1246,16 +1287,8 @@ def _is_ordered_list_item(line: str) -> bool:
     - number) (e.g., "1) ", "2) ")
     - (number) (e.g., "(1) ", "(2) ")
     """
-    stripped = line.lstrip()
-    if not stripped:
-        return False
-
-    # Look for patterns:
-    # - digits followed by . or ) followed by space
-    # - ( followed by digits followed by ) followed by space
-
-    pattern = r'^(\d+[.)] |\(\d+\) )'
-    return bool(re.match(pattern, stripped))
+    marker = _match_list_item_marker(line)
+    return marker is not None and marker['bullet'] is None
 
 
 def _get_list_format(line: str) -> str | None:
@@ -1273,24 +1306,14 @@ def _get_list_format(line: str) -> str | None:
         ``'.'`` for the ``"1. "`` style, ``')'`` for ``"1) "``, ``'()'`` for
         ``"(1) "``, or ``None`` if the line is not an ordered list item.
     """
-    stripped = line.lstrip()
-    if not stripped:
+    marker = _match_list_item_marker(line)
+    if marker is None or marker['bullet'] is not None:
         return None
 
-    dot_match = re.match(r'^\d+\. ', stripped)
-    paren_match = re.match(r'^\d+\) ', stripped)
-    full_paren_match = re.match(r'^\(\d+\) ', stripped)
-
-    if dot_match:
-        return '.'
-
-    if paren_match:
-        return ')'
-
-    if full_paren_match:
+    if marker['enum_parens'] is not None:
         return '()'
 
-    return None
+    return marker['enum_suffix']
 
 
 def _is_continuation_line(line: str, list_item_indent: int) -> bool:
@@ -1498,7 +1521,10 @@ def _is_docstring_section_boundary(lines: list[str], idx: int) -> bool:
 
 
 def is_literal_block_paragraph(
-        lines: list[str], start_idx: int
+        lines: list[str],
+        start_idx: int,
+        *,
+        style: str = 'numpy',
 ) -> tuple[bool, int]:
     """
     Check if lines starting at start_idx form a literal block following ::.
@@ -1512,6 +1538,16 @@ def is_literal_block_paragraph(
         The list of lines to check.
     start_idx : int
         The starting index to check from.
+    style : str, default='numpy'
+        The docstring style being processed. For a ``::`` line that starts a
+        list item, NumPy follows rST: when the block is indented past the
+        item's text, it is measured from that text, so the item's later
+        paragraphs end the block. A block that is not indented past the text is
+        measured from the marker instead. rST would not read it as a literal
+        block, but it is often code, and wrapping it would join its lines.
+        ``'google'`` always measures from the marker, because the Google
+        wrapper re-indents wrappable text and would strip the indent the item's
+        later paragraphs need.
 
     Returns
     -------
@@ -1540,6 +1576,23 @@ def is_literal_block_paragraph(
         return False, start_idx
 
     literal_indent = _indent_width(lines[prev_idx])
+    marker = _match_list_item_marker(lines[prev_idx])
+    if style != 'google' and marker:
+        # A literal block must be indented past the paragraph that introduces
+        # it, and a list item's paragraph starts at the item's text. Use that
+        # only when the block's first line is past the text, as explained for
+        # ``style`` above.
+        text_indent = literal_indent + marker.end()
+        first_idx = start_idx
+        while first_idx < len(lines) and not lines[first_idx].strip():
+            first_idx += 1
+
+        if (
+            first_idx < len(lines)
+            and _indent_width(lines[first_idx]) > text_indent
+        ):
+            literal_indent = text_indent
+
     current_idx = start_idx
     has_literal_content = False
     while current_idx < len(lines):

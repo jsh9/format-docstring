@@ -1,0 +1,72 @@
+LINE_LENGTH: 79
+
+**********
+def bootstrap(values, denominator_values=None):
+    """
+    Return a bootstrap estimate of the ratio between the numerator and the denominator values.
+
+    The ratio is computed like this::
+
+        SUM(value) / SUM(denom) instead of MEAN(value / denom)
+
+        Ex. Cost Per Click
+        cost per click across a group
+            SUM(revenue) / SUM(clicks)
+
+    Prose after the literal block is still wrapped because it is dedented back to the paragraph level.
+
+    Parameters
+    ----------
+    values : numpy.ndarray
+        The values to bootstrap
+    denominator_values : numpy.ndarray or None, default=None
+        Optional denominators. For example::
+
+            SUM(value) / SUM(denom) instead of MEAN(value / denom)
+
+            Ex. Cost Per Click
+            cost per click across a group
+                SUM(revenue) / SUM(clicks)
+
+            A third paragraph of the literal block that runs past the line length limit
+
+        Prose after the literal block is still wrapped because it is dedented back to the description level.
+    """
+    pass
+
+**********
+def bootstrap(values, denominator_values=None):
+    """
+    Return a bootstrap estimate of the ratio between the numerator and the
+    denominator values.
+
+    The ratio is computed like this::
+
+        SUM(value) / SUM(denom) instead of MEAN(value / denom)
+
+        Ex. Cost Per Click
+        cost per click across a group
+            SUM(revenue) / SUM(clicks)
+
+    Prose after the literal block is still wrapped because it is dedented back
+    to the paragraph level.
+
+    Parameters
+    ----------
+    values : numpy.ndarray
+        The values to bootstrap
+    denominator_values : numpy.ndarray or None, default=None
+        Optional denominators. For example::
+
+            SUM(value) / SUM(denom) instead of MEAN(value / denom)
+
+            Ex. Cost Per Click
+            cost per click across a group
+                SUM(revenue) / SUM(clicks)
+
+            A third paragraph of the literal block that runs past the line length limit
+
+        Prose after the literal block is still wrapped because it is dedented
+        back to the description level.
+    """
+    pass

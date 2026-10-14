@@ -277,8 +277,11 @@ content, and source-signature sync.
 ### 3.1. NumPy-style docstrings
 
 **Protected content keeps its shape.** Tables, doctest prompts, fenced code,
-literal blocks introduced by `::`, and bullet lists are not reflowed. Prose
-around those blocks still wraps normally.
+literal blocks introduced by `::`, rST code directives such as
+`.. code-block:: python`, and bullet lists are not reflowed. A literal block or
+directive body stays intact across blank lines until the text dedents. The body
+of a directive whose line ends with `::`, such as `.. note::`, is kept the same
+way. Prose around those blocks still wraps normally.
 
 ```diff
 """
@@ -386,8 +389,10 @@ class Config:
 ### 3.2. Google-style docstrings
 
 **Protected content keeps its shape.** Tables, doctest prompts, fenced code,
-literal blocks introduced by `::`, and Python-like code in `Examples:` are not
-reflowed. Prose around those blocks still wraps normally.
+literal blocks introduced by `::`, rST code directives such as
+`.. code-block:: python`, and Python-like code in `Examples:` are not reflowed.
+The body of a directive whose line ends with `::`, such as `.. note::`, is kept
+as is too. Prose around those blocks still wraps normally.
 
 ```diff
 """

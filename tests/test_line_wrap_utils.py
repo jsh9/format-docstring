@@ -280,7 +280,7 @@ def test_finalize_lines(
             [
                 'Examples::',
                 '',
-                '',  # 2 empty lines: not protected by `::` above -> will wrap
+                '',  # rST allows more than 1 blank line before the block
                 [
                     (
                         '    literal block with long text that should remain'
@@ -293,10 +293,79 @@ def test_finalize_lines(
                 'Examples::',
                 '',
                 '',
-                '    literal block with long',
-                '    text that should remain on',
-                '    one line even though width',
-                '    is short',
+                (
+                    '    literal block with long text that should remain'
+                    ' on one line even though width is short'
+                ),
+            ],
+        ),
+        (
+            [
+                ['Examples::'],
+                '',
+                ['    para 1 a', '    para 1 b'],
+                '',
+                ['    para 2 a', '    para 2 b'],
+                '',
+                ['Dedented prose after the block is wrapped again'],
+            ],
+            30,
+            [
+                'Examples::',
+                '',
+                '    para 1 a',
+                '    para 1 b',
+                '',
+                '    para 2 a',
+                '    para 2 b',
+                '',
+                'Dedented prose after the block',
+                'is wrapped again',
+            ],
+        ),
+        (
+            [
+                ['.. code-block:: python'],
+                '',
+                ['    total = values.sum()', '    count = len(values)'],
+                '',
+                ['Dedented prose after the block is wrapped again'],
+            ],
+            30,
+            [
+                '.. code-block:: python',
+                '',
+                '    total = values.sum()',
+                '    count = len(values)',
+                '',
+                'Dedented prose after the block',
+                'is wrapped again',
+            ],
+        ),
+        (
+            [
+                ['Prose before the block is wrapped. Example::'],
+                '',
+                ['    code line 1'],
+                '',
+                [
+                    '    code line 2',
+                    '    code line 3',
+                    'Prose in the same element as',
+                    'the block is wrapped again',
+                ],
+            ],
+            40,
+            [
+                'Prose before the block is wrapped.',
+                'Example::',
+                '',
+                '    code line 1',
+                '',
+                '    code line 2',
+                '    code line 3',
+                'Prose in the same element as the block',
+                'is wrapped again',
             ],
         ),
         (
@@ -327,13 +396,256 @@ def test_finalize_lines(
                 'Trailing text',
             ],
         ),
+        (
+            [
+                [
+                    '=====  ==================================',
+                    'Value  Meaning',
+                    '=====  ==================================',
+                    'csv    Comma-separated, for example::',
+                    '           a,b,c',
+                    'tsv    Tab-separated',
+                    '=====  ==================================',
+                ],
+            ],
+            30,
+            [
+                '=====  ==================================',
+                'Value  Meaning',
+                '=====  ==================================',
+                'csv    Comma-separated, for example::',
+                '           a,b,c',
+                'tsv    Tab-separated',
+                '=====  ==================================',
+            ],
+        ),
+        (
+            [
+                [
+                    '- Item one has text that',
+                    '  ends with a command::',
+                    '      pip install foo',
+                    '  and continues with more text past the limit',
+                    '- Item two',
+                ],
+            ],
+            30,
+            [
+                '- Item one has text that',
+                '  ends with a command::',
+                '      pip install foo',
+                '  and continues with more text past the limit',
+                '- Item two',
+            ],
+        ),
+        (
+            [
+                ['- Item::'],
+                '',
+                ['      code_a()', '      code_b()'],
+                '',
+                ['  Next paragraph of the item is wrapped'],
+            ],
+            30,
+            [
+                '- Item::',
+                '',
+                '      code_a()',
+                '      code_b()',
+                '',
+                '  Next paragraph of the item',
+                '  is wrapped',
+            ],
+        ),
+        # A block whose first line is a list item, with no blank line after
+        # ``::``, stays protected past the list
+        (
+            [
+                ['Example::', '    - a', '    - b'],
+                '',
+                ['    Later paragraph of the block'],
+                '',
+                ['Prose after the block is wrapped'],
+            ],
+            20,
+            [
+                'Example::',
+                '    - a',
+                '    - b',
+                '',
+                '    Later paragraph of the block',
+                '',
+                'Prose after the',
+                'block is wrapped',
+            ],
+        ),
+        # The same for a block whose first line is a table row
+        (
+            [
+                [
+                    'Values::',
+                    '    =====  =====',
+                    '    a      b',
+                    '    =====  =====',
+                ],
+                '',
+                ['    Later paragraph of the block'],
+                '',
+                ['Prose after the block is wrapped'],
+            ],
+            20,
+            [
+                'Values::',
+                '    =====  =====',
+                '    a      b',
+                '    =====  =====',
+                '',
+                '    Later paragraph of the block',
+                '',
+                'Prose after the',
+                'block is wrapped',
+            ],
+        ),
+        # A directive whose line ends with ``::``, such as an admonition,
+        # keeps its body as is, with or without a blank line before it
+        (
+            [['.. note::'], '', ['    Body text of the note is kept']],
+            24,
+            ['.. note::', '', '    Body text of the note is kept'],
+        ),
+        (
+            [['.. note::', '    Body text of the note is kept']],
+            24,
+            ['.. note::', '    Body text of the note is kept'],
+        ),
+        (
+            [
+                ['.. note::', '    :class: a', '    :name: b'],
+                '',
+                ['    Body text of the note is kept'],
+            ],
+            24,
+            [
+                '.. note::',
+                '    :class: a',
+                '    :name: b',
+                '',
+                '    Body text of the note is kept',
+            ],
+        ),
+        (
+            [['.. list-table::'], '', ['    * - a cell that stays as it is']],
+            24,
+            ['.. list-table::', '', '    * - a cell that stays as it is'],
+        ),
+        # Structures the prose wrapper does not know stay intact: a
+        # definition list and doctest prompts
+        (
+            [
+                ['.. seealso::'],
+                '',
+                ['   Module zipfile', '      Documentation of the module.'],
+            ],
+            20,
+            [
+                '.. seealso::',
+                '',
+                '   Module zipfile',
+                '      Documentation of the module.',
+            ],
+        ),
+        (
+            [['.. note::'], '', ['   >>> a = 1', '   >>> b = 2']],
+            20,
+            ['.. note::', '', '   >>> a = 1', '   >>> b = 2'],
+        ),
+        # Dedented text right after the body, with no blank line or only a
+        # whitespace-only line, stays outside the note and wraps at its own
+        # indent
+        (
+            [
+                [
+                    '.. note::',
+                    '   Note body is kept',
+                    'Text outside the note is wrapped',
+                ],
+            ],
+            20,
+            [
+                '.. note::',
+                '   Note body is kept',
+                'Text outside the',
+                'note is wrapped',
+            ],
+        ),
+        (
+            [
+                [
+                    '.. warning::',
+                    '   Warning body',
+                    '   ',
+                    'Text after the warning is wrapped',
+                ],
+            ],
+            20,
+            [
+                '.. warning::',
+                '   Warning body',
+                '   ',
+                'Text after the',
+                'warning is wrapped',
+            ],
+        ),
+        # Doctest output the caller already classified, such as an
+        # underline, does not start a span: ``~~~~~`` would read as an
+        # unclosed fence that hides the later literal block
+        (
+            [
+                '>>> print(title)',
+                'Title',
+                '~~~~~',
+                '',
+                ['Install it first::'],
+                '',
+                ['    $ pip install foo', '    $ foo --init'],
+            ],
+            20,
+            [
+                '>>> print(title)',
+                'Title',
+                '~~~~~',
+                '',
+                'Install it first::',
+                '',
+                '    $ pip install foo',
+                '    $ foo --init',
+            ],
+        ),
+        # Code indented only to a wide list marker's text is kept, not
+        # joined like prose
+        (
+            [
+                ['(1) Install::'],
+                '',
+                ['    $ pip install foo', '    $ foo --init'],
+            ],
+            20,
+            ['(1) Install::', '', '    $ pip install foo', '    $ foo --init'],
+        ),
     ],
 )
-def test_process_temp_output_merges_literal_block(
+def test_process_temp_output_preserves_literal_block(
         temp_out: list[str | list[str]],
         width: int,
         expected: list[str],
 ) -> None:
+    """
+    Verify literal blocks and code directives are emitted unchanged.
+
+    Wrappers put blank lines in separate ``str`` elements, so a block with
+    several paragraphs spans several elements. The whole block must still be
+    protected, and prose after it must still be wrapped.
+    """
     assert process_temp_output(temp_out, width) == expected
 
 
@@ -1752,6 +2064,62 @@ def test_segment_lines_by_wrappability(
 
 
 @pytest.mark.parametrize(
+    ('lines', 'style', 'expected_segments'),
+    [
+        (
+            ['Example::', '    - a', '    - b', '', '    later', 'Prose'],
+            'numpy',
+            [
+                (['Example::'], True),
+                (['    - a', '    - b', '', '    later'], False),
+                (['Prose'], True),
+            ],
+        ),
+        (
+            ['Example::', '    - a', '    - b', '', '    later', 'Prose'],
+            'google',
+            [
+                (['Example::'], True),
+                (['    - a', '    - b', '', '    later'], False),
+                (['Prose'], True),
+            ],
+        ),
+        (
+            ['.. note::', '    Body', '', '    More'],
+            'numpy',
+            [(['.. note::'], True), (['    Body', '', '    More'], False)],
+        ),
+        (
+            ['.. note::', '    Body', '', '    More'],
+            'google',
+            [(['.. note::'], True), (['    Body', '', '    More'], False)],
+        ),
+    ],
+    ids=[
+        'list_in_block_numpy',
+        'list_in_block_google',
+        'admonition_numpy',
+        'admonition_google',
+    ],
+)
+def test_segment_lines_by_wrappability_reads_blocks_by_style(
+        lines: list[str],
+        style: str,
+        expected_segments: list[tuple[list[str], bool]],
+) -> None:
+    """
+    Verify block detection order and how admonitions are read.
+
+    A ``::`` block whose first line is a list item is one protected segment in
+    both styles. Both styles keep an admonition body as a literal block,
+    because the prose wrapper would flatten definition lists and doctests in
+    it.
+    """
+    result = segment_lines_by_wrappability(lines, style=style)
+    assert result == expected_segments
+
+
+@pytest.mark.parametrize(
     ('lines', 'start_idx', 'detector', 'expected_is_code', 'expected_end_idx'),
     [
         (
@@ -2000,6 +2368,175 @@ def test_is_literal_block_paragraph_uses_indentation_boundaries(
     content remains indented past the introducing paragraph.
     """
     is_literal, end_idx = is_literal_block_paragraph(lines, start_idx)
+    assert is_literal == expected_is_literal
+    assert end_idx == expected_end_idx
+
+
+@pytest.mark.parametrize(
+    ('lines', 'start_idx', 'style', 'expected_is_literal', 'expected_end_idx'),
+    [
+        (
+            [
+                '- Item::',
+                '',
+                '      code()',
+                '',
+                '  Next paragraph of the item',
+            ],
+            1,
+            'numpy',
+            True,
+            4,
+        ),
+        (
+            [
+                '1. Step::',
+                '',
+                '       code()',
+                '',
+                '   Next paragraph of the step',
+            ],
+            1,
+            'numpy',
+            True,
+            4,
+        ),
+        (
+            [
+                '- Item::',
+                '',
+                '  Aligned with the item text',
+            ],
+            1,
+            'numpy',
+            True,
+            3,
+        ),
+        (
+            [
+                '(1) Install::',
+                '',
+                '    $ pip install foo',
+                '    $ foo --init',
+                '',
+                'After',
+            ],
+            1,
+            'numpy',
+            True,
+            5,
+        ),
+        (
+            ['-   item::', '', '    code()', '', 'After'],
+            1,
+            'numpy',
+            True,
+            4,
+        ),
+        (
+            ['\t- Run::', '\t\t$ pip install foo', 'After'],
+            1,
+            'numpy',
+            True,
+            2,
+        ),
+        (
+            [
+                '- Item one',
+                '  ends here::',
+                '',
+                '      code()',
+                '',
+                '  Next paragraph of the item',
+            ],
+            2,
+            'numpy',
+            True,
+            5,
+        ),
+        (
+            [
+                '\t- Item::',
+                '',
+                '\t      code()',
+                '',
+                '\t  Next paragraph of the item',
+            ],
+            1,
+            'numpy',
+            True,
+            4,
+        ),
+        (
+            [
+                '- Item::',
+                '',
+                '      code()',
+                '',
+                '  Next paragraph of the item',
+            ],
+            1,
+            'google',
+            True,
+            5,
+        ),
+        (
+            ['.. note::', '', '    Body text'],
+            1,
+            'numpy',
+            True,
+            3,
+        ),
+        (
+            ['.. note::', '', '    Body text'],
+            1,
+            'google',
+            True,
+            3,
+        ),
+        (
+            ['.. list-table::', '', '    * - a'],
+            1,
+            'numpy',
+            True,
+            3,
+        ),
+    ],
+    ids=[
+        'bullet',
+        'enumerated',
+        'aligned_with_text_uses_marker',
+        'wide_enumerator_uses_marker',
+        'wide_bullet_uses_marker',
+        'tab_item_code_under_text_uses_marker',
+        'continuation_line',
+        'leading_tab',
+        'google_measures_from_marker',
+        'admonition',
+        'google_admonition',
+        'other_directive',
+    ],
+)
+def test_is_literal_block_paragraph_reads_rst_by_style(
+        lines: list[str],
+        start_idx: int,
+        style: str,
+        *,
+        expected_is_literal: bool,
+        expected_end_idx: int,
+) -> None:
+    """
+    Verify how each style reads list item blocks and admonitions.
+
+    When a list item's block is indented past the item's text, NumPy measures
+    it from that text, so a paragraph aligned with the text ends the block. A
+    block that is not past the text is measured from the marker, so code under
+    a wide marker such as ``(1)`` is not joined. Google always measures from
+    the marker. Both styles read an admonition's ``::`` as a literal block.
+    """
+    is_literal, end_idx = is_literal_block_paragraph(
+        lines, start_idx, style=style
+    )
     assert is_literal == expected_is_literal
     assert end_idx == expected_end_idx
 

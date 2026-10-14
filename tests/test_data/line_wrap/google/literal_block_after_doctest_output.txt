@@ -1,0 +1,35 @@
+LINE_LENGTH: 79
+
+**********
+Make a title with an underline that matches the length of the given text.
+
+Examples:
+    >>> print(make_title('Title'))
+    Title
+    ~~~~~
+
+Notes:
+    Install the optional dependency first, because the function needs it to render::
+
+        $ pip install foo
+        $ foo --init
+
+    Prose after the literal block is still wrapped because it is dedented back to the description level.
+
+**********
+Make a title with an underline that matches the length of the given text.
+
+Examples:
+    >>> print(make_title('Title'))
+    Title
+    ~~~~~
+
+Notes:
+    Install the optional dependency first, because the function needs it to
+    render::
+
+        $ pip install foo
+        $ foo --init
+
+    Prose after the literal block is still wrapped because it is dedented back
+    to the description level.

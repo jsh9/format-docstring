@@ -1,0 +1,60 @@
+LINE_LENGTH: 79
+
+**********
+Read rows in one of these formats.
+
+- CSV files are read with the standard library reader and the first line of
+  each file names the columns, for example::
+      name,count
+  Rows after the header are parsed one by one and must have the same number of fields.
+- TSV files.
+
+1. Validate the input::
+
+       validate(rows)
+
+   Validation stops at the first bad row and reports its line number to the caller.
+2. Load the rows.
+
+Parameters
+----------
+fmt : str
+    The format name.
+
+    =====  ==========================================
+    Value  Meaning
+    =====  ==========================================
+    csv    Comma-separated values, for example::
+               a,b,c
+    tsv    Tab-separated values
+    =====  ==========================================
+
+**********
+Read rows in one of these formats.
+
+- CSV files are read with the standard library reader and the first line of
+  each file names the columns, for example::
+      name,count
+  Rows after the header are parsed one by one and must have the same number of fields.
+- TSV files.
+
+1. Validate the input::
+
+       validate(rows)
+
+   Validation stops at the first bad row and reports its line number to the
+   caller.
+2. Load the rows.
+
+Parameters
+----------
+fmt : str
+    The format name.
+
+    =====  ==========================================
+    Value  Meaning
+    =====  ==========================================
+    csv    Comma-separated values, for example::
+               a,b,c
+    tsv    Tab-separated values
+    =====  ==========================================

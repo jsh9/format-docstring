@@ -1,0 +1,74 @@
+LINE_LENGTH: 79
+
+**********
+def read_config(config):
+    """
+    Read the configuration entries and return them as a mapping from name to value.
+
+    Each entry is written like this::
+        - name: the table name
+        - path: the file path
+
+        A later paragraph of the literal block that runs past the line length limit.
+
+    The entries can also be laid out as a table::
+        =====  ==========
+        Key    Meaning
+        =====  ==========
+        name   Table name
+        =====  ==========
+
+        A later paragraph of this literal block that also runs past the line length.
+
+    Prose after the literal blocks is still wrapped because it is dedented back to the paragraph level.
+
+    Parameters
+    ----------
+    config : dict
+        The configuration. For example::
+            - name: rows
+            - path: rows.csv
+
+            A later paragraph of the literal block that runs past the line length limit.
+
+        Prose after the literal block is still wrapped because it is dedented back to the description level.
+    """
+    pass
+
+**********
+def read_config(config):
+    """
+    Read the configuration entries and return them as a mapping from name to
+    value.
+
+    Each entry is written like this::
+        - name: the table name
+        - path: the file path
+
+        A later paragraph of the literal block that runs past the line length limit.
+
+    The entries can also be laid out as a table::
+        =====  ==========
+        Key    Meaning
+        =====  ==========
+        name   Table name
+        =====  ==========
+
+        A later paragraph of this literal block that also runs past the line length.
+
+    Prose after the literal blocks is still wrapped because it is dedented back
+    to the paragraph level.
+
+    Parameters
+    ----------
+    config : dict
+        The configuration. For example::
+            - name: rows
+            - path: rows.csv
+
+            A later paragraph of the literal block that runs past the line length limit.
+
+        Prose after the literal block is still wrapped because it is dedented
+        back to the description level.
+    """
+    pass
