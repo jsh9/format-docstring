@@ -2203,9 +2203,7 @@ def test_is_literal_block_paragraph_measures_list_item_text(
     paragraph aligned with that text is the item's prose and must be wrapped.
     """
     start_idx = lines.index('') if '' in lines else 1
-    is_literal, end_idx = is_literal_block_paragraph(
-        lines, start_idx, measure_list_item_text=True
-    )
+    is_literal, end_idx = is_literal_block_paragraph(lines, start_idx)
     assert is_literal == expected_is_literal
     assert end_idx == expected_end_idx
 

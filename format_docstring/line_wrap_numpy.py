@@ -1026,6 +1026,8 @@ _DUNDER_LITERAL_REPLACEMENT = r'``\1``'
 
 def _mask_rst_backtick_protected_lines(  # noqa: C901, PLR0915
         lines: list[str],
+        *,
+        style: str,
 ) -> tuple[list[str], dict[int, str]]:
     """
     Replace example/code lines with placeholders before rST backtick fixing.
@@ -1037,7 +1039,9 @@ def _mask_rst_backtick_protected_lines(  # noqa: C901, PLR0915
     Plain prose in ``Examples`` still uses rST inline-literal syntax, but
     detected Python-like code should be byte-for-byte preserved. Track section
     state here because the regex fixer runs before the style-specific wrappers
-    decide which example lines are code.
+    decide which example lines are code. ``style`` selects how ``::`` literal
+    blocks are read, so the lines masked here match the lines the wrapper for
+    that style leaves alone (see ``is_literal_block_paragraph``).
     """
     protected_lines: dict[int, str] = {}
     masked_lines: list[str] = []
@@ -1122,7 +1126,7 @@ def _mask_rst_backtick_protected_lines(  # noqa: C901, PLR0915
         # ``::`` literal blocks are detected from the previous content line,
         # so this check must happen before looking only at current-line text.
         is_literal, literal_end_idx = is_literal_block_paragraph(
-            lines, current_idx
+            lines, current_idx, style=style
         )
         if is_literal:
             # Backtick fixing is prose-only. Literal blocks may contain code or
@@ -1156,7 +1160,7 @@ def _mask_rst_backtick_protected_lines(  # noqa: C901, PLR0915
     return masked_lines, protected_lines
 
 
-def _fix_rst_backticks(docstring: str) -> str:
+def _fix_rst_backticks(docstring: str, *, style: str = 'numpy') -> str:
     """
     Fix inline-literal single backticks to double backticks per rST syntax.
 
@@ -1169,6 +1173,10 @@ def _fix_rst_backticks(docstring: str) -> str:
     ----------
     docstring : str
         The docstring content to process.
+    style : str, default='numpy'
+        The docstring style, ``'numpy'`` or ``'google'``. It decides which
+        lines count as part of a ``::`` literal block, whose backticks are
+        left alone.
 
     Returns
     -------
@@ -1256,7 +1264,9 @@ def _fix_rst_backticks(docstring: str) -> str:
         return f'{prefix}``{content}``'
 
     lines = docstring.splitlines(keepends=True)
-    protected_lines, original_lines = _mask_rst_backtick_protected_lines(lines)
+    protected_lines, original_lines = _mask_rst_backtick_protected_lines(
+        lines, style=style
+    )
 
     # Process the docstring with examples/code temporarily hidden.
     protected_docstring = ''.join(protected_lines)

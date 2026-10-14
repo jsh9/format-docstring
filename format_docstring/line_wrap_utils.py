@@ -20,6 +20,17 @@ _RST_CODE_DIRECTIVE_PATTERN = re.compile(
     r'^\s*\.\.\s+(?:code-block|sourcecode|code)::(?:\s+.*)?$',
     re.IGNORECASE,
 )
+# Admonitions hold ordinary rST prose, so in NumPy style their ``::`` does not
+# introduce a literal block. A directive with text after ``::`` does not end
+# with ``::`` and needs no entry here.
+_RST_PROSE_DIRECTIVE_PATTERN = re.compile(
+    r'^\s*\.\.\s+(?:attention|caution|danger|error|hint|important|note|'
+    r'seealso|tip|todo|warning)::\s*$',
+    re.IGNORECASE,
+)
+# A directive option such as ``:class: tip``. A role such as ``:func:`f```
+# has a backtick right after its colon, so it does not match.
+_RST_DIRECTIVE_OPTION_PATTERN = re.compile(r'^\s*:[\w-]+:(?:\s|$)')
 # Used only after a wrapper has entered Examples. Keep the match conservative
 # so prose examples still flow through the normal paragraph wrapper.
 _PYTHON_EXAMPLE_START_PATTERN = re.compile(
@@ -190,9 +201,10 @@ def process_temp_output(
     Wrap the ``list[str]`` elements in ``temp_out``.
 
     ``str`` elements are emitted unchanged. Lines of rST literal blocks
-    (introduced by a paragraph ending with ``::``) and of code directives (such
-    as ``.. code-block:: python``) are emitted unchanged too, even when they
-    sit in ``list[str]`` elements; see ``_split_out_literal_blocks``.
+    (introduced by a paragraph ending with ``::``), of code directives (such as
+    ``.. code-block:: python``), and admonition directive lines (such as
+    ``.. note::``) are emitted unchanged too, even when they sit in
+    ``list[str]`` elements; see ``_split_out_literal_blocks``.
     """
     out: list[str] = []
 
@@ -240,30 +252,29 @@ def _split_out_literal_blocks(
     idx = 0
     while idx < len(lines):
         # Follow the detection order of ``segment_lines_by_wrappability``.
-        # Tables and bullet lists come first and are left to it: a row or item
-        # line ending with ``::`` would otherwise split the element so that
-        # neither part is recognized as a table or list, and both are wrapped.
-        is_structure, end_idx = is_rST_table(lines, idx)
-        if not is_structure:
-            is_structure, end_idx = is_bulleted_list(lines, idx)
-
-        if is_structure:
-            idx = end_idx
-            continue
-
-        # Code directives come before literal blocks because
-        # ``.. code-block::`` without an argument also ends with ``::``.
+        # Blocks come before tables and lists, so a ``::`` block whose first
+        # line is a list item or table row is protected whole.
         is_block, end_idx = is_rst_code_block(lines, idx)
         if not is_block:
-            is_block, end_idx = is_literal_block_paragraph(
-                lines, idx, measure_list_item_text=True
-            )
+            is_block, end_idx = is_literal_block_paragraph(lines, idx)
+
+        if not is_block:
+            is_block, end_idx = is_rst_prose_directive(lines, idx)
 
         if is_block:
             is_protected[idx:end_idx] = [True] * (end_idx - idx)
             idx = end_idx
-        else:
-            idx += 1
+            continue
+
+        # Tables and lists are left to ``segment_lines_by_wrappability`` but
+        # skipped whole here. A row or item line ending with ``::`` would
+        # otherwise split the element so that neither part is recognized as a
+        # table or list, and both are wrapped.
+        is_structure, end_idx = is_rST_table(lines, idx)
+        if not is_structure:
+            is_structure, end_idx = is_bulleted_list(lines, idx)
+
+        idx = end_idx if is_structure else idx + 1
 
     result: list[str | list[str]] = []
     group: list[str] | None = None
@@ -619,9 +630,12 @@ def segment_lines_by_wrappability(  # noqa: C901, PLR0915
     """
     Segment lines into chunks that can or cannot be wrapped.
 
-    Scans through the lines to detect rST tables, bulleted lists, and literal
-    blocks (paragraphs following ::), which should not be wrapped. Other
-    content can be wrapped.
+    Scans through the lines to detect rST code directives, literal blocks
+    (paragraphs following ::), admonition directive lines such as
+    ``.. note::``, rST tables, and bulleted lists, which should not be wrapped.
+    Other content can be wrapped. Blocks are checked before tables and lists,
+    so a ``::`` block whose first line is a list item or table row is kept
+    whole.
 
     Also detects fenced code blocks using backticks or tildes. Fence handling
     is intentionally style-agnostic because both wrappers must preserve literal
@@ -634,8 +648,11 @@ def segment_lines_by_wrappability(  # noqa: C901, PLR0915
         The list of lines to segment.
     style : str, default='numpy'
         The docstring style being processed. Supported values:
-        - 'numpy': Detect tables, lists, literal blocks, and code fences
-        - 'google': Additionally detect doctest blocks
+        - 'numpy': Detect code directives, literal blocks, admonition
+          directive lines, tables, lists, and code fences
+        - 'google': Additionally detect doctest blocks. Admonition directive
+          lines are not detected, because Google reads an admonition body as
+          a literal block (see ``is_literal_block_paragraph``)
 
     Returns
     -------
@@ -673,6 +690,40 @@ def segment_lines_by_wrappability(  # noqa: C901, PLR0915
     current_idx = 0
 
     while current_idx < len(lines):
+        # Check for rST code directives before literal blocks. Directive lines
+        # also end in ``::``, but the directive itself is part of the protected
+        # block and should not be grouped with surrounding prose.
+        is_rst_code, rst_code_end_idx = is_rst_code_block(lines, current_idx)
+        if is_rst_code:
+            rst_code_lines = lines[current_idx:rst_code_end_idx]
+            segments.append((rst_code_lines, False))
+            current_idx = rst_code_end_idx
+            continue
+
+        # Check for literal block following :: before tables and lists, so a
+        # block whose first line is a list item or table row is kept whole.
+        is_literal, literal_end_idx = is_literal_block_paragraph(
+            lines, current_idx, style=style
+        )
+        if is_literal:
+            # Add literal block segment (not wrappable)
+            literal_lines = lines[current_idx:literal_end_idx]
+            segments.append((literal_lines, False))
+            current_idx = literal_end_idx
+            continue
+
+        # Keep an admonition's directive line apart from its body, which is
+        # wrapped as prose
+        if style != 'google':
+            is_directive, directive_end_idx = is_rst_prose_directive(
+                lines, current_idx
+            )
+            if is_directive:
+                directive_lines = lines[current_idx:directive_end_idx]
+                segments.append((directive_lines, False))
+                current_idx = directive_end_idx
+                continue
+
         # Check for rST table
         is_table, table_end_idx = is_rST_table(lines, current_idx)
         if is_table:
@@ -689,27 +740,6 @@ def segment_lines_by_wrappability(  # noqa: C901, PLR0915
             list_lines = lines[current_idx:list_end_idx]
             segments.append((list_lines, False))
             current_idx = list_end_idx
-            continue
-
-        # Check for rST code directives before literal blocks. Directive lines
-        # also end in ``::``, but the directive itself is part of the protected
-        # block and should not be grouped with surrounding prose.
-        is_rst_code, rst_code_end_idx = is_rst_code_block(lines, current_idx)
-        if is_rst_code:
-            rst_code_lines = lines[current_idx:rst_code_end_idx]
-            segments.append((rst_code_lines, False))
-            current_idx = rst_code_end_idx
-            continue
-
-        # Check for literal block following ::
-        is_literal, literal_end_idx = is_literal_block_paragraph(
-            lines, current_idx
-        )
-        if is_literal:
-            # Add literal block segment (not wrappable)
-            literal_lines = lines[current_idx:literal_end_idx]
-            segments.append((literal_lines, False))
-            current_idx = literal_end_idx
             continue
 
         # Check for doctest block (Google style only)
@@ -745,10 +775,17 @@ def segment_lines_by_wrappability(  # noqa: C901, PLR0915
             is_table, _ = is_rST_table(lines, current_idx)
             is_list, _ = is_bulleted_list(lines, current_idx)
             is_rst_code, _ = is_rst_code_block(lines, current_idx)
-            is_literal, _ = is_literal_block_paragraph(lines, current_idx)
+            is_literal, _ = is_literal_block_paragraph(
+                lines, current_idx, style=style
+            )
 
             if is_table or is_list or is_rst_code or is_literal:
                 break
+
+            if style != 'google':
+                is_directive, _ = is_rst_prose_directive(lines, current_idx)
+                if is_directive:
+                    break
 
             is_fence, _ = is_code_fence(lines, current_idx)
             if is_fence:
@@ -983,6 +1020,49 @@ def is_rst_code_block(
         if _indent_width(line) <= directive_indent:
             break
 
+        current_idx += 1
+
+    return True, current_idx
+
+
+def is_rst_prose_directive(
+        lines: list[str], start_idx: int = 0
+) -> tuple[bool, int]:
+    """
+    Check if lines starting at start_idx open an admonition directive.
+
+    Admonitions such as ``.. note::`` hold ordinary rST prose. Their directive
+    line, and any option lines right after it such as ``:class: tip``, must
+    keep their own lines, while the body is wrapped like other prose. A
+    directive with text on its own line, such as ``.. note:: Text``, is not
+    matched, because that line is prose.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The list of lines to check.
+    start_idx : int, default=0
+        The starting index to check from.
+
+    Returns
+    -------
+    tuple[bool, int]
+        A tuple of (is_rst_prose_directive, end_idx) where end_idx is the index
+        after the directive line and its option lines.
+    """
+    if start_idx >= len(lines):
+        return False, start_idx
+
+    if not _RST_PROSE_DIRECTIVE_PATTERN.match(lines[start_idx]):
+        return False, start_idx
+
+    directive_indent = _indent_width(lines[start_idx])
+    current_idx = start_idx + 1
+    while (
+        current_idx < len(lines)
+        and _indent_width(lines[current_idx]) > directive_indent
+        and _RST_DIRECTIVE_OPTION_PATTERN.match(lines[current_idx])
+    ):
         current_idx += 1
 
     return True, current_idx
@@ -1518,7 +1598,7 @@ def is_literal_block_paragraph(
         lines: list[str],
         start_idx: int,
         *,
-        measure_list_item_text: bool = False,
+        style: str = 'numpy',
 ) -> tuple[bool, int]:
     """
     Check if lines starting at start_idx form a literal block following ::.
@@ -1532,12 +1612,14 @@ def is_literal_block_paragraph(
         The list of lines to check.
     start_idx : int
         The starting index to check from.
-    measure_list_item_text : bool, default=False
-        When the ``::`` line starts a list item, measure the block's indent
-        from the item's text instead of its marker, as rST does. Later
-        paragraphs of the item then end the block. Off by default because the
-        Google wrapper dedents such paragraphs; it relies on them staying in
-        the block so they are left alone.
+    style : str, default='numpy'
+        The docstring style being processed. NumPy follows rST in two places. A
+        ``::`` line that starts a list item indents its block from the item's
+        text, not its marker, so the item's later paragraphs end the block. An
+        admonition such as ``.. note::`` holds prose, so it introduces no
+        literal block. ``'google'`` keeps both inside the block, because the
+        Google wrapper re-indents wrappable text and would strip the indent
+        those paragraphs need.
 
     Returns
     -------
@@ -1565,12 +1647,15 @@ def is_literal_block_paragraph(
     if not prev_line.endswith('::'):
         return False, start_idx
 
-    # A literal block must be indented past the paragraph that introduces it.
-    # For a list item, that paragraph starts at the item's text, not at its
-    # marker.
     literal_indent = _indent_width(lines[prev_idx])
-    if measure_list_item_text:
-        marker = _LIST_ITEM_MARKER_PATTERN.match(lines[prev_idx].lstrip(' '))
+    if style != 'google':
+        if _RST_PROSE_DIRECTIVE_PATTERN.match(prev_line):
+            return False, start_idx
+
+        # A literal block must be indented past the paragraph that introduces
+        # it. For a list item, that paragraph starts at the item's text, not
+        # at its marker.
+        marker = _LIST_ITEM_MARKER_PATTERN.match(lines[prev_idx].lstrip())
         if marker:
             literal_indent += marker.end()
 

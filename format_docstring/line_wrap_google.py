@@ -150,7 +150,7 @@ def wrap_docstring_google(
 
     docstring_ = docstring
     if fix_rst_backticks:
-        docstring_ = _fix_rst_backticks(docstring_)
+        docstring_ = _fix_rst_backticks(docstring_, style='google')
 
     should_compact_first_line = (
         compact_first_line
