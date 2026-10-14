@@ -1,0 +1,47 @@
+LINE_LENGTH: 79
+
+**********
+def install():
+    """Install the package and initialize the project with the steps below, in order.
+
+    (1) Install the package::
+
+        $ pip install foo --index-url https://example.com/simple --no-cache-dir --upgrade
+        $ foo --version
+
+    10. Initialize the project::
+
+        $ foo --init --config ./foo.toml --verbose --force --overwrite-existing-files
+        $ foo --check
+
+    -   Check the result::
+
+        $ foo --report --format json --output ./report.json --include-warnings --all
+
+    Prose after the list is still wrapped because it is dedented back to the paragraph level.
+    """
+    pass
+
+**********
+def install():
+    """Install the package and initialize the project with the steps below, in
+    order.
+
+    (1) Install the package::
+
+        $ pip install foo --index-url https://example.com/simple --no-cache-dir --upgrade
+        $ foo --version
+
+    10. Initialize the project::
+
+        $ foo --init --config ./foo.toml --verbose --force --overwrite-existing-files
+        $ foo --check
+
+    -   Check the result::
+
+        $ foo --report --format json --output ./report.json --include-warnings --all
+
+    Prose after the list is still wrapped because it is dedented back to the
+    paragraph level.
+    """
+    pass

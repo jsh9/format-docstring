@@ -16,7 +16,6 @@ from format_docstring.line_wrap_utils import (
     is_google_examples_code_block,
     is_literal_block_paragraph,
     is_rst_code_block,
-    is_rst_prose_directive,
     is_rST_table,
     merge_lines_and_strip,
     process_temp_output,
@@ -507,24 +506,23 @@ def test_finalize_lines(
                 'block is wrapped',
             ],
         ),
-        # An admonition body is prose, wrapped at its own indent
+        # A directive whose line ends with ``::``, such as an admonition,
+        # keeps its body as is, with or without a blank line before it
         (
-            [['.. note::'], '', ['    Body text of the note is wrapped']],
+            [['.. note::'], '', ['    Body text of the note is kept']],
             24,
-            ['.. note::', '', '    Body text of the', '    note is wrapped'],
+            ['.. note::', '', '    Body text of the note is kept'],
         ),
-        # A body on the next line is not merged into the directive line
         (
-            [['.. note::', '    Body text of the note is wrapped']],
+            [['.. note::', '    Body text of the note is kept']],
             24,
-            ['.. note::', '    Body text of the', '    note is wrapped'],
+            ['.. note::', '    Body text of the note is kept'],
         ),
-        # Directive options keep their own lines
         (
             [
                 ['.. note::', '    :class: a', '    :name: b'],
                 '',
-                ['    Body text of the note is wrapped'],
+                ['    Body text of the note is kept'],
             ],
             24,
             [
@@ -532,15 +530,107 @@ def test_finalize_lines(
                 '    :class: a',
                 '    :name: b',
                 '',
-                '    Body text of the',
-                '    note is wrapped',
+                '    Body text of the note is kept',
             ],
         ),
-        # Other directives ending with ``::`` keep their body as is
         (
             [['.. list-table::'], '', ['    * - a cell that stays as it is']],
             24,
             ['.. list-table::', '', '    * - a cell that stays as it is'],
+        ),
+        # Structures the prose wrapper does not know stay intact: a
+        # definition list and doctest prompts
+        (
+            [
+                ['.. seealso::'],
+                '',
+                ['   Module zipfile', '      Documentation of the module.'],
+            ],
+            20,
+            [
+                '.. seealso::',
+                '',
+                '   Module zipfile',
+                '      Documentation of the module.',
+            ],
+        ),
+        (
+            [['.. note::'], '', ['   >>> a = 1', '   >>> b = 2']],
+            20,
+            ['.. note::', '', '   >>> a = 1', '   >>> b = 2'],
+        ),
+        # Dedented text right after the body, with no blank line or only a
+        # whitespace-only line, stays outside the note and wraps at its own
+        # indent
+        (
+            [
+                [
+                    '.. note::',
+                    '   Note body is kept',
+                    'Text outside the note is wrapped',
+                ],
+            ],
+            20,
+            [
+                '.. note::',
+                '   Note body is kept',
+                'Text outside the',
+                'note is wrapped',
+            ],
+        ),
+        (
+            [
+                [
+                    '.. warning::',
+                    '   Warning body',
+                    '   ',
+                    'Text after the warning is wrapped',
+                ],
+            ],
+            20,
+            [
+                '.. warning::',
+                '   Warning body',
+                '   ',
+                'Text after the',
+                'warning is wrapped',
+            ],
+        ),
+        # Doctest output the caller already classified, such as an
+        # underline, does not start a span: ``~~~~~`` would read as an
+        # unclosed fence that hides the later literal block
+        (
+            [
+                '>>> print(title)',
+                'Title',
+                '~~~~~',
+                '',
+                ['Install it first::'],
+                '',
+                ['    $ pip install foo', '    $ foo --init'],
+            ],
+            20,
+            [
+                '>>> print(title)',
+                'Title',
+                '~~~~~',
+                '',
+                'Install it first::',
+                '',
+                '    $ pip install foo',
+                '    $ foo --init',
+            ],
+        ),
+        # Code indented only to a wide list marker's text is kept, not
+        # joined like prose
+        (
+            [
+                ['(1) Install::'],
+                '',
+                ['    $ pip install foo', '    $ foo --init'],
+            ],
+            20,
+            ['(1) Install::', '', '    $ pip install foo', '    $ foo --init'],
         ),
     ],
 )
@@ -1997,7 +2087,7 @@ def test_segment_lines_by_wrappability(
         (
             ['.. note::', '    Body', '', '    More'],
             'numpy',
-            [(['.. note::'], False), (['    Body', '', '    More'], True)],
+            [(['.. note::'], True), (['    Body', '', '    More'], False)],
         ),
         (
             ['.. note::', '    Body', '', '    More'],
@@ -2018,11 +2108,12 @@ def test_segment_lines_by_wrappability_reads_blocks_by_style(
         expected_segments: list[tuple[list[str], bool]],
 ) -> None:
     """
-    Verify block detection order and the style-specific admonition reading.
+    Verify block detection order and how admonitions are read.
 
     A ``::`` block whose first line is a list item is one protected segment in
-    both styles. NumPy wraps an admonition body as prose and keeps only the
-    directive line apart, while Google keeps the body as a literal block.
+    both styles. Both styles keep an admonition body as a literal block,
+    because the prose wrapper would flatten definition lists and doctests in
+    it.
     """
     result = segment_lines_by_wrappability(lines, style=style)
     assert result == expected_segments
@@ -2314,12 +2405,40 @@ def test_is_literal_block_paragraph_uses_indentation_boundaries(
             [
                 '- Item::',
                 '',
-                '  Not indented past the item text',
+                '  Aligned with the item text',
             ],
             1,
             'numpy',
-            False,
+            True,
+            3,
+        ),
+        (
+            [
+                '(1) Install::',
+                '',
+                '    $ pip install foo',
+                '    $ foo --init',
+                '',
+                'After',
+            ],
             1,
+            'numpy',
+            True,
+            5,
+        ),
+        (
+            ['-   item::', '', '    code()', '', 'After'],
+            1,
+            'numpy',
+            True,
+            4,
+        ),
+        (
+            ['\t- Run::', '\t\t$ pip install foo', 'After'],
+            1,
+            'numpy',
+            True,
+            2,
         ),
         (
             [
@@ -2365,8 +2484,8 @@ def test_is_literal_block_paragraph_uses_indentation_boundaries(
             ['.. note::', '', '    Body text'],
             1,
             'numpy',
-            False,
-            1,
+            True,
+            3,
         ),
         (
             ['.. note::', '', '    Body text'],
@@ -2386,7 +2505,10 @@ def test_is_literal_block_paragraph_uses_indentation_boundaries(
     ids=[
         'bullet',
         'enumerated',
-        'not_literal',
+        'aligned_with_text_uses_marker',
+        'wide_enumerator_uses_marker',
+        'wide_bullet_uses_marker',
+        'tab_item_code_under_text_uses_marker',
         'continuation_line',
         'leading_tab',
         'google_measures_from_marker',
@@ -2406,10 +2528,11 @@ def test_is_literal_block_paragraph_reads_rst_by_style(
     """
     Verify how each style reads list item blocks and admonitions.
 
-    NumPy follows rST: a list item's block is indented relative to the item's
-    text, so a paragraph aligned with that text ends the block, and an
-    admonition's ``::`` introduces prose, not a literal block. Google keeps
-    both inside the block, because its wrapper would strip their indent.
+    When a list item's block is indented past the item's text, NumPy measures
+    it from that text, so a paragraph aligned with the text ends the block. A
+    block that is not past the text is measured from the marker, so code under
+    a wide marker such as ``(1)`` is not joined. Google always measures from
+    the marker. Both styles read an admonition's ``::`` as a literal block.
     """
     is_literal, end_idx = is_literal_block_paragraph(
         lines, start_idx, style=style
@@ -2482,58 +2605,6 @@ def test_is_rst_code_block_uses_indentation_boundaries(
     """
     is_code, end_idx = is_rst_code_block(lines, start_idx)
     assert is_code == expected_is_code
-    assert end_idx == expected_end_idx
-
-
-@pytest.mark.parametrize(
-    ('lines', 'start_idx', 'expected_is_directive', 'expected_end_idx'),
-    [
-        (['.. note::', '    Body'], 0, True, 1),
-        (
-            [
-                '    .. Warning::',
-                '       :class: custom',
-                '       :name: w',
-                '',
-                '       Body',
-            ],
-            0,
-            True,
-            3,
-        ),
-        (['.. note::', '    :func:`f` starts the body'], 0, True, 1),
-        (['.. note::', ':class: not indented'], 0, True, 1),
-        (['.. note:: Text on the directive line'], 0, False, 0),
-        (['.. code-block:: python'], 0, False, 0),
-        (['.. list-table::'], 0, False, 0),
-        (['.. note::'], 1, False, 1),
-    ],
-    ids=[
-        'note',
-        'options',
-        'role_is_not_option',
-        'option_not_indented',
-        'inline_text',
-        'code_directive',
-        'other_directive',
-        'past_end',
-    ],
-)
-def test_is_rst_prose_directive(
-        lines: list[str],
-        start_idx: int,
-        *,
-        expected_is_directive: bool,
-        expected_end_idx: int,
-) -> None:
-    """
-    Verify an admonition span covers its directive line and option lines.
-
-    The body after them is prose. A role at the start of the body is not an
-    option, so it is left for the prose wrapper.
-    """
-    is_directive, end_idx = is_rst_prose_directive(lines, start_idx)
-    assert is_directive == expected_is_directive
     assert end_idx == expected_end_idx
 
 

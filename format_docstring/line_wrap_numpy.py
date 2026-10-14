@@ -1040,8 +1040,8 @@ def _mask_rst_backtick_protected_lines(  # noqa: C901, PLR0915
     detected Python-like code should be byte-for-byte preserved. Track section
     state here because the regex fixer runs before the style-specific wrappers
     decide which example lines are code. ``style`` selects how ``::`` literal
-    blocks are read, so the lines masked here match the lines the wrapper for
-    that style leaves alone (see ``is_literal_block_paragraph``).
+    blocks are read, so this pass reads them the same way as the wrapper for
+    that style (see ``is_literal_block_paragraph``).
     """
     protected_lines: dict[int, str] = {}
     masked_lines: list[str] = []

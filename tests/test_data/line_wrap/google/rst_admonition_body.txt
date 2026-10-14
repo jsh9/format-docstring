@@ -15,20 +15,22 @@ Load the rows from the file and return them as a list of dictionaries in order.
     Rows with a missing key are skipped without an error, which can hide problems in the input.
 
 .. tip::
-    Pass ``strict=True`` to raise on the first bad row instead, which is easier to debug.
+    >>> rows = load_rows('rows.csv', strict=True)
+    >>> len(rows)
+Prose right after the tip, with no blank line, stays outside it and is still wrapped.
 
-.. list-table::
+.. seealso::
 
-    * - Unknown directives keep their body as is, even when a line runs past the limit
-      - b
+    Module :py:mod:`csv`
+        Documentation of the :py:mod:`csv` standard module, which does the parsing.
 
 Args:
     path (str):
         The file path.
 
-        .. seealso::
+        .. note::
 
-            The ``open`` built-in, which accepts the same path types as this function does.
+            The path is opened in text mode, and any encoding errors are reported to the caller.
 
 **********
 Load the rows from the file and return them as a list of dictionaries in
@@ -46,16 +48,19 @@ order.
     Rows with a missing key are skipped without an error, which can hide problems in the input.
 
 .. tip::
-    Pass ``strict=True`` to raise on the first bad row instead, which is easier to debug.
+    >>> rows = load_rows('rows.csv', strict=True)
+    >>> len(rows)
+Prose right after the tip, with no blank line, stays outside it and is still
+wrapped.
 
-.. list-table::
+.. seealso::
 
-    * - Unknown directives keep their body as is, even when a line runs past the limit
-      - b
+    Module :py:mod:`csv`
+        Documentation of the :py:mod:`csv` standard module, which does the parsing.
 
 Args:
     path (str): The file path.
 
-        .. seealso::
+        .. note::
 
-            The ``open`` built-in, which accepts the same path types as this function does.
+            The path is opened in text mode, and any encoding errors are reported to the caller.

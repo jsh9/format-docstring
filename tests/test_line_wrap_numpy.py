@@ -485,7 +485,7 @@ def test_fix_rst_backticks_cases(src: str, expected: str) -> None:
         (
             'numpy',
             '.. note::\n\n    Uses `y` here.',
-            '.. note::\n\n    Uses ``y`` here.',
+            '.. note::\n\n    Uses `y` here.',
         ),
         (
             'google',
@@ -504,11 +504,11 @@ def test_fix_rst_backticks_reads_literal_blocks_by_style(
         style: str, src: str, expected: str
 ) -> None:
     """
-    Verify the backtick pass masks the lines each style's wrapper keeps.
+    Verify the backtick pass reads ``::`` blocks like each style's wrapper.
 
-    NumPy wraps a list item's later paragraph and an admonition body as prose,
-    so their backticks are fixed. Google keeps both inside a literal block, so
-    their backticks are left alone.
+    NumPy wraps a list item's later paragraph as prose, so its backticks are
+    fixed, while Google keeps it inside the literal block. Both styles keep an
+    admonition body as a literal block, so its backticks are left alone.
     """
     assert _fix_rst_backticks(src, style=style) == expected
 
