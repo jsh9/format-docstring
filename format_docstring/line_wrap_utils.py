@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import textwrap
 from collections.abc import Callable
+from typing import Literal
 
 from format_docstring.section_utils import (
     is_google_section_header,
@@ -13,9 +14,15 @@ from format_docstring.section_utils import (
 # Regex pattern to split text into paragraphs (multiple consecutive newlines)
 _PARAGRAPH_SPLIT_PATTERN = re.compile(r'\n\s*\n')
 _SECTION_UNDERLINE_MIN_LENGTH = 2
-# A bullet or enumerated list marker and the spaces after it, matching the
-# markers ``is_bulleted_list`` accepts.
-_LIST_ITEM_MARKER_PATTERN = re.compile(r'(?:[-*+]|\d+[.)]|\(\d+\)) +')
+# A bullet (``-``, ``*``, ``+``) or enumerator (``1.``, ``1)``, ``(1)``) list
+# marker and the spaces after it. The only definition of a list marker; see
+# ``_match_list_item_marker``.
+_LIST_ITEM_MARKER_PATTERN = re.compile(
+    r'(?:(?P<bullet>[-*+])'
+    r'|\d+(?P<enum_suffix>[.)])'
+    r'|(?P<enum_parens>\(\d+\)))'
+    r' +'
+)
 _RST_CODE_DIRECTIVE_PATTERN = re.compile(
     r'^\s*\.\.\s+(?:code-block|sourcecode|code)::(?:\s+.*)?$',
     re.IGNORECASE,
@@ -31,6 +38,24 @@ _RST_PROSE_DIRECTIVE_PATTERN = re.compile(
 # A directive option such as ``:class: tip``. A role such as ``:func:`f```
 # has a backtick right after its colon, so it does not match.
 _RST_DIRECTIVE_OPTION_PATTERN = re.compile(r'^\s*:[\w-]+:(?:\s|$)')
+
+_UnwrappableKind = Literal[
+    'code_directive',
+    'literal_block',
+    'prose_directive',
+    'table',
+    'list',
+    'doctest',
+    'code_fence',
+]
+# The kinds ``_split_out_literal_blocks`` protects before wrapping. Code
+# directives and literal blocks can continue past a blank line, which NumPy
+# keeps in a separate ``temp_out`` element.
+_RST_BLOCK_KINDS: frozenset[_UnwrappableKind] = frozenset({
+    'code_directive',
+    'literal_block',
+    'prose_directive',
+})
 # Used only after a wrapper has entered Examples. Keep the match conservative
 # so prose examples still flow through the normal paragraph wrapper.
 _PYTHON_EXAMPLE_START_PATTERN = re.compile(
@@ -221,27 +246,24 @@ def _split_out_literal_blocks(
         temp_out: list[str | list[str]],
 ) -> list[str | list[str]]:
     """
-    Move literal block and code directive lines out of ``list[str]`` elements.
+    Move rST block lines out of ``list[str]`` elements.
 
-    The spans are found on the flattened ``temp_out``, not one element at a
-    time, because wrappers emit blank lines as separate ``str`` elements. A
-    block with blank lines in it is therefore spread across several elements,
-    and only the flattened lines show where it ends. Each protected line
-    becomes a ``str`` element so it is emitted unchanged. The unprotected lines
-    of a ``list[str]`` element stay grouped, so a block that starts or ends in
-    the middle of an element splits it into separately wrapped parts.
+    The blocks are literal blocks, code directives, and admonition directive
+    lines (the ``_RST_BLOCK_KINDS`` of ``_find_unwrappable_span``). The spans
+    are found on the flattened ``temp_out``, not one element at a time, because
+    wrappers emit blank lines as separate ``str`` elements. A block with blank
+    lines in it is therefore spread across several elements, and only the
+    flattened lines show where it ends. Each protected line becomes a ``str``
+    element so it is emitted unchanged. The unprotected lines of a
+    ``list[str]`` element stay grouped, so a block that starts or ends in the
+    middle of an element splits it into separately wrapped parts.
     """
     lines: list[str] = []
-    # Index of the ``list[str]`` element each line came from (None for ``str``
-    # elements), so unprotected lines can be regrouped as they were.
-    element_ids: list[int | None] = []
-    for element_idx, element in enumerate(temp_out):
+    for element in temp_out:
         if isinstance(element, str):
             lines.append(element)
-            element_ids.append(None)
         elif isinstance(element, list):
             lines.extend(element)
-            element_ids.extend([element_idx] * len(element))
         else:
             raise TypeError(
                 f'`element` has unexpected type: {type(element)}.'
@@ -251,46 +273,48 @@ def _split_out_literal_blocks(
     is_protected: list[bool] = [False] * len(lines)
     idx = 0
     while idx < len(lines):
-        # Follow the detection order of ``segment_lines_by_wrappability``.
-        # Blocks come before tables and lists, so a ``::`` block whose first
-        # line is a list item or table row is protected whole.
-        is_block, end_idx = is_rst_code_block(lines, idx)
-        if not is_block:
-            is_block, end_idx = is_literal_block_paragraph(lines, idx)
-
-        if not is_block:
-            is_block, end_idx = is_rst_prose_directive(lines, idx)
-
-        if is_block:
-            is_protected[idx:end_idx] = [True] * (end_idx - idx)
-            idx = end_idx
+        kind, end_idx = _find_unwrappable_span(lines, idx, style='numpy')
+        if kind is None:
+            idx += 1
             continue
 
-        # Tables and lists are left to ``segment_lines_by_wrappability`` but
-        # skipped whole here. A row or item line ending with ``::`` would
-        # otherwise split the element so that neither part is recognized as a
-        # table or list, and both are wrapped.
-        is_structure, end_idx = is_rST_table(lines, idx)
-        if not is_structure:
-            is_structure, end_idx = is_bulleted_list(lines, idx)
+        # Other spans (tables, lists, fences) are left to
+        # ``segment_lines_by_wrappability`` but skipped whole here. A row or
+        # item line ending with ``::`` would otherwise start a block that
+        # splits the element, so that neither part is recognized as a table or
+        # list, and both are wrapped.
+        if kind in _RST_BLOCK_KINDS:
+            is_protected[idx:end_idx] = [True] * (end_idx - idx)
 
-        idx = end_idx if is_structure else idx + 1
+        idx = end_idx
 
     result: list[str | list[str]] = []
-    group: list[str] | None = None
-    group_element_id: int | None = None
-    for line, element_id, protected in zip(
-        lines, element_ids, is_protected, strict=True
-    ):
-        if element_id is None or protected:
+    offset = 0
+    for element in temp_out:
+        if isinstance(element, str):
+            result.append(element)
+            offset += 1
+            continue
+
+        # Split the element at its protected lines: each protected line
+        # becomes a ``str``, and each run of other lines stays a ``list[str]``.
+        element_protected = is_protected[offset : offset + len(element)]
+        run: list[str] = []
+        for line, protected in zip(element, element_protected, strict=True):
+            if not protected:
+                run.append(line)
+                continue
+
+            if run:
+                result.append(run)
+                run = []
+
             result.append(line)
-            group = None
-        elif group is not None and element_id == group_element_id:
-            group.append(line)
-        else:
-            group = [line]
-            group_element_id = element_id
-            result.append(group)
+
+        if run:
+            result.append(run)
+
+        offset += len(element)
 
     return result
 
@@ -622,7 +646,7 @@ def fix_typos_in_section_headings(lines: list[str]) -> list[str]:
     return result
 
 
-def segment_lines_by_wrappability(  # noqa: C901, PLR0915
+def segment_lines_by_wrappability(
         lines: list[str],
         *,
         style: str = 'numpy',
@@ -683,129 +707,102 @@ def segment_lines_by_wrappability(  # noqa: C901, PLR0915
     >>> result[2]
     (['More wrappable text'], True)
     """
-    if not lines:
-        return []
-
     segments: list[tuple[list[str], bool]] = []
+    wrappable_start: int | None = None
     current_idx = 0
-
     while current_idx < len(lines):
-        # Check for rST code directives before literal blocks. Directive lines
-        # also end in ``::``, but the directive itself is part of the protected
-        # block and should not be grouped with surrounding prose.
-        is_rst_code, rst_code_end_idx = is_rst_code_block(lines, current_idx)
-        if is_rst_code:
-            rst_code_lines = lines[current_idx:rst_code_end_idx]
-            segments.append((rst_code_lines, False))
-            current_idx = rst_code_end_idx
-            continue
-
-        # Check for literal block following :: before tables and lists, so a
-        # block whose first line is a list item or table row is kept whole.
-        is_literal, literal_end_idx = is_literal_block_paragraph(
-            lines, current_idx, style=style
-        )
-        if is_literal:
-            # Add literal block segment (not wrappable)
-            literal_lines = lines[current_idx:literal_end_idx]
-            segments.append((literal_lines, False))
-            current_idx = literal_end_idx
-            continue
-
-        # Keep an admonition's directive line apart from its body, which is
-        # wrapped as prose
-        if style != 'google':
-            is_directive, directive_end_idx = is_rst_prose_directive(
-                lines, current_idx
-            )
-            if is_directive:
-                directive_lines = lines[current_idx:directive_end_idx]
-                segments.append((directive_lines, False))
-                current_idx = directive_end_idx
-                continue
-
-        # Check for rST table
-        is_table, table_end_idx = is_rST_table(lines, current_idx)
-        if is_table:
-            # Add table segment (not wrappable)
-            table_lines = lines[current_idx:table_end_idx]
-            segments.append((table_lines, False))
-            current_idx = table_end_idx
-            continue
-
-        # Check for bulleted list
-        is_list, list_end_idx = is_bulleted_list(lines, current_idx)
-        if is_list:
-            # Add list segment (not wrappable)
-            list_lines = lines[current_idx:list_end_idx]
-            segments.append((list_lines, False))
-            current_idx = list_end_idx
-            continue
-
-        # Check for doctest block (Google style only)
-        if style == 'google':
-            is_doctest, doctest_end_idx = is_google_doctest_block(
-                lines,
-                current_idx,
-            )
-            if is_doctest:
-                # Add doctest segment (not wrappable)
-                doctest_lines = lines[current_idx:doctest_end_idx]
-                segments.append((doctest_lines, False))
-                current_idx = doctest_end_idx
-                continue
-
-        # Protect fenced code before collecting prose so both wrappers keep
-        # backtick and tilde fence contents out of later wrapping passes.
-        is_fence, fence_end_idx = is_code_fence(lines, current_idx)
-        if is_fence:
-            # Add code fence segment (not wrappable)
-            fence_lines = lines[current_idx:fence_end_idx]
-            segments.append((fence_lines, False))
-            current_idx = fence_end_idx
-            continue
-
-        # Neither table, list, nor literal block - collect wrappable content
-        start_idx = current_idx
-        current_idx += 1
-
-        # Continue collecting wrappable lines until we hit a table/list/literal
-        # (or doctest/fence for Google style)
-        while current_idx < len(lines):
-            is_table, _ = is_rST_table(lines, current_idx)
-            is_list, _ = is_bulleted_list(lines, current_idx)
-            is_rst_code, _ = is_rst_code_block(lines, current_idx)
-            is_literal, _ = is_literal_block_paragraph(
-                lines, current_idx, style=style
-            )
-
-            if is_table or is_list or is_rst_code or is_literal:
-                break
-
-            if style != 'google':
-                is_directive, _ = is_rst_prose_directive(lines, current_idx)
-                if is_directive:
-                    break
-
-            is_fence, _ = is_code_fence(lines, current_idx)
-            if is_fence:
-                break
-
-            if style == 'google':
-                is_doctest, _ = is_google_doctest_block(
-                    lines,
-                    current_idx,
-                )
-                if is_doctest:
-                    break
+        kind, end_idx = _find_unwrappable_span(lines, current_idx, style=style)
+        if kind is None:
+            if wrappable_start is None:
+                wrappable_start = current_idx
 
             current_idx += 1
+            continue
 
-        # Add wrappable segment
-        wrappable_lines = lines[start_idx:current_idx]
-        segments.append((wrappable_lines, True))
+        if wrappable_start is not None:
+            segments.append((lines[wrappable_start:current_idx], True))
+            wrappable_start = None
+
+        segments.append((lines[current_idx:end_idx], False))
+        current_idx = end_idx
+
+    if wrappable_start is not None:
+        segments.append((lines[wrappable_start:], True))
 
     return segments
+
+
+def _find_unwrappable_span(
+        lines: list[str],
+        start_idx: int,
+        *,
+        style: str,
+) -> tuple[_UnwrappableKind | None, int]:
+    """
+    Find the unwrappable span that starts at ``lines[start_idx]``, if any.
+
+    This is the one detection order, shared by
+    ``segment_lines_by_wrappability`` and ``_split_out_literal_blocks``. Code
+    directives come before literal blocks because ``.. code-block::`` without
+    an argument also ends with ``::``. Both come before tables and lists, so a
+    ``::`` block whose first line is a list item or table row is kept whole. A
+    list item or table row that ends with ``::`` is still consumed whole by the
+    list or table check, because a scan reaches a list or table at its first
+    line.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The lines being scanned.
+    start_idx : int
+        The index of the line to check.
+    style : str
+        The docstring style, ``'numpy'`` or ``'google'``. Google also detects
+        doctest blocks, and does not detect admonition directive lines because
+        it reads an admonition body as a literal block (see
+        ``is_literal_block_paragraph``).
+
+    Returns
+    -------
+    tuple[_UnwrappableKind | None, int]
+        The kind of span and the index after it, or ``(None, start_idx)`` when
+        ``lines[start_idx]`` does not start an unwrappable span.
+    """
+    is_span, end_idx = is_rst_code_block(lines, start_idx)
+    if is_span:
+        return 'code_directive', end_idx
+
+    is_span, end_idx = is_literal_block_paragraph(
+        lines, start_idx, style=style
+    )
+    if is_span:
+        return 'literal_block', end_idx
+
+    if style != 'google':
+        is_span, end_idx = is_rst_prose_directive(lines, start_idx)
+        if is_span:
+            return 'prose_directive', end_idx
+
+    is_span, end_idx = is_rST_table(lines, start_idx)
+    if is_span:
+        return 'table', end_idx
+
+    is_span, end_idx = is_bulleted_list(lines, start_idx)
+    if is_span:
+        return 'list', end_idx
+
+    if style == 'google':
+        is_span, end_idx = is_google_doctest_block(lines, start_idx)
+        if is_span:
+            return 'doctest', end_idx
+
+    # Protect fenced code before collecting prose so both wrappers keep
+    # backtick and tilde fence contents out of later wrapping passes.
+    is_span, end_idx = is_code_fence(lines, start_idx)
+    if is_span:
+        return 'code_fence', end_idx
+
+    return None, start_idx
 
 
 def is_examples_code_block(
@@ -1323,15 +1320,20 @@ def is_bulleted_list(lines: list[str], start_idx: int = 0) -> tuple[bool, int]:
     return current_idx > start_idx, current_idx
 
 
+def _match_list_item_marker(line: str) -> re.Match[str] | None:
+    """Match the list marker at the start of ``line``, ignoring its indent."""
+    return _LIST_ITEM_MARKER_PATTERN.match(line.lstrip())
+
+
 def _is_list_item(line: str) -> bool:
     """Check if a line is a list item (ordered or unordered)."""
-    return _is_unordered_list_item(line) or _is_ordered_list_item(line)
+    return _match_list_item_marker(line) is not None
 
 
 def _is_unordered_list_item(line: str) -> bool:
     """Check if a line is an unordered list item (starts with -, *, or +)."""
-    stripped = line.lstrip()
-    return stripped.startswith(('- ', '* ', '+ '))
+    marker = _match_list_item_marker(line)
+    return marker is not None and marker['bullet'] is not None
 
 
 def _is_ordered_list_item(line: str) -> bool:
@@ -1343,16 +1345,8 @@ def _is_ordered_list_item(line: str) -> bool:
     - number) (e.g., "1) ", "2) ")
     - (number) (e.g., "(1) ", "(2) ")
     """
-    stripped = line.lstrip()
-    if not stripped:
-        return False
-
-    # Look for patterns:
-    # - digits followed by . or ) followed by space
-    # - ( followed by digits followed by ) followed by space
-
-    pattern = r'^(\d+[.)] |\(\d+\) )'
-    return bool(re.match(pattern, stripped))
+    marker = _match_list_item_marker(line)
+    return marker is not None and marker['bullet'] is None
 
 
 def _get_list_format(line: str) -> str | None:
@@ -1370,24 +1364,14 @@ def _get_list_format(line: str) -> str | None:
         ``'.'`` for the ``"1. "`` style, ``')'`` for ``"1) "``, ``'()'`` for
         ``"(1) "``, or ``None`` if the line is not an ordered list item.
     """
-    stripped = line.lstrip()
-    if not stripped:
+    marker = _match_list_item_marker(line)
+    if marker is None or marker['bullet'] is not None:
         return None
 
-    dot_match = re.match(r'^\d+\. ', stripped)
-    paren_match = re.match(r'^\d+\) ', stripped)
-    full_paren_match = re.match(r'^\(\d+\) ', stripped)
-
-    if dot_match:
-        return '.'
-
-    if paren_match:
-        return ')'
-
-    if full_paren_match:
+    if marker['enum_parens'] is not None:
         return '()'
 
-    return None
+    return marker['enum_suffix']
 
 
 def _is_continuation_line(line: str, list_item_indent: int) -> bool:
@@ -1655,7 +1639,7 @@ def is_literal_block_paragraph(
         # A literal block must be indented past the paragraph that introduces
         # it. For a list item, that paragraph starts at the item's text, not
         # at its marker.
-        marker = _LIST_ITEM_MARKER_PATTERN.match(lines[prev_idx].lstrip())
+        marker = _match_list_item_marker(lines[prev_idx])
         if marker:
             literal_indent += marker.end()
 
