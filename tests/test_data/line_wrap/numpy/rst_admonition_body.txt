@@ -1,0 +1,68 @@
+LINE_LENGTH: 79
+
+**********
+Load the rows from the file and return them as a list of dictionaries in order.
+
+.. note::
+
+    The rows are read lazily, so a very large file does not have to fit in memory at once.
+
+    A second paragraph of the note, which uses `single` backticks and runs past the limit.
+
+.. warning::
+    :class: custom
+
+    Rows with a missing key are skipped without an error, which can hide problems in the input.
+
+.. tip::
+    Pass ``strict=True`` to raise on the first bad row instead, which is easier to debug.
+
+.. list-table::
+
+    * - Unknown directives keep their body as is, even when a line runs past the limit
+      - b
+
+Parameters
+----------
+path : str
+    The file path.
+
+    .. seealso::
+
+        The ``open`` built-in, which accepts the same path types as this function does.
+
+**********
+Load the rows from the file and return them as a list of dictionaries in order.
+
+.. note::
+
+    The rows are read lazily, so a very large file does not have to fit in
+    memory at once.
+
+    A second paragraph of the note, which uses ``single`` backticks and runs
+    past the limit.
+
+.. warning::
+    :class: custom
+
+    Rows with a missing key are skipped without an error, which can hide
+    problems in the input.
+
+.. tip::
+    Pass ``strict=True`` to raise on the first bad row instead, which is easier
+    to debug.
+
+.. list-table::
+
+    * - Unknown directives keep their body as is, even when a line runs past the limit
+      - b
+
+Parameters
+----------
+path : str
+    The file path.
+
+    .. seealso::
+
+        The ``open`` built-in, which accepts the same path types as this
+        function does.

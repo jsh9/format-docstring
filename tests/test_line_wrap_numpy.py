@@ -470,6 +470,81 @@ def test_fix_rst_backticks_cases(src: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
+    ('style', 'src', 'expected'),
+    [
+        (
+            'numpy',
+            '- Item::\n\n      code `x`\n\n  Later `y` paragraph.',
+            '- Item::\n\n      code `x`\n\n  Later ``y`` paragraph.',
+        ),
+        (
+            'google',
+            '- Item::\n\n      code `x`\n\n  Later `y` paragraph.',
+            '- Item::\n\n      code `x`\n\n  Later `y` paragraph.',
+        ),
+        (
+            'numpy',
+            '.. note::\n\n    Uses `y` here.',
+            '.. note::\n\n    Uses ``y`` here.',
+        ),
+        (
+            'google',
+            '.. note::\n\n    Uses `y` here.',
+            '.. note::\n\n    Uses `y` here.',
+        ),
+    ],
+    ids=[
+        'list_item_numpy',
+        'list_item_google',
+        'admonition_numpy',
+        'admonition_google',
+    ],
+)
+def test_fix_rst_backticks_reads_literal_blocks_by_style(
+        style: str, src: str, expected: str
+) -> None:
+    """
+    Verify the backtick pass masks the lines each style's wrapper keeps.
+
+    NumPy wraps a list item's later paragraph and an admonition body as prose,
+    so their backticks are fixed. Google keeps both inside a literal block, so
+    their backticks are left alone.
+    """
+    assert _fix_rst_backticks(src, style=style) == expected
+
+
+def test_wrap_docstring_numpy_list_item_paragraph_is_prose() -> None:
+    """
+    Verify a list item's later paragraph is both rewrapped and backtick-fixed.
+
+    The wrapper and the backtick pass must agree that the paragraph after the
+    item's ``::`` block is prose. Before they shared one reading, it was
+    rewrapped but kept its single backticks.
+    """
+    src = (
+        '- Item::\n'
+        '\n'
+        '      code `x`\n'
+        '\n'
+        '  The later paragraph uses `single` backticks and is long enough'
+        ' that it wraps.'
+    )
+    expected = (
+        '- Item::\n'
+        '\n'
+        '      code `x`\n'
+        '\n'
+        '  The later paragraph uses ``single`` backticks and is long enough'
+        ' that it\n'
+        '  wraps.'
+    )
+    out = wrap_docstring(
+        src, line_length=79, docstring_style='numpy', fix_rst_backticks=True
+    )
+    assert out.strip('\n') == expected
+
+
+@pytest.mark.parametrize(
     ('fix_rst_backticks', 'input_docstring', 'expected_docstring'),
     [
         (
