@@ -79,6 +79,9 @@ oriented before making changes.
   `current_section`. NumPy skips this check inside tables and bulleted lists
   (`find_table_or_list_end`), matching `_split_out_literal_blocks`, so a row or
   item ending with `::` does not split the table or list.
+- NumPy heading typos (`return` -> `Returns`) are fixed in the main loop's
+  heading branch, so only real headings are touched; `process_temp_output` no
+  longer runs `fix_typos_in_section_headings` over its whole output.
 - `_RST_CODE_DIRECTIVE_NAMES` lists the directives whose body is code
   (`code-block`, `code`, `sourcecode`, `ipython`, and the `sphinx.ext.doctest`
   directives). With an argument their line doesn't end with `::`, so they need

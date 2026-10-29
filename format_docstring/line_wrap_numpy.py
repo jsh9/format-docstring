@@ -11,6 +11,7 @@ from format_docstring.line_wrap_utils import (
     collect_to_temp_output,
     finalize_lines,
     find_table_or_list_end,
+    fix_typos_in_section_headings,
     is_code_fence,
     is_doctest_block,
     is_examples_code_block,
@@ -189,12 +190,17 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
             i = fence_end_idx
             continue
 
-        # Detect and pass-through section headings with underline
+        # Detect and pass-through section headings with underline, fixing
+        # typos such as ``return`` -> ``Returns``. This is done only here, on
+        # real headings: heading-like lines in code fences, code directives
+        # and literal blocks never reach this point.
         heading: str | None = _get_section_heading_title(lines, i)
         if heading:
             current_section = heading
             in_examples = heading in section_examples
-            temp_out.extend((line, lines[i + 1]))
+            temp_out.extend(
+                fix_typos_in_section_headings([line, lines[i + 1]])
+            )
             i += 2
             continue
 

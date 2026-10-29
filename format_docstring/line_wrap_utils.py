@@ -243,7 +243,7 @@ def process_temp_output(
         else:
             out.extend(wrap_preserving_indent(element, width))
 
-    return fix_typos_in_section_headings(out)
+    return out
 
 
 def _split_out_literal_blocks(

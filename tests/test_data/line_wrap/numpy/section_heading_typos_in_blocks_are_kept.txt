@@ -1,0 +1,73 @@
+LINE_LENGTH: 79
+
+**********
+Render rST text.
+
+.. code-block:: rst
+
+    notes
+    -----
+    Some notes.
+
+A NumPy sample::
+
+    parameter
+    ---------
+    text : str
+        The text.
+
+    return
+    ------
+    str
+        The result.
+
+```rst
+example
+-------
+```
+
+parameter
+---------
+text : str
+    The text, which is long enough that its description needs to be wrapped.
+
+return
+------
+str
+    The rendered text.
+
+**********
+Render rST text.
+
+.. code-block:: rst
+
+    notes
+    -----
+    Some notes.
+
+A NumPy sample::
+
+    parameter
+    ---------
+    text : str
+        The text.
+
+    return
+    ------
+    str
+        The result.
+
+```rst
+example
+-------
+```
+
+Parameters
+----------
+text : str
+    The text, which is long enough that its description needs to be wrapped.
+
+Returns
+-------
+str
+    The rendered text.

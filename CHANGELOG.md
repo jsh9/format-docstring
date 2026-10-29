@@ -47,6 +47,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     before section parsing, ahead of code fences, so a `~~~~` line inside a
     block is no longer read as an unclosed fence that hides the rest of the
     docstring.
+  - NumPy style no longer "fixes" heading-like lines inside code fences, code
+    directives and `::` literal blocks. A sample such as `notes` over `-----`
+    became `Notes`, and `return` over `------` became `Returns` with a longer
+    underline. Heading typos are now fixed only on real section headings.
 - Changed
   - In NumPy style, the whole body of a directive whose line ends with `::`,
     such as `.. note::`, is now left as is, like a literal block. Previously
