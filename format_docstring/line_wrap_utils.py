@@ -649,6 +649,7 @@ def segment_lines_by_wrappability(
         lines: list[str],
         *,
         style: str = 'numpy',
+        first_line_indent: int | None = None,
 ) -> list[tuple[list[str], bool]]:
     """
     Segment lines into chunks that can or cannot be wrapped.
@@ -675,6 +676,9 @@ def segment_lines_by_wrappability(
         - 'google': Additionally detect doctest blocks, and measure a list
           item's literal block from its marker (see
           ``is_literal_block_paragraph``)
+    first_line_indent : int | None, default=None
+        The real indent of ``lines[0]`` when its own indent was stripped, as
+        for a Google compact summary; see ``is_literal_block_paragraph``.
 
     Returns
     -------
@@ -709,7 +713,12 @@ def segment_lines_by_wrappability(
     wrappable_start: int | None = None
     current_idx = 0
     while current_idx < len(lines):
-        kind, end_idx = _find_unwrappable_span(lines, current_idx, style=style)
+        kind, end_idx = _find_unwrappable_span(
+            lines,
+            current_idx,
+            style=style,
+            first_line_indent=first_line_indent,
+        )
         if kind is None:
             if wrappable_start is None:
                 wrappable_start = current_idx
@@ -735,6 +744,7 @@ def _find_unwrappable_span(
         start_idx: int,
         *,
         style: str,
+        first_line_indent: int | None = None,
 ) -> tuple[_UnwrappableKind | None, int]:
     """
     Find the unwrappable span that starts at ``lines[start_idx]``, if any.
@@ -757,6 +767,9 @@ def _find_unwrappable_span(
     style : str
         The docstring style, ``'numpy'`` or ``'google'``. Google also detects
         doctest blocks.
+    first_line_indent : int | None, default=None
+        The real indent of ``lines[0]`` when its own indent was stripped; see
+        ``is_literal_block_paragraph``.
 
     Returns
     -------
@@ -769,7 +782,7 @@ def _find_unwrappable_span(
         return 'code_directive', end_idx
 
     is_span, end_idx = is_literal_block_paragraph(
-        lines, start_idx, style=style
+        lines, start_idx, style=style, first_line_indent=first_line_indent
     )
     if is_span:
         return 'literal_block', end_idx
@@ -1525,6 +1538,7 @@ def is_literal_block_paragraph(
         start_idx: int,
         *,
         style: str = 'numpy',
+        first_line_indent: int | None = None,
 ) -> tuple[bool, int]:
     """
     Check if lines starting at start_idx form a literal block following ::.
@@ -1548,6 +1562,13 @@ def is_literal_block_paragraph(
         ``'google'`` always measures from the marker, because the Google
         wrapper re-indents wrappable text and would strip the indent the item's
         later paragraphs need.
+    first_line_indent : int | None, default=None
+        The real indent of ``lines[0]``, when its own indent was stripped: a
+        Google compact summary sits right after the opening quotes, but it
+        belongs at the docstring margin. A ``::`` line at ``lines[0]`` is then
+        taken to be indented this far, so its block ends at the docstring's
+        next section or paragraph at the margin. None means ``lines[0]`` has
+        its real indent.
 
     Returns
     -------
@@ -1576,6 +1597,9 @@ def is_literal_block_paragraph(
         return False, start_idx
 
     literal_indent = _indent_width(lines[prev_idx])
+    if prev_idx == 0 and first_line_indent is not None:
+        literal_indent = max(literal_indent, first_line_indent)
+
     marker = _match_list_item_marker(lines[prev_idx])
     if style != 'google' and marker:
         # A literal block must be indented past the paragraph that introduces
@@ -1593,6 +1617,9 @@ def is_literal_block_paragraph(
         ):
             literal_indent = text_indent
 
+    # Only indentation ends the block, as in rST. Lines inside it that look
+    # like section headers (``Arguments:`` in a CLI help sample) are literal
+    # text.
     current_idx = start_idx
     has_literal_content = False
     while current_idx < len(lines):
@@ -1601,13 +1628,6 @@ def is_literal_block_paragraph(
         if not line.strip():
             current_idx += 1
             continue
-
-        # Google compact-first-line formatting can remove the introducer's
-        # original docstring indent before segmentation. A real section header
-        # still ends that literal block; otherwise a summary ``::`` can swallow
-        # the later ``Args:`` section just because every body line is indented.
-        if _is_docstring_section_boundary(lines, current_idx):
-            break
 
         if _indent_width(line) <= literal_indent:
             break

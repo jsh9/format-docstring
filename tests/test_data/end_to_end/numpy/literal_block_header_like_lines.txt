@@ -1,0 +1,148 @@
+LINE_LENGTH: 79
+
+**********
+def greet(name, count=1):
+    """
+    Greet someone a number of times, which the summary describes in a long line.
+
+    The generated help looks like this::
+
+        Usage: greet [OPTIONS] NAME
+
+        Arguments:
+          NAME  The name of the user to greet.  [required]
+
+        Options:
+          --count INTEGER  Number of greetings.
+          --help           Show this message and exit.
+
+        Returns:
+          Nothing; the greetings are printed with `print`.
+
+    Prose after the literal block is still wrapped because it is dedented back to the paragraph level.
+
+    Parameters
+    ----------
+    name : str
+        The name. A config file can set it::
+
+            Parameters:
+              name: Alice
+
+            Examples:
+              name: Bob
+
+        Prose after the literal block is still wrapped because it is dedented back to the description level.
+    count : int
+        How many times.
+    """
+    pass
+
+
+def greet_compact(name):
+    """Greet someone. The generated help looks like this::
+
+        Usage: greet [OPTIONS] NAME
+
+        Arguments:
+          NAME  The name of the user to greet.  [required]
+
+        Options:
+          --help           Show this message and exit.
+
+    Prose after the literal block is still wrapped because it is dedented back to the `margin`.
+
+    Parameters
+    ----------
+    name : str
+        The name of the person to greet, which is a long description that wraps.
+    """
+    pass
+
+
+def greet_compact_block_last(name):
+    """Greet someone. The generated help looks like this::
+
+        Usage: greet [OPTIONS] NAME
+
+        Returns:
+          Nothing; the greetings are printed with `print`, in a line that is long enough to wrap.
+    """
+    pass
+
+**********
+def greet(name, count=1):
+    """
+    Greet someone a number of times, which the summary describes in a long
+    line.
+
+    The generated help looks like this::
+
+        Usage: greet [OPTIONS] NAME
+
+        Arguments:
+          NAME  The name of the user to greet.  [required]
+
+        Options:
+          --count INTEGER  Number of greetings.
+          --help           Show this message and exit.
+
+        Returns:
+          Nothing; the greetings are printed with `print`.
+
+    Prose after the literal block is still wrapped because it is dedented back
+    to the paragraph level.
+
+    Parameters
+    ----------
+    name : str
+        The name. A config file can set it::
+
+            Parameters:
+              name: Alice
+
+            Examples:
+              name: Bob
+
+        Prose after the literal block is still wrapped because it is dedented
+        back to the description level.
+    count : int, default=1
+        How many times.
+    """
+    pass
+
+
+def greet_compact(name):
+    """
+    Greet someone. The generated help looks like this::
+
+        Usage: greet [OPTIONS] NAME
+
+        Arguments:
+          NAME  The name of the user to greet.  [required]
+
+        Options:
+          --help           Show this message and exit.
+
+    Prose after the literal block is still wrapped because it is dedented back
+    to the ``margin``.
+
+    Parameters
+    ----------
+    name : str
+        The name of the person to greet, which is a long description that
+        wraps.
+    """
+    pass
+
+
+def greet_compact_block_last(name):
+    """
+    Greet someone. The generated help looks like this::
+
+        Usage: greet [OPTIONS] NAME
+
+        Returns:
+          Nothing; the greetings are printed with `print`, in a line that is long enough to wrap.
+    """
+    pass

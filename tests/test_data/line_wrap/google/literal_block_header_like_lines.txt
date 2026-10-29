@@ -1,0 +1,48 @@
+LINE_LENGTH: 79
+
+**********
+Greet someone a number of times, which the summary describes in a long line.
+
+The generated help looks like this::
+
+    Usage: greet [OPTIONS] NAME
+
+    Notes:
+      NAME  The name of the user to greet.  [required]
+
+    Options:
+      --count INTEGER  Number of greetings.
+      --help           Show this message and exit.
+
+    Warnings:
+      Nothing; the greetings are printed with `print`.
+
+Prose after the literal block is still wrapped because it is dedented back to the paragraph level.
+
+Args:
+    name (str): The name.
+    count (int): How many times.
+
+**********
+Greet someone a number of times, which the summary describes in a long line.
+
+The generated help looks like this::
+
+    Usage: greet [OPTIONS] NAME
+
+    Notes:
+      NAME  The name of the user to greet.  [required]
+
+    Options:
+      --count INTEGER  Number of greetings.
+      --help           Show this message and exit.
+
+    Warnings:
+      Nothing; the greetings are printed with `print`.
+
+Prose after the literal block is still wrapped because it is dedented back to
+the paragraph level.
+
+Args:
+    name (str): The name.
+    count (int): How many times.

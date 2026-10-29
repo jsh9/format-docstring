@@ -2339,19 +2339,29 @@ def test_is_doctest_block_uses_google_indentation_boundaries(
         ),
         (
             [
-                'Summary::',
                 '',
-                '    code-like text',
+                'The help looks like this::',
                 '',
-                '    Args:',
-                '        value: Description',
+                '    Usage: greet [OPTIONS] NAME',
+                '',
+                '    Arguments:',
+                '      NAME  The name.',
+                '',
+                '    Returns:',
+                '      Nothing.',
+                '',
+                'Back to prose',
             ],
-            1,
+            2,
             True,
-            4,
+            11,
         ),
     ],
-    ids=['internal_blank_lines', 'dedented_prose', 'section_boundary'],
+    ids=[
+        'internal_blank_lines',
+        'dedented_prose',
+        'nested_header_like_lines',
+    ],
 )
 def test_is_literal_block_paragraph_uses_indentation_boundaries(
         lines: list[str],
@@ -2365,11 +2375,106 @@ def test_is_literal_block_paragraph_uses_indentation_boundaries(
 
     This guards the rST boundary rule used by both wrapping and backtick
     masking: blank lines stay inside a literal block only while the next
-    content remains indented past the introducing paragraph.
+    content remains indented past the introducing paragraph. Header-like lines
+    inside the block (``Arguments:`` in CLI help) do not end it.
     """
     is_literal, end_idx = is_literal_block_paragraph(lines, start_idx)
     assert is_literal == expected_is_literal
     assert end_idx == expected_end_idx
+
+
+_COMPACT_SUMMARY_WITH_BLOCK = [
+    'Summary::',
+    '',
+    '        Usage: greet [OPTIONS] NAME',
+    '',
+    '        Arguments:',
+    '          NAME  The name.',
+    '',
+]
+
+
+@pytest.mark.parametrize(
+    ('lines', 'start_idx', 'first_line_indent', 'expected'),
+    [
+        (
+            [*_COMPACT_SUMMARY_WITH_BLOCK, '    Args:', '        name: Name'],
+            1,
+            4,
+            (True, 7),
+        ),
+        (
+            [*_COMPACT_SUMMARY_WITH_BLOCK, '    Prose at the margin.'],
+            1,
+            4,
+            (True, 7),
+        ),
+        (_COMPACT_SUMMARY_WITH_BLOCK, 1, 4, (True, 7)),
+        (
+            [
+                'Summary::',
+                '',
+                '    code-like text',
+                '',
+                '    Args:',
+                '        value: Description',
+            ],
+            1,
+            4,
+            (False, 1),
+        ),
+        (
+            [
+                'Summary::',
+                '',
+                '    code-like text',
+                '',
+                '    Args:',
+                '        value: Description',
+            ],
+            1,
+            None,
+            (True, 6),
+        ),
+        (
+            ['Intro', '    Text::', '', '        code', '    Prose'],
+            2,
+            8,
+            (True, 4),
+        ),
+    ],
+    ids=[
+        'section_after_block',
+        'prose_after_block',
+        'block_at_end',
+        'not_indented_past_margin',
+        'no_first_line_indent',
+        'only_applies_to_first_line',
+    ],
+)
+def test_is_literal_block_paragraph_first_line_indent(
+        lines: list[str],
+        start_idx: int,
+        first_line_indent: int | None,
+        expected: tuple[bool, int],
+) -> None:
+    """
+    Verify ``first_line_indent`` measures a compact first line's block.
+
+    Google compact formatting strips the summary's indent. Measured from that
+    stripped indent, a summary ``::`` block would swallow the docstring's next
+    section; measured from the real indent, only indentation is needed to end
+    it, so header-like lines inside the block stay literal.
+    """
+    assert (
+        is_literal_block_paragraph(
+            lines,
+            start_idx,
+            style='google',
+            first_line_indent=first_line_indent,
+        )
+        == expected
+    )
 
 
 @pytest.mark.parametrize(

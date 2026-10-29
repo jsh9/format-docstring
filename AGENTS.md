@@ -72,6 +72,13 @@ oriented before making changes.
   re-indents wrappable text. Any directive whose line ends with `::`, including
   `.. note::`, introduces a literal block in both styles. `_fix_rst_backticks`
   takes the same `style`, so both passes read `::` blocks the same way.
+- Only indentation ends a `::` literal block, so header-like lines inside it
+  (`Arguments:` in CLI help) stay literal. A Google compact summary sits beside
+  the opening quotes without its indent, so callers that see it (Google pass 2
+  and the Google backtick pass) pass `first_line_indent=leading_indent` to
+  `is_literal_block_paragraph` (via `segment_lines_by_wrappability` /
+  `_fix_rst_backticks`); a `::` line at `lines[0]` is then measured from the
+  docstring margin.
 - `_normalize_signature_segment` flattens multiline annotations via
   `ast.unparse` but uses token-level replay to preserve the author's quoting
   style for forward references and string defaults.
