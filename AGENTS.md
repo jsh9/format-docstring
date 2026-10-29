@@ -76,9 +76,13 @@ oriented before making changes.
   (`is_rst_block`) before any section parsing: the NumPy main loop of
   `wrap_docstring_numpy` and Google's `_consume_google_protected_block`. A
   heading or signature-like line inside a block must not change
-  `current_section`. NumPy skips this check inside tables and bulleted lists
-  (`find_table_or_list_end`), matching `_split_out_literal_blocks`, so a row or
-  item ending with `::` does not split the table or list.
+  `current_section`. Inside tables and bulleted lists
+  (`find_table_or_list_end`) NumPy leaves block lines in place, matching
+  `_split_out_literal_blocks`, so a row or item ending with `::` does not split
+  the table or list; it skips heading detection there instead, and passes
+  through the rest of a block that runs past the list. In Google
+  `Returns:`/`Yields:` descriptions, a header-like line ends the description
+  only when it is not indented past the item.
 - NumPy heading typos (`return` -> `Returns`) are fixed in the main loop's
   heading branch, so only real headings are touched; `process_temp_output` no
   longer runs `fix_typos_in_section_headings` over its whole output.

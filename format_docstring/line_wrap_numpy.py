@@ -149,8 +149,10 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
     return_signature_style_determined: bool = False
     return_use_multiple_signatures: bool = False
 
-    # Index after the last rST table or bulleted list seen; see below.
+    # Index after the last rST table or bulleted list seen, and after the
+    # last code directive or literal block that starts inside one; see below.
     table_or_list_end_idx: int = 0
+    rst_block_end_idx: int = 0
 
     i: int = 0
     while i < len(lines):
@@ -169,13 +171,22 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
         # (an rST or NumPy sample) does not switch ``current_section`` and
         # change how the text after the block is read. They come before code
         # fences so that a ``~~~~`` line inside a block is not read as an
-        # unclosed fence. Inside a table or list they are left alone, as in
+        # unclosed fence. Inside a table or list they are left in place, as in
         # ``process_temp_output``: the table or list is kept whole, and
         # splitting it at a row or item that ends with ``::`` would make
-        # neither part read as a table or list.
-        if i >= table_or_list_end_idx:
+        # neither part read as a table or list. A block that starts there can
+        # still run past the table or list (a directive body after a blank
+        # line), so the rest of it is passed through once the list ends.
+        if i < table_or_list_end_idx:
             is_block, block_end_idx = is_rst_block(lines, i, style='numpy')
             if is_block:
+                rst_block_end_idx = max(rst_block_end_idx, block_end_idx)
+        else:
+            block_end_idx = rst_block_end_idx
+            if block_end_idx <= i:
+                _, block_end_idx = is_rst_block(lines, i, style='numpy')
+
+            if block_end_idx > i:
                 temp_out.extend(lines[i:block_end_idx])
                 i = block_end_idx
                 continue
@@ -193,8 +204,14 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
         # Detect and pass-through section headings with underline, fixing
         # typos such as ``return`` -> ``Returns``. This is done only here, on
         # real headings: heading-like lines in code fences, code directives
-        # and literal blocks never reach this point.
-        heading: str | None = _get_section_heading_title(lines, i)
+        # and literal blocks never reach this point. Inside a table or list,
+        # an underlined line is item content (such as a heading in an item's
+        # ``::`` sample), not a section heading.
+        heading: str | None = (
+            _get_section_heading_title(lines, i)
+            if i >= table_or_list_end_idx
+            else None
+        )
         if heading:
             current_section = heading
             in_examples = heading in section_examples
@@ -893,6 +910,13 @@ def _detect_multiple_return_signatures(
     j = start_idx + 1
     while j < len(lines):
         candidate = lines[j]
+        # A heading inside a code directive or literal block in a return
+        # description is literal text; it must not end the scan.
+        is_block, block_end_idx = is_rst_block(lines, j, style='numpy')
+        if is_block:
+            j = block_end_idx
+            continue
+
         if _get_section_heading_title(lines, j):
             break
 

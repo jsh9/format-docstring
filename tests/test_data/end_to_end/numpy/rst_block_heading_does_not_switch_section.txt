@@ -44,6 +44,51 @@ def describe(x, y=2) -> int:
     """
     pass
 
+
+def listed(x, y='a') -> int:
+    """
+    Summary.
+
+    - A sample right after the item, with no blank line::
+          Returns
+          -------
+          int
+    - An item with a directive on its continuation line:
+      .. code-block:: rst
+
+          Returns
+          -------
+          int
+
+    The prose here: describes it, and it is long enough to need wrapping at the limit.
+
+    Parameters
+    ----------
+    x : int
+        The value.
+    y : str
+        The other value.
+    """
+    pass
+
+
+def pair() -> tuple[int, str]:
+    """
+    Return a pair.
+
+    Returns
+    -------
+    a : int
+        The first, with a sample::
+
+            Returns
+            -------
+            int
+    b : str
+        The second.
+    """
+    pass
+
 **********
 def describe(x, y=2) -> int:
     """
@@ -86,5 +131,51 @@ def describe(x, y=2) -> int:
     -------
     int
         The description.
+    """
+    pass
+
+
+def listed(x, y='a') -> int:
+    """
+    Summary.
+
+    - A sample right after the item, with no blank line::
+          Returns
+          -------
+          int
+    - An item with a directive on its continuation line:
+      .. code-block:: rst
+
+          Returns
+          -------
+          int
+
+    The prose here: describes it, and it is long enough to need wrapping at the
+    limit.
+
+    Parameters
+    ----------
+    x : int
+        The value.
+    y : str, default='a'
+        The other value.
+    """
+    pass
+
+
+def pair() -> tuple[int, str]:
+    """
+    Return a pair.
+
+    Returns
+    -------
+    a : int
+        The first, with a sample::
+
+            Returns
+            -------
+            int
+    b : str
+        The second.
     """
     pass
