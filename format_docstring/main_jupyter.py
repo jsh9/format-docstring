@@ -10,7 +10,6 @@ from jupyter_notebook_parser import (
     JupyterNotebookParser,
     JupyterNotebookRewriter,
     SourceCodeContainer,
-    reconstruct_source,
 )
 
 import format_docstring.docstring_rewriter as doc_rewriter
@@ -19,6 +18,10 @@ from format_docstring.base_fixer import BaseFixer
 from format_docstring.config import (
     ConfigFileCommand,
     validate_cli_include_options,
+)
+from format_docstring.ipython_magics import (
+    mask_ipython_syntax,
+    unmask_ipython_syntax,
 )
 
 
@@ -205,27 +208,15 @@ class JupyterNotebookFixer(BaseFixer):
 
             for i in range(len(code_cells)):
                 index: int = code_cell_indices[i]
-                source: SourceCodeContainer = code_cell_sources[i]
-                source_without_magic: str = source.source_without_magic
-                magics: dict[int, str] = source.magics
-                fixed: str = doc_rewriter.fix_src(
-                    source_code=source_without_magic,
-                    line_length=self.line_length,
-                    docstring_style=self.docstring_style,
-                    fix_rst_backticks=self.fix_rst_backticks,
-                    include_arg_types=self.include_arg_types,
-                    include_arg_defaults=self.include_arg_defaults,
-                    include_return_and_yield_types=(
-                        self.include_return_and_yield_types
-                    ),
+                source: str = code_cell_sources[i].raw_source
+                fixed: str = self.fix_one_cell(
+                    source, filename=filename, cell_index=index
                 )
-
-                if fixed != source_without_magic:
+                if fixed != source:
                     ret_val = 1
-                    fixed_with_magics = reconstruct_source(fixed, magics)
                     rewriter.replace_source_in_code_cell(
                         index=index,
-                        new_source=fixed_with_magics,
+                        new_source=fixed,
                     )
 
             if ret_val == 1:
@@ -235,6 +226,61 @@ class JupyterNotebookFixer(BaseFixer):
                 Path(filename).write_text(new_text, encoding='utf-8')
 
             return ret_val
+
+    def fix_one_cell(
+            self,
+            source: str,
+            *,
+            filename: str,
+            cell_index: int,
+    ) -> str:
+        """
+        Fix the docstrings in the source of one code cell.
+
+        IPython-only lines (magics, shell commands, help queries) are masked
+        while the cell is parsed and formatted, and are restored unchanged.
+        Cells that are not Python, such as ``%%bash`` cells, are returned as
+        is. So are cells that still cannot be parsed, with a note on stderr.
+
+        Parameters
+        ----------
+        source : str
+            The cell source.
+        filename : str
+            The notebook's filename, for the note on stderr.
+        cell_index : int
+            The cell's index in the notebook, for the note on stderr.
+
+        Returns
+        -------
+        str
+            The fixed cell source.
+        """
+        masked = mask_ipython_syntax(source)
+        if masked is None:
+            return source
+
+        try:
+            fixed: str = doc_rewriter.fix_src(
+                source_code=masked.source,
+                line_length=self.line_length,
+                docstring_style=self.docstring_style,
+                fix_rst_backticks=self.fix_rst_backticks,
+                include_arg_types=self.include_arg_types,
+                include_arg_defaults=self.include_arg_defaults,
+                include_return_and_yield_types=(
+                    self.include_return_and_yield_types
+                ),
+            )
+        except SyntaxError as exc:
+            print(
+                f'{filename}: skipping cell {cell_index + 1}, which cannot'
+                f' be parsed as Python: {exc.msg} (line {exc.lineno})',
+                file=sys.stderr,
+            )
+            return source
+
+        return unmask_ipython_syntax(fixed, masked)
 
 
 if __name__ == '__main__':

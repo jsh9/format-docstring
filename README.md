@@ -520,6 +520,11 @@ format-docstring-jupyter --docstring-style google path/to/notebook.ipynb
 format-docstring-jupyter --docstring-style google path/to/directory/
 ```
 
+Lines that use IPython syntax, such as `%pip install numpy`, `!ls`,
+`files = !ls`, or `obj?`, are kept as they are. Cells whose cell magic runs
+something other than Python (such as `%%bash`) are left unchanged, and cells
+that cannot be parsed as Python are skipped with a note.
+
 ### 5.2. Pre-commit Hook
 
 To use `format-docstring` as a pre-commit hook, add this to your

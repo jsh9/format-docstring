@@ -6,6 +6,25 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-10-29
+
+- Fixed
+  - `format-docstring-jupyter` no longer fails on notebook cells that use
+    IPython syntax. Line magics (`%pip install numpy`), shell commands
+    (`!pip install pandas`, `files = !ls`), magic assignments
+    (`t = %timeit -o f()`), and help queries (`obj?`) are kept unchanged while
+    the rest of the cell is formatted. Before, any such line except a bare
+    `%magic` raised a `SyntaxError` (`!` lines always did), and a magic line
+    below a docstring that grew was put back on the wrong line.
+  - Cells that start with a cell magic whose body is not Python (such as
+    `%%bash` or `%%html`) are left unchanged. Cells under `%%time`, `%%timeit`,
+    `%%capture`, `%%prun`, `%%python`, `%%python3` and `%%pypy` are still
+    formatted.
+  - A notebook cell that cannot be parsed as Python is skipped with a note on
+    stderr instead of stopping the whole run.
+- Full diff
+  - https://github.com/jsh9/format-docstring/compare/0.4.2...0.4.3
+
 ## [0.4.2] - 2026-10-04
 
 - Fixed
