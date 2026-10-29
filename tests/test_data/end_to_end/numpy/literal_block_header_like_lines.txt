@@ -50,10 +50,23 @@ def greet_compact(name):
         Options:
           --help           Show this message and exit.
 
+    Prose after the literal block is still wrapped because it is dedented back to the `margin`.
+
     Parameters
     ----------
     name : str
         The name of the person to greet, which is a long description that wraps.
+    """
+    pass
+
+
+def greet_compact_block_last(name):
+    """Greet someone. The generated help looks like this::
+
+        Usage: greet [OPTIONS] NAME
+
+        Returns:
+          Nothing; the greetings are printed with `print`, in a line that is long enough to wrap.
     """
     pass
 
@@ -111,10 +124,25 @@ def greet_compact(name):
         Options:
           --help           Show this message and exit.
 
+    Prose after the literal block is still wrapped because it is dedented back
+    to the ``margin``.
+
     Parameters
     ----------
     name : str
         The name of the person to greet, which is a long description that
         wraps.
+    """
+    pass
+
+
+def greet_compact_block_last(name):
+    """
+    Greet someone. The generated help looks like this::
+
+        Usage: greet [OPTIONS] NAME
+
+        Returns:
+          Nothing; the greetings are printed with `print`, in a line that is long enough to wrap.
     """
     pass
