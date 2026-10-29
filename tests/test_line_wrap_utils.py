@@ -2682,6 +2682,29 @@ def test_is_literal_block_paragraph_reads_rst_by_style(
         ),
         (
             [
+                '.. ipython :: python',
+                '',
+                '    df = make_frame()',
+                '    df.head()',
+                'Back to prose',
+            ],
+            0,
+            True,
+            4,
+        ),
+        (
+            [
+                '.. prompt:: bash $',
+                '',
+                '    pip install format-docstring',
+                '    format-docstring --help',
+            ],
+            0,
+            True,
+            4,
+        ),
+        (
+            [
                 '.. ipython-like:: python',
                 '',
                 '    Not a code directive',
@@ -2702,6 +2725,8 @@ def test_is_literal_block_paragraph_reads_rst_by_style(
         'testoutput',
         'testsetup',
         'testcleanup',
+        'space_before_double_colon',
+        'prompt',
         'unknown_directive_with_known_prefix',
     ],
 )

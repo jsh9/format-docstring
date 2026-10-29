@@ -24,10 +24,10 @@ _LIST_ITEM_MARKER_PATTERN = re.compile(
     r' +'
 )
 # Directives whose body is code: the rST code directives, IPython's
-# ``ipython`` directive, and the ``sphinx.ext.doctest`` directives. These
-# usually take an argument (``.. ipython:: python``, ``.. doctest:: group``),
-# so their line does not end with ``::`` and the literal block rule misses
-# them.
+# ``ipython`` directive, the ``sphinx.ext.doctest`` directives, and
+# sphinx-prompt's ``prompt``. These usually take an argument
+# (``.. ipython:: python``, ``.. doctest:: group``), so their line does not
+# end with ``::`` and the literal block rule misses them.
 _RST_CODE_DIRECTIVE_NAMES = (
     'code-block',
     'sourcecode',
@@ -38,11 +38,13 @@ _RST_CODE_DIRECTIVE_NAMES = (
     'testoutput',
     'testsetup',
     'testcleanup',
+    'prompt',
 )
+# As in docutils, one space may come before the ``::``.
 _RST_CODE_DIRECTIVE_PATTERN = re.compile(
     r'^\s*\.\.\s+(?:'
     + '|'.join(_RST_CODE_DIRECTIVE_NAMES)
-    + r')::(?:\s+.*)?$',
+    + r') ?::(?:\s+.*)?$',
     re.IGNORECASE,
 )
 
