@@ -20,15 +20,7 @@ The generated help looks like this::
 Prose after the literal block is still wrapped because it is dedented back to the paragraph level.
 
 Args:
-    name (str):
-        The name. A config file can set it::
-
-            greeting:
-              Notes:
-                name: Alice
-
-              Warnings:
-                name: Bob
+    name (str): The name.
     count (int): How many times.
 
 **********
@@ -52,12 +44,5 @@ Prose after the literal block is still wrapped because it is dedented back to
 the paragraph level.
 
 Args:
-    name (str): The name. A config file can set it::
-
-            greeting:
-              Notes:
-                name: Alice
-
-              Warnings:
-                name: Bob
+    name (str): The name.
     count (int): How many times.

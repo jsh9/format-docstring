@@ -22,15 +22,7 @@ def greet(name, count=1):
     Prose after the literal block is still wrapped because it is dedented back to the paragraph level.
 
     Args:
-        name (str):
-            The name. A config file can set it::
-
-                greeting:
-                  Notes:
-                    name: Alice
-
-                  Warnings:
-                    name: Bob
+        name (str): The name.
         count (int): How many times.
     """
     pass
@@ -47,8 +39,21 @@ def greet_compact(name):
         Options:
           --help           Show this message and exit.
 
+    Prose after the literal block is still wrapped because it is dedented back to the `margin`.
+
     Args:
         name (str): The name of the person to greet, which is a long description that wraps.
+    """
+    pass
+
+
+def greet_compact_block_last(name):
+    """Greet someone. The generated help looks like this::
+
+        Usage: greet [OPTIONS] NAME
+
+        Notes:
+          Nothing; the greetings are printed with `print`, in a line that is long enough to wrap.
     """
     pass
 
@@ -75,14 +80,7 @@ def greet(name, count=1):
     to the paragraph level.
 
     Args:
-        name (str): The name. A config file can set it::
-
-                greeting:
-                  Notes:
-                    name: Alice
-
-                  Warnings:
-                    name: Bob
+        name (str): The name.
         count (int, default=1): How many times.
     """
     pass
@@ -99,8 +97,22 @@ def greet_compact(name):
         Options:
           --help           Show this message and exit.
 
+    Prose after the literal block is still wrapped because it is dedented back
+    to the ``margin``.
+
     Args:
         name (str): The name of the person to greet, which is a long
             description that wraps.
+    """
+    pass
+
+
+def greet_compact_block_last(name):
+    """Greet someone. The generated help looks like this::
+
+        Usage: greet [OPTIONS] NAME
+
+        Notes:
+          Nothing; the greetings are printed with `print`, in a line that is long enough to wrap.
     """
     pass

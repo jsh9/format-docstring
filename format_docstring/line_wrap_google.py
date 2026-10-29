@@ -151,7 +151,11 @@ def wrap_docstring_google(
 
     docstring_ = docstring
     if fix_rst_backticks:
-        docstring_ = _fix_rst_backticks(docstring_, style='google')
+        # A compact summary sits right after the opening quotes without its
+        # indent; ``leading_indent`` is where it really belongs.
+        docstring_ = _fix_rst_backticks(
+            docstring_, style='google', first_line_indent=leading_indent
+        )
 
     should_compact_first_line = (
         compact_first_line
@@ -1082,9 +1086,13 @@ def _pass2_wrap_google_docstring(
         opening_quotes_on_own_line=opening_quotes_on_own_line,
         include_return_and_yield_types=include_return_and_yield_types,
     )
+    # Pass one puts a compact summary right after the opening quotes, without
+    # its indent. Measure a ``::`` block it introduces from the docstring
+    # margin, so the block ends at the next paragraph or section there.
     segments = segment_lines_by_wrappability(
         docstring.splitlines(),
         style='google',
+        first_line_indent=leading_indent,
     )
 
     for seg_lines, is_wrappable in segments:
