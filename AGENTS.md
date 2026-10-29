@@ -83,6 +83,9 @@ oriented before making changes.
   through the rest of a block that runs past the list. In Google
   `Returns:`/`Yields:` descriptions, a header-like line ends the description
   only when it is not indented past the item.
+- NumPy heading typos (`return` -> `Returns`) are fixed in the main loop's
+  heading branch, so only real headings are touched; `process_temp_output` no
+  longer runs `fix_typos_in_section_headings` over its whole output.
 - `_RST_CODE_DIRECTIVE_NAMES` lists the directives whose body is code
   (`code-block`, `code`, `sourcecode`, `ipython`, the `sphinx.ext.doctest`
   directives, and sphinx-prompt's `prompt`). With an argument their line

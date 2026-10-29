@@ -1,0 +1,62 @@
+LINE_LENGTH: 79
+
+**********
+def render(text) -> str:
+    """Render rST text.
+
+    .. code-block:: python
+
+        notes:
+            Some notes.
+
+    A Google sample::
+
+        parameter:
+            text (str): The text.
+
+        return:
+            str: The result.
+
+    ```python
+    example:
+        render(text)
+    ```
+
+    parameter:
+        text (str): The text, which is long enough that its description needs to be wrapped.
+
+    return:
+        str: The rendered text.
+    """
+    pass
+
+**********
+def render(text) -> str:
+    """Render rST text.
+
+    .. code-block:: python
+
+        notes:
+            Some notes.
+
+    A Google sample::
+
+        parameter:
+            text (str): The text.
+
+        return:
+            str: The result.
+
+    ```python
+    example:
+        render(text)
+    ```
+
+    Args:
+        text (str): The text, which is long enough that its description needs
+            to be wrapped.
+
+    Returns:
+        str: The rendered text.
+    """
+    pass

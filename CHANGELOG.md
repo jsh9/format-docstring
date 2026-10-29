@@ -53,6 +53,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     inside a block in a NumPy return item's description (which hid the later
     return items from tuple sync), and a header-like line inside a block in a
     Google `Returns:`/`Yields:` description.
+  - NumPy style no longer "fixes" heading-like lines inside code fences, code
+    directives and `::` literal blocks. A sample such as `notes` over `-----`
+    became `Notes`, and `return` over `------` became `Returns` with a longer
+    underline. Heading typos are now fixed only on real section headings.
 - Changed
   - In NumPy style, the whole body of a directive whose line ends with `::`,
     such as `.. note::`, is now left as is, like a literal block. Previously
