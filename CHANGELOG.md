@@ -25,17 +25,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - A `::` literal block no longer ends at a line inside it that looks like a
     section header, such as `Arguments:` in a CLI help sample or a
     `parameters:` key in YAML. The rest of the block was reflowed as prose and
-    got its single backticks doubled, in both styles. A section header still
-    ends a block whose `::` line lost its indent (a compact Google summary
-    beside the opening quotes), but only when the header is not indented past
-    the docstring margin.
-  - The bodies of IPython's `.. ipython::` directive and the
-    `sphinx.ext.doctest` directives (`.. doctest::`, `.. testcode::`,
-    `.. testoutput::`, `.. testsetup::`, `.. testcleanup::`) are now kept as is
-    when the directive takes an argument, such as `.. ipython:: python` or
-    `.. doctest:: grouped`, like `.. code-block:: python`. Their lines were
-    joined like prose (in Google style, `.. ipython:: python` bodies were also
-    dedented).
+    got its single backticks doubled, in both styles. Only indentation ends a
+    block now, as in rST. For a Google compact summary (`"""Summary::` beside
+    the opening quotes), the block is measured from the docstring margin, so it
+    still ends at the next section, and now also at the next paragraph at the
+    margin, which it used to swallow.
+  - The bodies of IPython's `.. ipython::` directive, the `sphinx.ext.doctest`
+    directives (`.. doctest::`, `.. testcode::`, `.. testoutput::`,
+    `.. testsetup::`, `.. testcleanup::`) and sphinx-prompt's `.. prompt::` are
+    now kept as is when the directive takes an argument, such as
+    `.. ipython:: python` or `.. doctest:: grouped`, like
+    `.. code-block:: python`. Their lines were joined like prose (in Google
+    style, `.. ipython:: python` bodies were also dedented). Code directives
+    written with a space before the `::` (`.. code-block :: python`), which
+    docutils accepts, are recognized too.
   - A section heading inside an rST code directive or a `::` literal block
     (such as an rST or NumPy sample with `Returns` over `-------`) no longer
     switches the section the text after the block is parsed in. In NumPy style,
