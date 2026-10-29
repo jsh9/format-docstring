@@ -2350,8 +2350,62 @@ def test_is_doctest_block_uses_google_indentation_boundaries(
             True,
             4,
         ),
+        (
+            [
+                '',
+                'The help looks like this::',
+                '',
+                '    Usage: greet [OPTIONS] NAME',
+                '',
+                '    Arguments:',
+                '      NAME  The name.',
+                '',
+                '    Returns:',
+                '      Nothing.',
+                '',
+                'Back to prose',
+            ],
+            2,
+            True,
+            11,
+        ),
+        (
+            [
+                'Summary::',
+                '',
+                '        Usage: greet [OPTIONS] NAME',
+                '',
+                '        Arguments:',
+                '          NAME  The name.',
+                '',
+                '    Args:',
+                '        name: The name.',
+            ],
+            1,
+            True,
+            7,
+        ),
+        (
+            [
+                'Summary::',
+                '',
+                '    greeting:',
+                '      Notes:',
+                '        name: Alice',
+            ],
+            1,
+            True,
+            5,
+        ),
     ],
-    ids=['internal_blank_lines', 'dedented_prose', 'section_boundary'],
+    ids=[
+        'internal_blank_lines',
+        'dedented_prose',
+        'section_boundary',
+        'nested_header_like_lines',
+        'first_line_nested_header_like_lines',
+        'first_line_header_deeper_than_block',
+    ],
 )
 def test_is_literal_block_paragraph_uses_indentation_boundaries(
         lines: list[str],
@@ -2365,7 +2419,11 @@ def test_is_literal_block_paragraph_uses_indentation_boundaries(
 
     This guards the rST boundary rule used by both wrapping and backtick
     masking: blank lines stay inside a literal block only while the next
-    content remains indented past the introducing paragraph.
+    content remains indented past the introducing paragraph. Header-like lines
+    inside the block (``Arguments:`` in CLI help) do not end it. A known
+    section header ends it only when the ``::`` line is the first line, whose
+    indent Google compact formatting strips, and the header is not indented
+    past the docstring margin.
     """
     is_literal, end_idx = is_literal_block_paragraph(lines, start_idx)
     assert is_literal == expected_is_literal

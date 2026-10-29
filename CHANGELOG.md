@@ -22,6 +22,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     text, the item's next paragraph now gets its single backticks fixed. It was
     already wrapped as prose, but its backticks were left alone as if it were
     part of the block.
+  - A `::` literal block no longer ends at a line inside it that looks like a
+    section header, such as `Arguments:` in a CLI help sample or a
+    `parameters:` key in YAML. The rest of the block was reflowed as prose and
+    got its single backticks doubled, in both styles. A section header still
+    ends a block whose `::` line lost its indent (a compact Google summary
+    beside the opening quotes), but only when the header is not indented past
+    the docstring margin.
 - Changed
   - In NumPy style, the whole body of a directive whose line ends with `::`,
     such as `.. note::`, is now left as is, like a literal block. Previously

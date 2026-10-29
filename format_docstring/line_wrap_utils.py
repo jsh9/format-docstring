@@ -1593,6 +1593,17 @@ def is_literal_block_paragraph(
         ):
             literal_indent = text_indent
 
+    # Indentation ends the block. A known section header ends it too, but only
+    # when the ``::`` line is the first line, whose indent may be understated;
+    # see ``_first_line_section_boundary_indent``. Elsewhere, header-like lines
+    # inside the block (``Arguments:`` in a CLI help sample) are literal text,
+    # and no indent is at or below the -1 sentinel.
+    boundary_indent = (
+        _first_line_section_boundary_indent(lines, start_idx)
+        if prev_idx == 0
+        else -1
+    )
+
     current_idx = start_idx
     has_literal_content = False
     while current_idx < len(lines):
@@ -1602,14 +1613,11 @@ def is_literal_block_paragraph(
             current_idx += 1
             continue
 
-        # Google compact-first-line formatting can remove the introducer's
-        # original docstring indent before segmentation. A real section header
-        # still ends that literal block; otherwise a summary ``::`` can swallow
-        # the later ``Args:`` section just because every body line is indented.
-        if _is_docstring_section_boundary(lines, current_idx):
-            break
-
-        if _indent_width(line) <= literal_indent:
+        indent = _indent_width(line)
+        if indent <= literal_indent or (
+            indent <= boundary_indent
+            and _is_docstring_section_boundary(lines, current_idx)
+        ):
             break
 
         has_literal_content = True
@@ -1619,3 +1627,41 @@ def is_literal_block_paragraph(
         return False, start_idx
 
     return True, current_idx
+
+
+def _first_line_section_boundary_indent(
+        lines: list[str],
+        start_idx: int,
+) -> int:
+    """
+    Return the largest indent at which a section header ends a literal block.
+
+    This applies to a block whose ``::`` line is the first of ``lines``. That
+    line's indent can be lower than its real indent: Google compact formatting
+    puts the summary right after the opening quotes and strips its indent, and
+    a Google description that starts on the signature line is split off without
+    its indent. Indentation alone would then let the block swallow the
+    docstring's next section, so a known section header ends the block, as long
+    as it is not indented past the docstring margin. Headers nested deeper than
+    that are block content.
+
+    The margin is estimated as the smallest indent of the non-blank lines from
+    ``start_idx`` on, as ``inspect.cleandoc`` does for the lines after a
+    docstring's first line.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The lines being scanned.
+    start_idx : int
+        The index of the line after the ``::`` line.
+
+    Returns
+    -------
+    int
+        The estimated margin, or -1 when no non-blank line follows.
+    """
+    return min(
+        (_indent_width(line) for line in lines[start_idx:] if line.strip()),
+        default=-1,
+    )
