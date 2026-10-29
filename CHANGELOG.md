@@ -30,6 +30,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     the opening quotes), the block is measured from the docstring margin, so it
     still ends at the next section, and now also at the next paragraph at the
     margin, which it used to swallow.
+  - The bodies of IPython's `.. ipython::` directive, the `sphinx.ext.doctest`
+    directives (`.. doctest::`, `.. testcode::`, `.. testoutput::`,
+    `.. testsetup::`, `.. testcleanup::`) and sphinx-prompt's `.. prompt::` are
+    now kept as is when the directive takes an argument, such as
+    `.. ipython:: python` or `.. doctest:: grouped`, like
+    `.. code-block:: python`. Their lines were joined like prose (in Google
+    style, `.. ipython:: python` bodies were also dedented). Code directives
+    written with a space before the `::` (`.. code-block :: python`), which
+    docutils accepts, are recognized too.
 - Changed
   - In NumPy style, the whole body of a directive whose line ends with `::`,
     such as `.. note::`, is now left as is, like a literal block. Previously

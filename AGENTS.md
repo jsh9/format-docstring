@@ -72,6 +72,11 @@ oriented before making changes.
   re-indents wrappable text. Any directive whose line ends with `::`, including
   `.. note::`, introduces a literal block in both styles. `_fix_rst_backticks`
   takes the same `style`, so both passes read `::` blocks the same way.
+- `_RST_CODE_DIRECTIVE_NAMES` lists the directives whose body is code
+  (`code-block`, `code`, `sourcecode`, `ipython`, the `sphinx.ext.doctest`
+  directives, and sphinx-prompt's `prompt`). With an argument their line
+  doesn't end with `::`, so they need this list; without one they are also
+  literal blocks.
 - Only indentation ends a `::` literal block, so header-like lines inside it
   (`Arguments:` in CLI help) stay literal. A Google compact summary sits beside
   the opening quotes without its indent, so callers that see it (Google pass 2
