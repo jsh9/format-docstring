@@ -16,6 +16,7 @@ from format_docstring.line_wrap_utils import (
     is_google_doctest_block,
     is_google_examples_code_block,
     is_inside_inline_literal,
+    is_rst_block,
     merge_lines_and_strip,
     protect_inline_literal_spaces,
     segment_lines_by_wrappability,
@@ -376,8 +377,14 @@ def _consume_google_protected_block(
     Return the exclusive end index for protected code or doctest blocks.
 
     These blocks must be consumed before section/signature parsing because
-    their content can look like Google section headers.
+    their content can look like Google section headers. rST code directives and
+    ``::`` literal blocks come first, as in segmentation, so that a ``~~~~``
+    line inside one is not read as an unclosed fence.
     """
+    is_block, block_end_idx = is_rst_block(lines, line_idx, style='google')
+    if is_block:
+        return block_end_idx
+
     is_fence, fence_end_idx = is_code_fence(lines, line_idx)
     if is_fence:
         return fence_end_idx

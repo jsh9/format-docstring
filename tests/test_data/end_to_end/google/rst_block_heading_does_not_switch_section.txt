@@ -1,0 +1,64 @@
+LINE_LENGTH: 79
+
+**********
+def describe(x, y=2) -> int:
+    """Describe a value.
+
+    .. code-block:: python
+
+        Returns:
+            int: The value.
+
+    The prose here: describes it, and it is long enough to need wrapping at the limit.
+
+    The generated help looks like this::
+
+        Usage: describe [OPTIONS] X
+
+        Arguments:
+          X  The value to describe.  [required]
+
+        ~~~~~
+        Title
+        ~~~~~
+
+    Args:
+        x (int): The value.
+        y (int): The other value.
+
+    Returns:
+        str: The description.
+    """
+    pass
+
+**********
+def describe(x, y=2) -> int:
+    """Describe a value.
+
+    .. code-block:: python
+
+        Returns:
+            int: The value.
+
+    The prose here: describes it, and it is long enough to need wrapping at the
+    limit.
+
+    The generated help looks like this::
+
+        Usage: describe [OPTIONS] X
+
+        Arguments:
+          X  The value to describe.  [required]
+
+        ~~~~~
+        Title
+        ~~~~~
+
+    Args:
+        x (int): The value.
+        y (int, default=2): The other value.
+
+    Returns:
+        int: The description.
+    """
+    pass

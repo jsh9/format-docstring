@@ -1,0 +1,82 @@
+LINE_LENGTH: 79
+
+**********
+Describe a value.
+
+.. code-block:: rst
+
+    Returns
+    -------
+    int
+        The value.
+
+The prose here: describes it, and it is long enough to need wrapping at the limit.
+
+A NumPy sample::
+
+    Parameters
+    ----------
+    name : str
+        A name.
+
+Parameters
+----------
+x : int
+    The value, as an rST sample::
+
+        Returns
+        -------
+        str
+            Not the real return type.
+
+        ~~~~~
+        Title
+        ~~~~~
+y : int
+    The other value.
+
+Returns
+-------
+str
+    The description.
+
+**********
+Describe a value.
+
+.. code-block:: rst
+
+    Returns
+    -------
+    int
+        The value.
+
+The prose here: describes it, and it is long enough to need wrapping at the
+limit.
+
+A NumPy sample::
+
+    Parameters
+    ----------
+    name : str
+        A name.
+
+Parameters
+----------
+x : int
+    The value, as an rST sample::
+
+        Returns
+        -------
+        str
+            Not the real return type.
+
+        ~~~~~
+        Title
+        ~~~~~
+y : int
+    The other value.
+
+Returns
+-------
+str
+    The description.

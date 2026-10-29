@@ -8,6 +8,7 @@ import pytest
 from format_docstring.line_wrap_utils import (
     add_leading_indent,
     finalize_lines,
+    find_table_or_list_end,
     fix_typos_in_section_headings,
     is_bulleted_list,
     is_code_fence,
@@ -15,6 +16,7 @@ from format_docstring.line_wrap_utils import (
     is_google_doctest_block,
     is_google_examples_code_block,
     is_literal_block_paragraph,
+    is_rst_block,
     is_rst_code_block,
     is_rST_table,
     merge_lines_and_strip,
@@ -2909,3 +2911,89 @@ def test_is_code_fence(
     is_fence, end_idx = is_code_fence(lines, start_idx)
     assert is_fence == expected_is_fence
     assert end_idx == expected_end_idx
+
+
+@pytest.mark.parametrize(
+    ('lines', 'start_idx', 'expected_is_block', 'expected_end_idx'),
+    [
+        (
+            [
+                '.. code-block:: rst',
+                '',
+                '    Returns',
+                '    -------',
+                '',
+                'Prose: after.',
+            ],
+            0,
+            True,
+            5,
+        ),
+        (
+            [
+                'A sample::',
+                '',
+                '    Returns',
+                '    -------',
+                'Prose: after.',
+            ],
+            2,
+            True,
+            4,
+        ),
+        (
+            ['A sample::', '', '    Returns', '    -------'],
+            0,
+            False,
+            0,
+        ),
+        (
+            ['Returns', '-------', 'int'],
+            0,
+            False,
+            0,
+        ),
+    ],
+    ids=[
+        'code_directive_from_directive_line',
+        'literal_block_from_first_block_line',
+        'literal_block_not_from_introducer',
+        'heading',
+    ],
+)
+def test_is_rst_block(
+        lines: list[str],
+        start_idx: int,
+        *,
+        expected_is_block: bool,
+        expected_end_idx: int,
+) -> None:
+    """
+    Verify ``is_rst_block`` finds code directives and ``::`` literal blocks.
+
+    The wrappers consume these spans before section parsing, so a heading
+    inside one cannot switch the parser's section.
+    """
+    for style in ('numpy', 'google'):
+        assert is_rst_block(lines, start_idx, style=style) == (
+            expected_is_block,
+            expected_end_idx,
+        )
+
+
+@pytest.mark.parametrize(
+    ('lines', 'start_idx', 'expected_end_idx'),
+    [
+        (['- Item::', '      code', '  More', '- Next', 'Prose'], 0, 4),
+        (['=====  =====', 'a      b', '=====  =====', '', 'Prose'], 0, 3),
+        (['Prose', '- Item'], 0, 0),
+    ],
+    ids=['list', 'table', 'neither'],
+)
+def test_find_table_or_list_end(
+        lines: list[str],
+        start_idx: int,
+        expected_end_idx: int,
+) -> None:
+    """Verify the end of the table or list that starts at ``start_idx``."""
+    assert find_table_or_list_end(lines, start_idx) == expected_end_idx

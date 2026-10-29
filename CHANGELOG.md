@@ -36,6 +36,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     `.. doctest:: grouped`, like `.. code-block:: python`. Their lines were
     joined like prose (in Google style, `.. ipython:: python` bodies were also
     dedented).
+  - A section heading inside an rST code directive or a `::` literal block
+    (such as an rST or NumPy sample with `Returns` over `-------`) no longer
+    switches the section the text after the block is parsed in. In NumPy style,
+    prose after such a block was read as a return signature and replaced by the
+    synced type, and parameters after a block in a parameter description lost
+    their signature sync. In Google style, a header line inside a block was
+    renamed (`Arguments:` became `Args:`) and the prose after the block was
+    parsed as section content. Both wrappers now pass these blocks through
+    before section parsing, ahead of code fences, so a `~~~~` line inside a
+    block is no longer read as an unclosed fence that hides the rest of the
+    docstring.
 - Changed
   - In NumPy style, the whole body of a directive whose line ends with `::`,
     such as `.. note::`, is now left as is, like a literal block. Previously

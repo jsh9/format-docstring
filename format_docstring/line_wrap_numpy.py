@@ -10,12 +10,14 @@ from format_docstring.line_wrap_utils import (
     add_leading_indent,
     collect_to_temp_output,
     finalize_lines,
+    find_table_or_list_end,
     is_code_fence,
     is_doctest_block,
     is_examples_code_block,
     is_google_doctest_block,
     is_google_examples_code_block,
     is_literal_block_paragraph,
+    is_rst_block,
     is_rst_code_block,
     process_temp_output,
     validate_include_arg_defaults,
@@ -146,6 +148,9 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
     return_signature_style_determined: bool = False
     return_use_multiple_signatures: bool = False
 
+    # Index after the last rST table or bulleted list seen; see below.
+    table_or_list_end_idx: int = 0
+
     i: int = 0
     while i < len(lines):
         line: str = lines[i]
@@ -157,6 +162,24 @@ def wrap_docstring_numpy(  # noqa: C901, PLR0915, TODO: https://github.com/jsh9/
 
         stripped: str = line.lstrip(' ')
         indent_length: int = len(line) - len(stripped)
+
+        # rST code directives and ``::`` literal blocks are literal text. Pass
+        # them through before section parsing, so that a heading inside one
+        # (an rST or NumPy sample) does not switch ``current_section`` and
+        # change how the text after the block is read. They come before code
+        # fences so that a ``~~~~`` line inside a block is not read as an
+        # unclosed fence. Inside a table or list they are left alone, as in
+        # ``process_temp_output``: the table or list is kept whole, and
+        # splitting it at a row or item that ends with ``::`` would make
+        # neither part read as a table or list.
+        if i >= table_or_list_end_idx:
+            is_block, block_end_idx = is_rst_block(lines, i, style='numpy')
+            if is_block:
+                temp_out.extend(lines[i:block_end_idx])
+                i = block_end_idx
+                continue
+
+            table_or_list_end_idx = find_table_or_list_end(lines, i)
 
         # Detect code fences before section parsing so their contents are not
         # interpreted as docstring syntax or merged as prose later.
