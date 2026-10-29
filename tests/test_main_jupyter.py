@@ -342,3 +342,110 @@ def test_cli_ipynb_numpy_include_return_and_yield_types_false_errors(
     assert result.exit_code != 0
     assert 'NumPy/numpydoc requires' in result.output
     assert work_file.read_text() == original_text
+
+
+def _write_notebook(path: Path, cell_sources: list[str]) -> None:
+    notebook = {
+        'cells': [
+            {
+                'cell_type': 'code',
+                'execution_count': None,
+                'metadata': {},
+                'outputs': [],
+                'source': source.splitlines(keepends=True),
+            }
+            for source in cell_sources
+        ],
+        'metadata': {},
+        'nbformat': 4,
+        'nbformat_minor': 5,
+    }
+    path.write_text(json.dumps(notebook), encoding='utf-8')
+
+
+def test_cli_ipynb_ipython_magics(tmp_path: Path) -> None:
+    """
+    Format cells that use IPython magics, shell commands, and help queries.
+
+    The magic lines must come back unchanged and in place, even after a
+    docstring above them grows. Cells whose cell magic is not Python are left
+    alone, and a cell that cannot be parsed is skipped with a note while the
+    other cells are still formatted.
+    """
+    long_doc = (
+        'A docstring that is long enough to need wrapping at the default'
+        ' line length of seventy-nine characters.'
+    )
+    cells = [
+        '%pip install numpy\n!pip install pandas\nimport os',
+        (
+            '%load_ext autoreload\n'
+            'def f(x):\n'
+            f'    """{long_doc}"""\n'
+            '    return x\n'
+            '\n'
+            'files = !ls\n'
+            'f?\n'
+            'for i in range(3):\n'
+            '    %time f(i)'
+        ),
+        f'%%time\ndef g():\n    """{long_doc}"""',
+        f'%%bash\ndef h():\n    """{long_doc}"""',
+        'def broken(:\n    pass',
+    ]
+    work_file = tmp_path / 'work.ipynb'
+    _write_notebook(work_file, cells)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main_ipynb, [str(work_file)])
+
+    assert result.exit_code == 1, result.output
+    assert 'skipping cell 5, which cannot be parsed as Python' in (
+        result.output
+    )
+    wrapped_doc = (
+        '    """\n'
+        '    A docstring that is long enough to need wrapping at the default'
+        ' line length\n'
+        '    of seventy-nine characters.\n'
+        '    """'
+    )
+    updated = json.loads(work_file.read_text())
+    assert [''.join(cell['source']) for cell in updated['cells']] == [
+        cells[0],
+        (
+            '%load_ext autoreload\n'
+            'def f(x):\n'
+            f'{wrapped_doc}\n'
+            '    return x\n'
+            '\n'
+            'files = !ls\n'
+            'f?\n'
+            'for i in range(3):\n'
+            '    %time f(i)'
+        ),
+        f'%%time\ndef g():\n{wrapped_doc}',
+        cells[3],
+        cells[4],
+    ]
+
+
+def test_cli_ipynb_unparsable_cell_only(tmp_path: Path) -> None:
+    """
+    A notebook whose only problem is a cell that cannot be parsed exits 0.
+
+    The cell is left unchanged with a note on stderr, like the skip in a
+    notebook that also has formatted cells.
+    """
+    work_file = tmp_path / 'work.ipynb'
+    _write_notebook(work_file, ['def broken(:\n    pass'])
+    original_text = work_file.read_text()
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main_ipynb, [str(work_file)])
+
+    assert result.exit_code == 0, result.output
+    assert 'skipping cell 1, which cannot be parsed as Python' in (
+        result.output
+    )
+    assert work_file.read_text() == original_text

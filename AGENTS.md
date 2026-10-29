@@ -19,6 +19,9 @@ oriented before making changes.
   and delegates to `PythonFileFixer`.
 - `format_docstring/main_jupyter.py` – CLI for `.ipynb` files built on
   `JupyterNotebookParser`/`JupyterNotebookRewriter`.
+- `format_docstring/ipython_magics.py` – Masks IPython-only lines (magics,
+  shell commands, help queries) in notebook cells before parsing, and restores
+  them afterwards.
 - `format_docstring/base_fixer.py` – Shared directory traversal, exclusion
   regex handling, and `fix_one_directory_or_one_file` orchestration.
 - `format_docstring/docstring_rewriter.py` – AST-based docstring extraction and
@@ -64,7 +67,14 @@ oriented before making changes.
 - `BaseFixer` subclasses return `1` when any file changed so callers can
   surface non-zero exit codes.
 - Notebook fixer round-trips JSON via `json.dump(..., indent=1)` and rewrites
-  cells only when content changes, preserving magics with `reconstruct_source`.
+  cells only when content changes. A cell that does not parse as Python goes
+  through `ipython_magics`, which replaces each logical line that uses
+  IPython-only syntax with a unique placeholder name at the same indentation (a
+  Python cell magic line such as `%%time` becomes a placeholder comment), and
+  puts the original lines back by placeholder, not by line number, since
+  docstrings can grow. Cells under a non-Python cell magic (`%%bash`) are
+  skipped silently; cells that still fail to parse are skipped with a note on
+  stderr. Neither changes the exit status.
 
 ## 4. Configuration
 
