@@ -72,6 +72,17 @@ oriented before making changes.
   re-indents wrappable text. Any directive whose line ends with `::`, including
   `.. note::`, introduces a literal block in both styles. `_fix_rst_backticks`
   takes the same `style`, so both passes read `::` blocks the same way.
+- Both wrappers pass code directives and `::` literal blocks through
+  (`is_rst_block`) before any section parsing: the NumPy main loop of
+  `wrap_docstring_numpy` and Google's `_consume_google_protected_block`. A
+  heading or signature-like line inside a block must not change
+  `current_section`. Inside tables and bulleted lists
+  (`find_table_or_list_end`) NumPy leaves block lines in place, matching
+  `_split_out_literal_blocks`, so a row or item ending with `::` does not split
+  the table or list; it skips heading detection there instead, and passes
+  through the rest of a block that runs past the list. In Google
+  `Returns:`/`Yields:` descriptions, a header-like line ends the description
+  only when it is not indented past the item.
 - `_RST_CODE_DIRECTIVE_NAMES` lists the directives whose body is code
   (`code-block`, `code`, `sourcecode`, `ipython`, the `sphinx.ext.doctest`
   directives, and sphinx-prompt's `prompt`). With an argument their line

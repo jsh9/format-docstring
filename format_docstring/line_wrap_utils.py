@@ -829,6 +829,69 @@ def _find_unwrappable_span(
     return None, start_idx
 
 
+def is_rst_block(
+        lines: list[str],
+        start_idx: int,
+        *,
+        style: str,
+) -> tuple[bool, int]:
+    """
+    Check if an rST code directive or ``::`` literal block starts here.
+
+    Both are literal text, so the wrappers consume them before section parsing.
+    Otherwise a heading or signature-like line inside one (such as ``Returns``
+    over a hyphen underline in an rST sample) would switch the parser's section
+    and change how the text after the block is read.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The lines being scanned.
+    start_idx : int
+        The index of the line to check. A code directive starts at its
+        directive line, a literal block at the line after the ``::`` line.
+    style : str
+        The docstring style, ``'numpy'`` or ``'google'``; see
+        ``is_literal_block_paragraph``.
+
+    Returns
+    -------
+    tuple[bool, int]
+        Whether a block starts at ``start_idx``, and the index after it (or
+        ``start_idx`` when none starts there).
+    """
+    is_code, end_idx = is_rst_code_block(lines, start_idx)
+    if is_code:
+        return True, end_idx
+
+    return is_literal_block_paragraph(lines, start_idx, style=style)
+
+
+def find_table_or_list_end(lines: list[str], start_idx: int) -> int:
+    """
+    Return the index after the rST table or bulleted list at ``start_idx``.
+
+    Parameters
+    ----------
+    lines : list[str]
+        The lines being scanned.
+    start_idx : int
+        The index of the line to check.
+
+    Returns
+    -------
+    int
+        The index after the table or list that starts at ``start_idx``, or
+        ``start_idx`` when none starts there.
+    """
+    is_table, end_idx = is_rST_table(lines, start_idx)
+    if is_table:
+        return end_idx
+
+    _, end_idx = is_bulleted_list(lines, start_idx)
+    return end_idx
+
+
 def is_examples_code_block(
         lines: list[str],
         start_idx: int,

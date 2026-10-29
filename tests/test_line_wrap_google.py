@@ -6,6 +6,7 @@ from format_docstring.docstring_rewriter import wrap_docstring
 from format_docstring.line_wrap_google import (
     _find_google_signature_colon,
     _normalize_google_signature_spacing,
+    _pass1_unwrap_google_docstring,
     _wrap_first_line_shorter,
     wrap_docstring_google,
 )
@@ -285,3 +286,42 @@ def test_wrap_first_line_shorter(
         subsequent_indent=subsequent_indent,
     )
     assert result == expected
+
+
+def test_returns_description_keeps_header_like_lines_in_literal_block() -> (
+    None
+):
+    """
+    A header-like line inside a Returns description's block stays literal.
+
+    It must neither end the description, which would let the first pass rename
+    it (``Arguments:`` to ``Args:``), nor let the paragraph after the block be
+    read as a new return item and synced with the annotation.
+    """
+    docstring = """
+    Summary.
+
+    Returns:
+        str: The help text looks like::
+
+            $ prog --help
+            Arguments:
+              X  The thing.
+            Note:
+              Something.
+
+        Second paragraph of the return description.
+    """
+    out = _pass1_unwrap_google_docstring(
+        docstring,
+        line_length=79,
+        leading_indent=4,
+        return_annotation='int',
+    )
+    lines = [line.strip() for line in out.splitlines()]
+    assert 'Arguments:' in lines
+    assert 'Note:' in lines
+    assert 'Args:' not in lines
+    assert 'Notes:' not in lines
+    assert 'Second paragraph of the return description.' in lines
+    assert sum(line.startswith('int:') for line in lines) == 1

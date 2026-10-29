@@ -1,0 +1,181 @@
+LINE_LENGTH: 79
+
+**********
+def describe(x, y=2) -> int:
+    """
+    Describe a value.
+
+    .. code-block:: rst
+
+        Returns
+        -------
+        int
+            The value.
+
+    The prose here: describes it, and it is long enough to need wrapping at the limit.
+
+    A NumPy sample::
+
+        Parameters
+        ----------
+        name : str
+            A name.
+
+    Parameters
+    ----------
+    x : int
+        The value, as an rST sample::
+
+            Returns
+            -------
+            str
+                Not the real return type.
+
+            ~~~~~
+            Title
+            ~~~~~
+    y : int
+        The other value.
+
+    Returns
+    -------
+    str
+        The description.
+    """
+    pass
+
+
+def listed(x, y='a') -> int:
+    """
+    Summary.
+
+    - A sample right after the item, with no blank line::
+          Returns
+          -------
+          int
+    - An item with a directive on its continuation line:
+      .. code-block:: rst
+
+          Returns
+          -------
+          int
+
+    The prose here: describes it, and it is long enough to need wrapping at the limit.
+
+    Parameters
+    ----------
+    x : int
+        The value.
+    y : str
+        The other value.
+    """
+    pass
+
+
+def pair() -> tuple[int, str]:
+    """
+    Return a pair.
+
+    Returns
+    -------
+    a : int
+        The first, with a sample::
+
+            Returns
+            -------
+            int
+    b : str
+        The second.
+    """
+    pass
+
+**********
+def describe(x, y=2) -> int:
+    """
+    Describe a value.
+
+    .. code-block:: rst
+
+        Returns
+        -------
+        int
+            The value.
+
+    The prose here: describes it, and it is long enough to need wrapping at the
+    limit.
+
+    A NumPy sample::
+
+        Parameters
+        ----------
+        name : str
+            A name.
+
+    Parameters
+    ----------
+    x : int
+        The value, as an rST sample::
+
+            Returns
+            -------
+            str
+                Not the real return type.
+
+            ~~~~~
+            Title
+            ~~~~~
+    y : int, default=2
+        The other value.
+
+    Returns
+    -------
+    int
+        The description.
+    """
+    pass
+
+
+def listed(x, y='a') -> int:
+    """
+    Summary.
+
+    - A sample right after the item, with no blank line::
+          Returns
+          -------
+          int
+    - An item with a directive on its continuation line:
+      .. code-block:: rst
+
+          Returns
+          -------
+          int
+
+    The prose here: describes it, and it is long enough to need wrapping at the
+    limit.
+
+    Parameters
+    ----------
+    x : int
+        The value.
+    y : str, default='a'
+        The other value.
+    """
+    pass
+
+
+def pair() -> tuple[int, str]:
+    """
+    Return a pair.
+
+    Returns
+    -------
+    a : int
+        The first, with a sample::
+
+            Returns
+            -------
+            int
+    b : str
+        The second.
+    """
+    pass
