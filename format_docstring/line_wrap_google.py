@@ -681,12 +681,21 @@ def _is_google_description_boundary(
         current_item_indent: int,
         is_return_section: bool,
 ) -> bool:
-    """Return True if ``parts`` starts a new section or item."""
+    """
+    Return True if ``parts`` starts a new section or item.
+
+    A Returns/Yields description can continue at the item's own indent, so
+    there only a dedent or a header line ends it. A header-like line indented
+    past the item (``Arguments:`` in a literal block of CLI help) is part of
+    the description.
+    """
     if is_return_section:
-        return (
-            _is_google_section_header(parts.stripped)
-            or _is_google_unknown_section_header(parts.stripped)
-            or parts.indent_level < current_item_indent
+        return parts.indent_level < current_item_indent or (
+            parts.indent_level <= current_item_indent
+            and (
+                _is_google_section_header(parts.stripped)
+                or _is_google_unknown_section_header(parts.stripped)
+            )
         )
 
     return parts.indent_level <= current_item_indent

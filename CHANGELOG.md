@@ -49,7 +49,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     parsed as section content. Both wrappers now pass these blocks through
     before section parsing, ahead of code fences, so a `~~~~` line inside a
     block is no longer read as an unclosed fence that hides the rest of the
-    docstring.
+    docstring. This also covers a NumPy block inside a list item, a heading
+    inside a block in a NumPy return item's description (which hid the later
+    return items from tuple sync), and a header-like line inside a block in a
+    Google `Returns:`/`Yields:` description.
 - Changed
   - In NumPy style, the whole body of a directive whose line ends with `::`,
     such as `.. note::`, is now left as is, like a literal block. Previously
