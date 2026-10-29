@@ -1028,6 +1028,7 @@ def _mask_rst_backtick_protected_lines(  # noqa: C901, PLR0915
         lines: list[str],
         *,
         style: str,
+        first_line_indent: int | None = None,
 ) -> tuple[list[str], dict[int, str]]:
     """
     Replace example/code lines with placeholders before rST backtick fixing.
@@ -1041,7 +1042,8 @@ def _mask_rst_backtick_protected_lines(  # noqa: C901, PLR0915
     state here because the regex fixer runs before the style-specific wrappers
     decide which example lines are code. ``style`` selects how ``::`` literal
     blocks are read, so this pass reads them the same way as the wrapper for
-    that style (see ``is_literal_block_paragraph``).
+    that style (see ``is_literal_block_paragraph``), and so does
+    ``first_line_indent``, the real indent of a compact first line.
     """
     protected_lines: dict[int, str] = {}
     masked_lines: list[str] = []
@@ -1126,7 +1128,10 @@ def _mask_rst_backtick_protected_lines(  # noqa: C901, PLR0915
         # ``::`` literal blocks are detected from the previous content line,
         # so this check must happen before looking only at current-line text.
         is_literal, literal_end_idx = is_literal_block_paragraph(
-            lines, current_idx, style=style
+            lines,
+            current_idx,
+            style=style,
+            first_line_indent=first_line_indent,
         )
         if is_literal:
             # Backtick fixing is prose-only. Literal blocks may contain code or
@@ -1160,7 +1165,12 @@ def _mask_rst_backtick_protected_lines(  # noqa: C901, PLR0915
     return masked_lines, protected_lines
 
 
-def _fix_rst_backticks(docstring: str, *, style: str = 'numpy') -> str:
+def _fix_rst_backticks(
+        docstring: str,
+        *,
+        style: str = 'numpy',
+        first_line_indent: int | None = None,
+) -> str:
     """
     Fix inline-literal single backticks to double backticks per rST syntax.
 
@@ -1177,6 +1187,9 @@ def _fix_rst_backticks(docstring: str, *, style: str = 'numpy') -> str:
         The docstring style, ``'numpy'`` or ``'google'``. It decides which
         lines count as part of a ``::`` literal block, whose backticks are
         left alone.
+    first_line_indent : int | None, default=None
+        The real indent of the first line when its own indent was stripped, as
+        for a Google compact summary; see ``is_literal_block_paragraph``.
 
     Returns
     -------
@@ -1265,7 +1278,7 @@ def _fix_rst_backticks(docstring: str, *, style: str = 'numpy') -> str:
 
     lines = docstring.splitlines(keepends=True)
     protected_lines, original_lines = _mask_rst_backtick_protected_lines(
-        lines, style=style
+        lines, style=style, first_line_indent=first_line_indent
     )
 
     # Process the docstring with examples/code temporarily hidden.

@@ -78,11 +78,12 @@ oriented before making changes.
   doesn't end with `::`, so they need this list; without one they are also
   literal blocks.
 - Only indentation ends a `::` literal block, so header-like lines inside it
-  (`Arguments:` in CLI help) stay literal. The exception is a `::` line that is
-  the first of the scanned lines: Google compact summaries and inline signature
-  descriptions lose their indent, so there a known section header that is not
-  indented past the estimated margin (`_first_line_section_boundary_indent`)
-  also ends the block.
+  (`Arguments:` in CLI help) stay literal. A Google compact summary sits beside
+  the opening quotes without its indent, so callers that see it (Google pass 2
+  and the Google backtick pass) pass `first_line_indent=leading_indent` to
+  `is_literal_block_paragraph` (via `segment_lines_by_wrappability` /
+  `_fix_rst_backticks`); a `::` line at `lines[0]` is then measured from the
+  docstring margin.
 - `_normalize_signature_segment` flattens multiline annotations via
   `ast.unparse` but uses token-level replay to preserve the author's quoting
   style for forward references and string defaults.
