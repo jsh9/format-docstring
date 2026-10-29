@@ -428,3 +428,24 @@ def test_cli_ipynb_ipython_magics(tmp_path: Path) -> None:
         cells[3],
         cells[4],
     ]
+
+
+def test_cli_ipynb_unparsable_cell_only(tmp_path: Path) -> None:
+    """
+    A notebook whose only problem is a cell that cannot be parsed exits 0.
+
+    The cell is left unchanged with a note on stderr, like the skip in a
+    notebook that also has formatted cells.
+    """
+    work_file = tmp_path / 'work.ipynb'
+    _write_notebook(work_file, ['def broken(:\n    pass'])
+    original_text = work_file.read_text()
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main_ipynb, [str(work_file)])
+
+    assert result.exit_code == 0, result.output
+    assert 'skipping cell 1, which cannot be parsed as Python' in (
+        result.output
+    )
+    assert work_file.read_text() == original_text

@@ -240,7 +240,8 @@ class JupyterNotebookFixer(BaseFixer):
         IPython-only lines (magics, shell commands, help queries) are masked
         while the cell is parsed and formatted, and are restored unchanged.
         Cells that are not Python, such as ``%%bash`` cells, are returned as
-        is. So are cells that still cannot be parsed, with a note on stderr.
+        is. So are cells that still cannot be parsed, with a note on stderr;
+        the note does not change the exit status, like an unchanged cell.
 
         Parameters
         ----------
@@ -273,9 +274,10 @@ class JupyterNotebookFixer(BaseFixer):
                 ),
             )
         except SyntaxError as exc:
+            where = f' (line {exc.lineno})' if exc.lineno is not None else ''
             print(
                 f'{filename}: skipping cell {cell_index + 1}, which cannot'
-                f' be parsed as Python: {exc.msg} (line {exc.lineno})',
+                f' be parsed as Python: {exc.msg}{where}',
                 file=sys.stderr,
             )
             return source

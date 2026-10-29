@@ -67,12 +67,14 @@ oriented before making changes.
 - `BaseFixer` subclasses return `1` when any file changed so callers can
   surface non-zero exit codes.
 - Notebook fixer round-trips JSON via `json.dump(..., indent=1)` and rewrites
-  cells only when content changes. Before parsing a cell, `ipython_magics`
-  replaces each logical line that uses IPython-only syntax with a unique
-  placeholder name at the same indentation, and puts the original lines back by
-  placeholder (not by line number, since docstrings can grow). Cells under a
-  non-Python cell magic (`%%bash`) are skipped, and so are cells that still
-  fail to parse, with a note on stderr.
+  cells only when content changes. A cell that does not parse as Python goes
+  through `ipython_magics`, which replaces each logical line that uses
+  IPython-only syntax with a unique placeholder name at the same indentation (a
+  Python cell magic line such as `%%time` becomes a placeholder comment), and
+  puts the original lines back by placeholder, not by line number, since
+  docstrings can grow. Cells under a non-Python cell magic (`%%bash`) are
+  skipped silently; cells that still fail to parse are skipped with a note on
+  stderr. Neither changes the exit status.
 
 ## 4. Configuration
 

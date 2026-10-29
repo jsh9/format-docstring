@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import sys
 
 import pytest
 
@@ -47,27 +48,11 @@ def _masked_line_indices(source: str) -> list[int]:
         # line is command text even when it looks like an open string
         ('%time f(\\\n  "it\'s")\nx = 1', [0, 1]),
         ("!echo it's here\nx = 1", [0]),
-        # A help query on the last line of a bracketed logical line masks all
-        # of its lines
+        # ``?`` outside strings is never Python, so the whole logical line is
+        # masked. IPython rejects this form too; masking only keeps it as is.
         ('foo(a,\n    b)?\nx = 1', [0, 1]),
-        # Python syntax that only looks like IPython
-        ('x = a % b', []),
-        ('x = (a\n     % b)', []),
-        ('x = 1 \\\n    % 2', []),
-        ('x = a != b', []),
-        ('x = "what?"  # really?', []),
-        ("print(f'{x!r}')", []),
-        ('x %= 2', []),
-        ('x = {"a": 1}', []),
-        (
-            'def f():\n    """\n    %notamagic\n    !notashell\n    """',
-            [],
-        ),
-        ("s = '''\n%notamagic\n'''", []),
-        ("s = 'a\\\n%notamagic'", []),
         # An unterminated single-quoted string ends at the end of its line
         ("s = 'a\n%magic", [1]),
-        ('', []),
     ],
 )
 def test_mask_ipython_syntax_masked_lines(
@@ -76,6 +61,58 @@ def test_mask_ipython_syntax_masked_lines(
 ) -> None:
     """Mask exactly the lines that use IPython-only syntax."""
     assert _masked_line_indices(source) == expected
+
+
+PYTHON_THAT_LOOKS_LIKE_IPYTHON = [
+    'x = a % b',
+    'x = (a\n     % b)',
+    'x = 1 \\\n    % 2',
+    'x = a != b',
+    'x = (a\n     != b)',
+    'x = "what?"  # really?',
+    "print(f'{x!r}')",
+    'x %= 2',
+    'x = {"a": 1}',
+    'def f():\n    """\n    %notamagic\n    !notashell\n    """',
+    "s = '''\n%notamagic\n'''",
+    "s = 'a\\\n%notamagic'",
+    '',
+]
+
+
+@pytest.mark.parametrize('source', PYTHON_THAT_LOOKS_LIKE_IPYTHON)
+def test_mask_ipython_syntax_leaves_python_lines_alone(source: str) -> None:
+    """
+    Don't mask Python that only looks like IPython syntax.
+
+    A magic line is appended so that the cell does not parse as Python and the
+    line scanner, not the parse-first shortcut, decides.
+    """
+    cell = source + '\n%time f()'
+    assert _masked_line_indices(cell) == [source.count('\n') + 1]
+
+
+@pytest.mark.parametrize(
+    'source',
+    [
+        *PYTHON_THAT_LOOKS_LIKE_IPYTHON,
+        pytest.param(
+            # A Python 3.12 f-string that reuses its quote in a replacement
+            # field, which the line scanner would read as several strings
+            'def f(y):\n    return (\n        f"{"!".join(y)}"\n    )',
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 12),
+                reason='nested same-quote f-strings need Python 3.12',
+            ),
+        ),
+    ],
+)
+def test_mask_ipython_syntax_keeps_python_cells_unmasked(source: str) -> None:
+    """A cell that parses as Python is returned without any masking."""
+    masked = mask_ipython_syntax(source)
+    assert masked is not None
+    assert masked.source == source
+    assert masked.original_lines == {}
 
 
 @pytest.mark.parametrize(
@@ -99,6 +136,9 @@ def test_mask_ipython_syntax_skips_non_python_cell_magics(
     ('source', 'expected'),
     [
         ('%%time\ndef f():\n    pass', [0]),
+        ('%%debug\nf()', [0]),
+        ('%%code_wrap name\n__ret__ = __code__', [0]),
+        ('%%python2\nf()', [0]),
         ('%%timeit -n 10\nf()', [0]),
         ('%%capture out\n!ls\nf()', [0, 1]),
         ('\n%%time\nf()', [1]),
@@ -166,4 +206,25 @@ def test_mask_ipython_syntax_keeps_crlf_lines() -> None:
     masked = mask_ipython_syntax(source)
     assert masked is not None
     assert '%' not in masked.source
+    assert unmask_ipython_syntax(masked.source, masked) == source
+
+
+def test_mask_ipython_syntax_keeps_docstring_under_cell_magic() -> None:
+    """A docstring right below ``%%time`` is still the cell's docstring."""
+    source = '%%time\n"""Cell docstring."""\nx = 1'
+    masked = mask_ipython_syntax(source)
+    assert masked is not None
+    assert ast.get_docstring(ast.parse(masked.source)) == 'Cell docstring.'
+    assert unmask_ipython_syntax(masked.source, masked) == source
+
+
+def test_mask_ipython_syntax_indents_each_logical_line() -> None:
+    """Each masked logical line keeps its own indent, even when adjacent."""
+    source = 'if x:\n    %time f()\n%time g()\ny = 1'
+    masked = mask_ipython_syntax(source)
+    assert masked is not None
+    masked_lines = masked.source.split('\n')
+    assert masked_lines[1].startswith('    __')
+    assert masked_lines[2].startswith('__')
+    ast.parse(masked.source)
     assert unmask_ipython_syntax(masked.source, masked) == source

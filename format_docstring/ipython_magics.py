@@ -11,16 +11,21 @@ original lines are then put back.
 
 from __future__ import annotations
 
+import ast
 from dataclasses import dataclass
 from typing import Final
 
-# Cell magics whose body is Python. Any other cell magic (``%%bash``,
-# ``%%html``, ``%%writefile`` and so on) makes the whole cell non-Python.
+# IPython's built-in cell magics whose body is Python. Any other cell magic
+# (``%%bash``, ``%%html``, ``%%writefile`` and so on) makes the whole cell
+# non-Python.
 PYTHON_CELL_MAGICS: Final[frozenset[str]] = frozenset({
     'capture',
+    'code_wrap',
+    'debug',
     'prun',
     'pypy',
     'python',
+    'python2',
     'python3',
     'time',
     'timeit',
@@ -57,10 +62,14 @@ def mask_ipython_syntax(source: str) -> MaskedSource | None:
     """
     Replace the lines of ``source`` that use IPython-only syntax.
 
-    Each masked line becomes a placeholder name (a valid expression statement),
-    indented like the first line of its logical line, so the masked source
-    keeps the original line structure and can still parse as the body of a
-    block. Lines inside strings, such as docstrings, are never masked.
+    A cell that already parses as Python is returned unmasked. Otherwise each
+    line of a logical line that uses IPython-only syntax becomes a placeholder
+    name (a valid expression statement), indented like the first line of that
+    logical line, so the masked source keeps the original line structure and
+    can still parse as the body of a block. A Python cell magic line (such as
+    ``%%time``) becomes a placeholder comment instead, so a docstring right
+    below it is still the cell's docstring, as it is in the body IPython runs.
+    Lines inside strings, such as docstrings, are never masked.
 
     Parameters
     ----------
@@ -73,8 +82,21 @@ def mask_ipython_syntax(source: str) -> MaskedSource | None:
         The masked source, or None when the cell starts with a cell magic whose
         body is not Python (such as ``%%bash``).
     """
+    if _parses_as_python(source):
+        return MaskedSource(source=source, original_lines={})
+
     lines: list[str] = source.split('\n')
-    is_masked: list[bool] = [False] * len(lines)
+    masked_lines: list[str] = list(lines)
+    original_lines: dict[str, str] = {}
+
+    prefix = _PLACEHOLDER_PREFIX
+    while prefix in source:
+        prefix += '_'
+
+    def mask(idx: int, template: str) -> None:
+        placeholder = template.format(f'{prefix}{len(original_lines)}')
+        original_lines[placeholder.strip()] = lines[idx]
+        masked_lines[idx] = placeholder
 
     first_idx = 0
     while first_idx < len(lines) and not lines[first_idx].strip():
@@ -86,32 +108,16 @@ def mask_ipython_syntax(source: str) -> MaskedSource | None:
             return None
 
         # The body of a Python cell magic is Python; only mask the magic line.
-        is_masked[first_idx] = True
+        mask(first_idx, '#{}')
         first_idx += 1
 
     for start_idx, end_idx in _find_ipython_logical_lines(lines, first_idx):
-        is_masked[start_idx:end_idx] = [True] * (end_idx - start_idx)
-
-    prefix = _PLACEHOLDER_PREFIX
-    while prefix in source:
-        prefix += '_'
-
-    original_lines: dict[str, str] = {}
-    masked_lines: list[str] = []
-    indent = ''
-    for idx, line in enumerate(lines):
-        if not is_masked[idx]:
-            masked_lines.append(line)
-            continue
-
-        # Continuation lines of a masked logical line take the indentation of
-        # its first line, so the placeholders form a valid statement sequence.
-        if idx == 0 or not is_masked[idx - 1]:
-            indent = line[: len(line) - len(line.lstrip())]
-
-        placeholder = f'{prefix}{len(original_lines)}'
-        original_lines[placeholder] = line
-        masked_lines.append(indent + placeholder)
+        # Every line of the logical line takes the indent of its first line,
+        # so the placeholders form a valid statement sequence.
+        first_line = lines[start_idx]
+        indent = first_line[: len(first_line) - len(first_line.lstrip())]
+        for idx in range(start_idx, end_idx):
+            mask(idx, indent + '{}')
 
     return MaskedSource(
         source='\n'.join(masked_lines),
@@ -146,6 +152,16 @@ def unmask_ipython_syntax(source: str, masked: MaskedSource) -> str:
             lines[idx] = original
 
     return '\n'.join(lines)
+
+
+def _parses_as_python(source: str) -> bool:
+    """Return True when ``source`` parses as Python as it is."""
+    try:
+        ast.parse(source)
+    except (SyntaxError, ValueError):
+        return False
+
+    return True
 
 
 def _find_ipython_logical_lines(
@@ -221,6 +237,13 @@ def _scan_python_line(
 ) -> tuple[int, str | None, bool, bool]:
     """
     Scan one physical line of Python code.
+
+    Strings are tracked by their quotes only. A Python 3.12 f-string that
+    reuses its own quote inside a replacement field (``f"{d["k"]}"``) is read
+    as several strings, so a ``!`` or ``?`` in that field can be taken for
+    IPython syntax. That only matters for a cell that does not parse as Python
+    anyway, and then the masked line is restored as is or the cell is skipped;
+    it is never changed.
 
     Parameters
     ----------
