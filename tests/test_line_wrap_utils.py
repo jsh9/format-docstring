@@ -2645,8 +2645,65 @@ def test_is_literal_block_paragraph_reads_rst_by_style(
             False,
             0,
         ),
+        (
+            [
+                '.. ipython:: python',
+                '',
+                '    df = make_frame()',
+                '    df.head()',
+                'Back to prose',
+            ],
+            0,
+            True,
+            4,
+        ),
+        *(
+            (
+                [
+                    f'  .. {name}:: grouped',
+                    '     :options: +ELLIPSIS',
+                    '',
+                    '      >>> x = 1',
+                    '      >>> y = 2',
+                    '',
+                    '  Back to prose',
+                ],
+                0,
+                True,
+                6,
+            )
+            for name in (
+                'doctest',
+                'testcode',
+                'testoutput',
+                'testsetup',
+                'testcleanup',
+            )
+        ),
+        (
+            [
+                '.. ipython-like:: python',
+                '',
+                '    Not a code directive',
+            ],
+            0,
+            False,
+            0,
+        ),
     ],
-    ids=['code_block', 'sourcecode', 'code', 'not_code_directive'],
+    ids=[
+        'code_block',
+        'sourcecode',
+        'code',
+        'not_code_directive',
+        'ipython',
+        'doctest',
+        'testcode',
+        'testoutput',
+        'testsetup',
+        'testcleanup',
+        'unknown_directive_with_known_prefix',
+    ],
 )
 def test_is_rst_code_block_uses_indentation_boundaries(
         lines: list[str],

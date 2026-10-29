@@ -29,6 +29,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     ends a block whose `::` line lost its indent (a compact Google summary
     beside the opening quotes), but only when the header is not indented past
     the docstring margin.
+  - The bodies of IPython's `.. ipython::` directive and the
+    `sphinx.ext.doctest` directives (`.. doctest::`, `.. testcode::`,
+    `.. testoutput::`, `.. testsetup::`, `.. testcleanup::`) are now kept as is
+    when the directive takes an argument, such as `.. ipython:: python` or
+    `.. doctest:: grouped`, like `.. code-block:: python`. Their lines were
+    joined like prose (in Google style, `.. ipython:: python` bodies were also
+    dedented).
 - Changed
   - In NumPy style, the whole body of a directive whose line ends with `::`,
     such as `.. note::`, is now left as is, like a literal block. Previously

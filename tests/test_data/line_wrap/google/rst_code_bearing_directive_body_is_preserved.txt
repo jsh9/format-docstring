@@ -1,0 +1,89 @@
+LINE_LENGTH: 79
+
+**********
+Load a frame from a path and describe it.
+
+.. ipython:: python
+
+    df = make_frame()
+    df.head()
+
+    df.describe()
+
+Prose after the directive body is still wrapped because it is dedented back to the paragraph level.
+
+.. doctest:: grouped
+
+    >>> x = 1
+    >>> y = 2
+
+Args:
+    path (str): The path. For example:
+
+        .. testsetup:: grouped
+
+            import os
+            path = os.getcwd()
+
+        .. testcode:: grouped
+
+            frame = load(path)
+            print('`frame` loaded')
+
+        .. testoutput:: grouped
+           :options: +NORMALIZE_WHITESPACE
+
+            `frame` loaded
+            done
+
+        .. testcleanup:: grouped
+
+            os.remove(path)
+
+        Prose after the directive body is still wrapped because it is dedented back to the description level.
+    group (str | None): The group.
+
+**********
+Load a frame from a path and describe it.
+
+.. ipython:: python
+
+    df = make_frame()
+    df.head()
+
+    df.describe()
+
+Prose after the directive body is still wrapped because it is dedented back to
+the paragraph level.
+
+.. doctest:: grouped
+
+    >>> x = 1
+    >>> y = 2
+
+Args:
+    path (str): The path. For example:
+
+        .. testsetup:: grouped
+
+            import os
+            path = os.getcwd()
+
+        .. testcode:: grouped
+
+            frame = load(path)
+            print('`frame` loaded')
+
+        .. testoutput:: grouped
+           :options: +NORMALIZE_WHITESPACE
+
+            `frame` loaded
+            done
+
+        .. testcleanup:: grouped
+
+            os.remove(path)
+
+        Prose after the directive body is still wrapped because it is dedented
+        back to the description level.
+    group (str | None): The group.

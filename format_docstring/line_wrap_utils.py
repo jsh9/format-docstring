@@ -23,8 +23,26 @@ _LIST_ITEM_MARKER_PATTERN = re.compile(
     r'|(?P<enum_parens>\(\d+\)))'
     r' +'
 )
+# Directives whose body is code: the rST code directives, IPython's
+# ``ipython`` directive, and the ``sphinx.ext.doctest`` directives. These
+# usually take an argument (``.. ipython:: python``, ``.. doctest:: group``),
+# so their line does not end with ``::`` and the literal block rule misses
+# them.
+_RST_CODE_DIRECTIVE_NAMES = (
+    'code-block',
+    'sourcecode',
+    'code',
+    'ipython',
+    'doctest',
+    'testcode',
+    'testoutput',
+    'testsetup',
+    'testcleanup',
+)
 _RST_CODE_DIRECTIVE_PATTERN = re.compile(
-    r'^\s*\.\.\s+(?:code-block|sourcecode|code)::(?:\s+.*)?$',
+    r'^\s*\.\.\s+(?:'
+    + '|'.join(_RST_CODE_DIRECTIVE_NAMES)
+    + r')::(?:\s+.*)?$',
     re.IGNORECASE,
 )
 
@@ -973,9 +991,10 @@ def is_rst_code_block(
     """
     Check if lines starting at start_idx form an rST code directive block.
 
-    Common rST code directives are introduced by lines such as
-    ``.. code-block:: python``. Their indented body is code-like content, so
-    wrapping and rST backtick normalization should preserve it.
+    Code directives are introduced by lines such as ``.. code-block:: python``,
+    ``.. ipython:: python`` or ``.. doctest:: group`` (see
+    ``_RST_CODE_DIRECTIVE_NAMES``). Their indented body is code-like content,
+    so wrapping and rST backtick normalization should preserve it.
 
     Parameters
     ----------
