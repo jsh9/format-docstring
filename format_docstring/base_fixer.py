@@ -31,6 +31,8 @@ class BaseFixer:
         Filename pattern used for recursive discovery.
     """
 
+    file_pattern: str = '*.py'
+
     def __init__(
             self,
             path: str,
@@ -44,8 +46,6 @@ class BaseFixer:
         self.verbose = verbose
         self.respect_gitignore = respect_gitignore
         self._gitignore = GitIgnoreMatcher() if respect_gitignore else None
-
-    file_pattern: str = '*.py'
 
     def _is_excluded(self, path: Path) -> bool:
         return should_exclude_file(path, self.exclude_pattern) or (
@@ -97,7 +97,7 @@ class BaseFixer:
 
     def fix_one_directory_or_one_file(self) -> int:
         """
-        Fix formatting in a single file or matching files in a directory.
+        Fix formatting in a single file or all matching files in a directory.
         """
         path_obj = Path(self.path)
 
