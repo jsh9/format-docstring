@@ -23,6 +23,7 @@ _VALUE_OPTIONS = frozenset({
     '--include-arg-types',
     '--include-return-and-yield-types',
     '--line-length',
+    '--respect-gitignore',
     '--verbose',
 })
 

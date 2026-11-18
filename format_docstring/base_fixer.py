@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import difflib
+import os
 import re
 import sys
 from pathlib import Path
 from typing import Any
+
+from format_docstring.gitignore import GitIgnoreMatcher
 
 
 class BaseFixer:
@@ -19,6 +22,13 @@ class BaseFixer:
         Regular expression describing paths to skip.
     verbose : str, default='default'
         Verbosity mode; ``'diff'`` prints unified diffs for rewritten files.
+    respect_gitignore : bool, default=True
+        Skip paths matched by ancestor or nested .gitignore files.
+
+    Attributes
+    ----------
+    file_pattern : str, default='*.py'
+        Filename pattern used for recursive discovery.
     """
 
     def __init__(
@@ -26,21 +36,45 @@ class BaseFixer:
             path: str,
             exclude_pattern: str = r'\.git|\.tox|\.pytest_cache',
             verbose: str = 'default',
+            *,
+            respect_gitignore: bool = True,
     ) -> None:
         self.path = path
         self.exclude_pattern = exclude_pattern
         self.verbose = verbose
+        self.respect_gitignore = respect_gitignore
+        self._gitignore = GitIgnoreMatcher() if respect_gitignore else None
+
+    file_pattern: str = '*.py'
+
+    def _is_excluded(self, path: Path) -> bool:
+        return should_exclude_file(path, self.exclude_pattern) or (
+            self._gitignore is not None and self._gitignore.is_ignored(path)
+        )
 
     def _get_files_to_process(
             self, directory: Path, pattern: str
     ) -> list[Path]:
-        """Get list of files to process, filtered by exclude pattern."""
-        all_files = sorted(directory.rglob(pattern))
-        return [
-            f
-            for f in all_files
-            if not should_exclude_file(f, self.exclude_pattern)
-        ]
+        """Collect matching files while pruning ignored directories."""
+        if self._is_excluded(directory):
+            return []
+
+        files = []
+        for root, directories, filenames in os.walk(directory):
+            parent = Path(root)
+            directories[:] = [
+                name
+                for name in directories
+                if not self._is_excluded(parent / name)
+            ]
+            files.extend(
+                parent / name
+                for name in filenames
+                if Path(name).match(pattern)
+                and not self._is_excluded(parent / name)
+            )
+
+        return sorted(files)
 
     def print_diff(self, filename: str, before: str, after: str) -> None:
         """Print a unified diff when verbose mode is enabled."""
@@ -63,18 +97,18 @@ class BaseFixer:
 
     def fix_one_directory_or_one_file(self) -> int:
         """
-        Fix formatting in a single file or all Python files in a directory.
+        Fix formatting in a single file or matching files in a directory.
         """
         path_obj = Path(self.path)
 
         if path_obj.is_file():
-            if should_exclude_file(path_obj, self.exclude_pattern):
+            if self._is_excluded(path_obj):
                 return 0
 
             return self.fix_one_file(path_obj.as_posix())
 
         # Is a directory
-        filenames = self._get_files_to_process(path_obj, '*.py')
+        filenames = self._get_files_to_process(path_obj, self.file_pattern)
         all_status = set()
         for filename in filenames:
             status = self.fix_one_file(filename.as_posix())

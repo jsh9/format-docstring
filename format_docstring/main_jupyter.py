@@ -42,6 +42,13 @@ from format_docstring.config import (
     help='Regex pattern to exclude files/directories',
 )
 @click.option(
+    '--respect-gitignore',
+    type=bool,
+    default=True,
+    show_default=True,
+    help='Skip .gitignore matches, including explicitly provided paths',
+)
+@click.option(
     '--line-length',
     type=int,
     default=79,
@@ -95,6 +102,7 @@ def main(
         config: str | None,  # noqa: ARG001 (exposed for Click)
         *,
         exclude: str,
+        respect_gitignore: bool,
         line_length: int,
         docstring_style: str,
         fix_rst_backticks: bool,
@@ -118,6 +126,7 @@ def main(
         fixer = JupyterNotebookFixer(
             path=path,
             exclude_pattern=exclude,
+            respect_gitignore=respect_gitignore,
             line_length=line_length,
             fix_rst_backticks=fix_rst_backticks,
             include_arg_types=include_arg_types,
@@ -135,12 +144,15 @@ def main(
 class JupyterNotebookFixer(BaseFixer):
     """Fixer for Jupyter notebook files."""
 
+    file_pattern = '*.ipynb'
+
     def __init__(
             self,
             path: str,
             exclude_pattern: str = r'\.git|\.tox|\.pytest_cache',
             line_length: int = 79,
             *,
+            respect_gitignore: bool = True,
             fix_rst_backticks: bool = True,
             include_arg_types: bool = True,
             include_arg_defaults: bool = True,
@@ -150,6 +162,7 @@ class JupyterNotebookFixer(BaseFixer):
         super().__init__(
             path=path,
             exclude_pattern=exclude_pattern,
+            respect_gitignore=respect_gitignore,
             verbose=verbose.lower(),
         )
         self.line_length = line_length
@@ -158,22 +171,6 @@ class JupyterNotebookFixer(BaseFixer):
         self.include_arg_defaults = include_arg_defaults
         self.include_return_and_yield_types = include_return_and_yield_types
         self.docstring_style: str = 'numpy'
-
-    def fix_one_directory_or_one_file(self) -> int:
-        """Fix formatting in a file or all .ipynb files in a directory."""
-        path_obj = Path(self.path)
-
-        if path_obj.is_file():
-            return self.fix_one_file(path_obj.as_posix())
-
-        # Process .ipynb files instead of .py files for Jupyter notebooks
-        filenames = self._get_files_to_process(path_obj, '*.ipynb')
-        all_status = set()
-        for filename in filenames:
-            status = self.fix_one_file(str(filename))
-            all_status.add(status)
-
-        return 0 if not all_status or all_status == {0} else 1
 
     def fix_one_file(self, filename: str) -> int:
         """Fix formatting in a single Jupyter notebook file."""

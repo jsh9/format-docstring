@@ -34,6 +34,13 @@ from format_docstring.config import (
     help='Regex pattern to exclude files/directories',
 )
 @click.option(
+    '--respect-gitignore',
+    type=bool,
+    default=True,
+    show_default=True,
+    help='Skip .gitignore matches, including explicitly provided paths',
+)
+@click.option(
     '--line-length',
     type=int,
     default=79,
@@ -87,6 +94,7 @@ def main(
         config: str | None,  # noqa: ARG001 (exposed for Click)
         *,
         exclude: str,
+        respect_gitignore: bool,
         line_length: int,
         docstring_style: str,
         fix_rst_backticks: bool,
@@ -111,6 +119,7 @@ def main(
         fixer = PythonFileFixer(
             path=path,
             exclude_pattern=exclude,
+            respect_gitignore=respect_gitignore,
             line_length=line_length,
             fix_rst_backticks=fix_rst_backticks,
             include_arg_types=include_arg_types,
@@ -134,6 +143,7 @@ class PythonFileFixer(BaseFixer):
             exclude_pattern: str = r'\.git|\.tox|\.pytest_cache',
             line_length: int = 79,
             *,
+            respect_gitignore: bool = True,
             fix_rst_backticks: bool = True,
             include_arg_types: bool = True,
             include_arg_defaults: bool = True,
@@ -143,6 +153,7 @@ class PythonFileFixer(BaseFixer):
         super().__init__(
             path=path,
             exclude_pattern=exclude_pattern,
+            respect_gitignore=respect_gitignore,
             verbose=verbose.lower(),
         )
         self.line_length = line_length
