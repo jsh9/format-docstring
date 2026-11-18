@@ -67,6 +67,33 @@ def test_integration_cli_ipynb_len50(
     assert actual == expected
 
 
+def test_cli_ipynb_directory(tmp_path: Path) -> None:
+    """Select notebooks recursively and report changes."""
+    nested = tmp_path / 'nested'
+    nested.mkdir()
+    fixture = DATA_DIR / 'numpy' / 'before.ipynb'
+    notebooks = [tmp_path / 'work.ipynb', nested / 'work.ipynb']
+    for notebook in notebooks:
+        copy2(fixture, notebook)
+
+    python_file = tmp_path / 'work.py'
+    python_source = '"""Leave this Python file alone."""\n'
+    python_file.write_text(python_source)
+
+    runner = CliRunner()
+    result = runner.invoke(cli_main_ipynb, [str(tmp_path)])
+
+    assert result.exit_code == 1, result.output
+    expected = json.loads((DATA_DIR / 'numpy' / 'after.ipynb').read_text())
+    for notebook in notebooks:
+        assert json.loads(notebook.read_text()) == expected
+
+    assert python_file.read_text() == python_source
+
+    result = runner.invoke(cli_main_ipynb, [str(tmp_path)])
+    assert result.exit_code == 0, result.output
+
+
 def test_cli_ipynb_verbose_diff(tmp_path: Path) -> None:
     """Ensure ``--verbose diff`` prints a diff for notebook rewrites."""
     fixture = Path(__file__).parent / 'test_data/jupyter/verbose_before.ipynb'
