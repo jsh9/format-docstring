@@ -603,6 +603,7 @@ br"""Not a docstring."""
 | `--include-return-and-yield-types BOOL` | `True`                         | Include type hints in `Returns` and `Yields` docstrings. Pass `False` to remove them from Google-style return/yield descriptions. NumPy style does not allow `False`.                                 |
 | `--verbose CHOICE`                      | `default`                      | Logging detail level. `default` keeps the existing behaviour; `diff` prints unified diffs when rewrites happen.                                                                                       |
 | `--exclude TEXT`                        | `\.git\|\.tox\|\.pytest_cache` | Regex pattern to exclude files/directories.                                                                                                                                                           |
+| `--respect-gitignore BOOL`              | `True`                         | Skip paths matched by ancestor and nested `.gitignore` files, including explicit targets.                                                                                                             |
 | `--config PATH`                         | None                           | Path to a `pyproject.toml` config file. If not specified, the tool automatically searches for `pyproject.toml` in parent directories. Command-line options take precedence over config file settings. |
 | `--version`                             | N/A                            | Show version information.                                                                                                                                                                             |
 | `--help`                                | N/A                            | Show help message.                                                                                                                                                                                    |
@@ -637,6 +638,9 @@ format-docstring --config pyproject.toml --line-length 100 src/
 # Disable backtick fixing
 format-docstring --fix-rst-backticks=False my_module.py
 
+# Include paths normally excluded by .gitignore
+format-docstring --respect-gitignore=False src/
+
 # Omit argument defaults, including optional markers
 format-docstring --include-arg-defaults=False src/
 
@@ -660,6 +664,7 @@ include_arg_types = true
 include_arg_defaults = true
 include_return_and_yield_types = true
 exclude = "\\.git|\\.venv|__pycache__"
+respect_gitignore = true
 verbose = "default"  # or "diff" to print unified diffs
 ```
 
@@ -699,6 +704,18 @@ include_return_and_yield_types = false
   `true`. Setting this to `false` is supported only with Google style.
 - `exclude` (str): regex pattern used to skip files or directories. Default:
   `"\\.git|\\.tox|\\.pytest_cache"`.
+- `respect_gitignore` / `respect-gitignore` (bool): honor ancestor and nested
+  `.gitignore` files. Default: `true`. Ignored files and directories are
+  skipped even when explicitly passed to either command. Rules use Git-style
+  patterns and negation; a child cannot be re-included while its parent is
+  excluded. Ancestor discovery stops at the nearest `.git` directory or
+  worktree `.git` file, or the filesystem root outside repositories. Nested
+  repositories start a fresh rule scope. Directory symlinks are not followed.
+  This option reads only `.gitignore`, not `.ignore`, `.git/info/exclude`, or
+  global Git ignores. Rules apply regardless of whether files are tracked by
+  Git. Set this to `false` to disable ignore-file filtering; `exclude` still
+  applies, and cannot be overridden by `.gitignore` negations. CLI values
+  override configuration.
 - `verbose` (str): logging detail level, either `"default"` or `"diff"`. Use
   `"diff"` to print unified diffs when rewrites happen.
 
