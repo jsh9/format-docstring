@@ -94,6 +94,36 @@ def test_cli_ipynb_directory(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
 
 
+def test_cli_ipynb_exclude_directory(tmp_path: Path) -> None:
+    """Excluded notebooks are skipped when processing a directory."""
+    notebook = tmp_path / 'skip.ipynb'
+    copy2(DATA_DIR / 'numpy' / 'before.ipynb', notebook)
+    original = notebook.read_bytes()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_ipynb, ['--exclude', r'skip\.ipynb$', str(tmp_path)]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert notebook.read_bytes() == original
+
+
+def test_cli_ipynb_exclude_file(tmp_path: Path) -> None:
+    """Excluded notebooks are skipped when explicitly targeted."""
+    notebook = tmp_path / 'skip.ipynb'
+    copy2(DATA_DIR / 'numpy' / 'before.ipynb', notebook)
+    original = notebook.read_bytes()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_main_ipynb, ['--exclude', r'skip\.ipynb$', str(notebook)]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert notebook.read_bytes() == original
+
+
 def test_cli_ipynb_verbose_diff(tmp_path: Path) -> None:
     """Ensure ``--verbose diff`` prints a diff for notebook rewrites."""
     fixture = Path(__file__).parent / 'test_data/jupyter/verbose_before.ipynb'
