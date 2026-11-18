@@ -135,6 +135,8 @@ def main(
 class JupyterNotebookFixer(BaseFixer):
     """Fixer for Jupyter notebook files."""
 
+    file_pattern = '*.ipynb'
+
     def __init__(
             self,
             path: str,
@@ -158,22 +160,6 @@ class JupyterNotebookFixer(BaseFixer):
         self.include_arg_defaults = include_arg_defaults
         self.include_return_and_yield_types = include_return_and_yield_types
         self.docstring_style: str = 'numpy'
-
-    def fix_one_directory_or_one_file(self) -> int:
-        """Fix formatting in a file or all .ipynb files in a directory."""
-        path_obj = Path(self.path)
-
-        if path_obj.is_file():
-            return self.fix_one_file(path_obj.as_posix())
-
-        # Process .ipynb files instead of .py files for Jupyter notebooks
-        filenames = self._get_files_to_process(path_obj, '*.ipynb')
-        all_status = set()
-        for filename in filenames:
-            status = self.fix_one_file(str(filename))
-            all_status.add(status)
-
-        return 0 if not all_status or all_status == {0} else 1
 
     def fix_one_file(self, filename: str) -> int:
         """Fix formatting in a single Jupyter notebook file."""
