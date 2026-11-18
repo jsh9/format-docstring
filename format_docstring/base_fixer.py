@@ -21,6 +21,8 @@ class BaseFixer:
         Verbosity mode; ``'diff'`` prints unified diffs for rewritten files.
     """
 
+    file_pattern: str = '*.py'
+
     def __init__(
             self,
             path: str,
@@ -63,7 +65,7 @@ class BaseFixer:
 
     def fix_one_directory_or_one_file(self) -> int:
         """
-        Fix formatting in a single file or all Python files in a directory.
+        Fix formatting in a single file or all matching files in a directory.
         """
         path_obj = Path(self.path)
 
@@ -74,7 +76,7 @@ class BaseFixer:
             return self.fix_one_file(path_obj.as_posix())
 
         # Is a directory
-        filenames = self._get_files_to_process(path_obj, '*.py')
+        filenames = self._get_files_to_process(path_obj, self.file_pattern)
         all_status = set()
         for filename in filenames:
             status = self.fix_one_file(filename.as_posix())
